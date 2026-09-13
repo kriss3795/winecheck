@@ -1,0 +1,578 @@
+import React, { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Polygon, CircleMarker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+const P = {
+  vid:"#2F4A32", agua:"#2C6E8F", fondo:"#F7F6F2", panel:"#FFFFFF",
+  tinta:"#1C231D", apto:"#3B8C4E", riesgo:"#D99A1C", veto:"#C43C2E",
+  linea:"#DAD6CC", suave:"#6B6459", nd:"#9A9488",
+};
+const CFG = {
+  apto:{color:P.apto,label:"Buena opción",icono:"●"},
+  riesgo:{color:P.riesgo,label:"Con manejo",icono:"▲"},
+  veto:{color:P.veto,label:"No recomendado",icono:"■"},
+  nd:{color:P.nd,label:"Sin dato",icono:"○"},
+};
+
+function useEsMovil(){
+  const [m,setM]=useState(typeof window!=="undefined"?window.innerWidth<820:false);
+  useEffect(()=>{const f=()=>setM(window.innerWidth<820);window.addEventListener("resize",f);return()=>window.removeEventListener("resize",f);},[]);
+  return m;
+}
+
+function regionWinkler(gda){
+  if(gda<1389)return{region:"Región I",desc:"clima frío"};
+  if(gda<1667)return{region:"Región II",desc:"templado-frío"};
+  if(gda<1944)return{region:"Región III",desc:"templado"};
+  if(gda<2222)return{region:"Región IV",desc:"cálido"};
+  return{region:"Región V",desc:"muy cálido"};
+}
+
+// Distancia aproximada del punto a la costa del Pacifico (km), usando la longitud.
+// Chile central: la costa esta cerca de lon -71.6; a mas al este (mas negativo hacia
+// -70), mas continental/cordillerano. Es una aproximacion, honesta y util.
+function distanciaCostaKm(lat,lon){
+  // Longitud de costa aprox por tramo de latitud (interpolacion simple).
+  const costa = lat>-33 ? -71.5 : lat>-35 ? -71.7 : -72.9; // Valpo/RM, OHiggins/Maule, Itata/costa sur
+  const km = (lon - costa) * 92; // ~92 km por grado de lon en esta latitud (cos(34°)*111)
+  return Math.round(km);
+}
+
+// Cepas afines segun clima (calor) Y posicion este-oeste (influencia marina vs andina).
+// Basado en: costas/frio -> blancas y tintas frescas; interior calido -> tintas de cuerpo.
+function cepasRecomendadas(gda, amplitud, distCostaKm){
+  const frio = gda<1389, templadoFrio = gda>=1389&&gda<1667, calido = gda>=1944;
+  const costero = distCostaKm!=null && distCostaKm<40;
+  const cordillerano = distCostaKm!=null && distCostaKm>90;
+  if(costero || frio){
+    return {perfil:"Clima fresco / influencia marina", cepas:"Sauvignon Blanc, Chardonnay, Pinot Noir"+(templadoFrio?", Syrah de clima frío":"")};
+  }
+  if(calido && cordillerano){
+    return {perfil:"Interior cálido / influencia andina", cepas:"Cabernet Sauvignon, Syrah, Carménère"};
+  }
+  if(calido){
+    return {perfil:"Cálido", cepas:"Cabernet Sauvignon, Carménère, Syrah"};
+  }
+  // templado intermedio
+  return {perfil:"Templado", cepas:"Cabernet Sauvignon, Merlot, Carménère, Chardonnay"};
+}
+
+function analizarClima(fechas,tmax,tmin,precip){
+  const pt={};
+  for(let i=0;i<fechas.length;i++){
+    const d=new Date(fechas[i]);const mes=d.getMonth();const anio=d.getFullYear();
+    if(!(mes>=9||mes<=3))continue;
+    const temp=mes>=9?anio:anio-1;
+    if(!pt[temp])pt[temp]={gdd:0,helada:false,ampl:[],calor:0,lluviaCosecha:0};
+    const s=pt[temp];const mx=tmax[i],mn=tmin[i];if(mx==null||mn==null)continue;
+    const media=(mx+mn)/2;if(media>10)s.gdd+=(media-10);
+    if((mes===9||mes===10)&&mn<=0)s.helada=true;
+    if(mes===1||mes===2)s.ampl.push(mx-mn);
+    if(mx>=34)s.calor+=1;
+    if(mes===2||mes===3)s.lluviaCosecha+=(precip[i]||0);
+  }
+  const t=Object.values(pt);const n=t.length||1;
+  const gda=Math.round(t.reduce((a,s)=>a+s.gdd,0)/n);
+  const heladaTardia=t.filter(s=>s.helada).length;
+  const amplAll=t.flatMap(s=>s.ampl);
+  const amplitud=amplAll.length?+(amplAll.reduce((a,b)=>a+b,0)/amplAll.length).toFixed(1):null;
+  const calor=Math.round(t.reduce((a,s)=>a+s.calor,0)/n);
+  const lluviaCosecha=Math.round(t.reduce((a,s)=>a+s.lluviaCosecha,0)/n);
+  const problemas=[];let estado="apto";const fH=heladaTardia/n;
+  if(fH>0.4){estado="veto";problemas.push("Helada tras la brotación en "+heladaTardia+" de "+n+" años: pérdida de cosecha muy probable.");}
+  else if(fH>0.2){estado="riesgo";problemas.push("Helada tras la brotación frecuente ("+heladaTardia+"/"+n+"): exige control antihelada o buen drenaje de aire.");}
+  if(gda<850){estado="veto";problemas.push("Calor insuficiente incluso para cepas de clima frío ("+gda+" GDA).");}
+  if(lluviaCosecha>80){if(estado!=="veto")estado="riesgo";problemas.push("Lluvia de cosecha alta ("+lluviaCosecha+" mm): riesgo de botritis.");}
+  else if(lluviaCosecha>45&&estado==="apto"){estado="riesgo";problemas.push("Lluvia de cosecha moderada ("+lluviaCosecha+" mm): vigilar botritis.");}
+  if(calor>35){if(estado!=="veto")estado="riesgo";problemas.push("Muchos días sobre 34 °C ("+calor+"/año): estrés de maduración.");}
+  const botritis=lluviaCosecha>60?"alto":lluviaCosecha>30?"medio":"bajo";
+  return{estado,gda,heladaTardia,temporadas:n,amplitud,calor,lluviaCosecha,botritis,problemas};
+}
+
+async function pedirClima(lat,lon){
+  const finAnio=new Date().getFullYear()-1;
+  const start=(finAnio-24)+"-01-01",end=finAnio+"-12-31";
+  const url="https://archive-api.open-meteo.com/v1/archive?latitude="+lat.toFixed(4)+"&longitude="+lon.toFixed(4)+"&start_date="+start+"&end_date="+end+"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto";
+  const r=await fetch(url);
+  if(!r.ok)throw new Error("Open-Meteo "+r.status);
+  const j=await r.json();
+  if(!j.daily)throw new Error("sin datos");
+  return analizarClima(j.daily.time,j.daily.temperature_2m_max,j.daily.temperature_2m_min,j.daily.precipitation_sum);
+}
+
+// fetchGeo: intenta la petición directa (si el servidor permite CORS) y, si el
+// navegador la bloquea, reintenta a través del proxy de Netlify (/api/geo).
+// Así funciona con CIREN y DGA tanto si permiten CORS como si no.
+async function fetchGeo(url, timeoutMs){
+  const t = timeoutMs || 9000;
+  // Helper: parsea SOLO si es JSON de verdad (evita tragarse el index.html del proxy caido)
+  const leerJSON = async (resp) => {
+    const ct = resp.headers.get("content-type") || "";
+    const txt = await resp.text();
+    // Si viene HTML (proxy inactivo devuelve la SPA), NO es dato valido.
+    if (ct.indexOf("html") !== -1 || txt.trim().startsWith("<")) throw new Error("respuesta-no-json");
+    try { return JSON.parse(txt); } catch(e){ throw new Error("json-invalido"); }
+  };
+  // 1) Intento directo (si el servidor permite CORS)
+  try{
+    const r = await fetch(url, { signal: AbortSignal.timeout(t) });
+    if(!r.ok) throw 0;
+    return await leerJSON(r);
+  }catch(e){ /* sigue al proxy */ }
+  // 2) Reintento vía proxy Netlify. Si el proxy no existe, leerJSON lanzara y no
+  //    devolvemos datos falsos.
+  const prox = "/api/geo?url=" + encodeURIComponent(url);
+  const r2 = await fetch(prox, { signal: AbortSignal.timeout(t + 4000) });
+  if(!r2.ok) throw new Error("proxy-"+r2.status);
+  return await leerJSON(r2);
+}
+
+// Agua REAL: ArcGIS del MOP/DGA. ¿el punto cae en restriccion/prohibicion?
+async function pedirAgua(lat,lon){
+  try{
+    const base="https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Areas_de_Restriccion_y_Zonas_de_Prohibicion/MapServer/0/query";
+    const params=new URLSearchParams({
+      where:"1=1",
+      geometry:JSON.stringify({x:lon,y:lat,spatialReference:{wkid:4326}}),
+      geometryType:"esriGeometryPoint",inSR:"4326",
+      spatialRel:"esriSpatialRelIntersects",outFields:"*",returnGeometry:"false",f:"json"});
+    const j=await fetchGeo(base+"?"+params.toString(),9000);
+    if(j.error)throw 0;
+    // Si devuelve MUCHOS poligonos, no filtro por punto -> no fiable.
+    const hay=j.features&&j.features.length>0&&j.features.length<=3;
+    if(hay){
+      const attr=j.features[0].attributes||{};
+      const tipo=Object.values(attr).find(v=>typeof v==="string"&&/(prohib|restric)/i.test(v))||"Limitación vigente";
+      const esProhib=/prohib/i.test(tipo);
+      return{estado:"riesgo",conectado:true,nivel:esProhib?"prohibicion":"restriccion",
+        titular:esProhib?"Zona de PROHIBICIÓN de nuevas extracciones subterráneas.":"Área de RESTRICCIÓN de aguas subterráneas.",
+        detalle:esProhib?"No se constituyen NUEVOS derechos permanentes. Pero SÍ se pueden comprar/transferir derechos ya existentes en el acuífero: la viña es viable si se adquiere un derecho. Verificar oferta y precio.":"La DGA solo otorga nuevos derechos con carácter PROVISIONAL. También se pueden comprar derechos existentes. Disponibilidad limitada; verificar caso a caso."};
+    }
+    return{estado:"apto",conectado:true,
+      titular:"Sin restricción ni prohibición vigente en el punto.",
+      detalle:"El acuífero no está declarado en restricción/prohibición por la DGA. No garantiza que haya derechos disponibles; verificar caso a caso."};
+  }catch(e){return{estado:"nd",conectado:false};}
+}
+
+// Suelo REAL de Chile: estudios agrologicos CIREN. Cubre TODO Chile (Atacama-Aysen)
+// descubriendo dinamicamente las capas del servicio, sin IDs codificados a mano.
+const CIREN_SERVICIOS = [
+  "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer",
+  "https://esri.ciren.cl/server/rest/services/ESTUDIO_AGROLOGICO_SUELOS/MapServer",
+];
+
+async function listarCapas(servicio){
+  try{
+    const j=await fetchGeo(servicio+"?f=json",8000);
+    if(!j.layers)return [];
+    return j.layers.map(l=>l.id);
+  }catch(e){return [];}
+}
+
+async function consultarCapa(servicio,capa,lat,lon){
+  const base=servicio+"/"+capa+"/query";
+  // where=1=1 explicito + geometria de punto. spatialRel Intersects filtra al
+  // poligono que CONTIENE el punto. Pedimos count primero para validar 1 match.
+  const params=new URLSearchParams({
+    where:"1=1",
+    geometry:JSON.stringify({x:lon,y:lat,spatialReference:{wkid:4326}}),
+    geometryType:"esriGeometryPoint",
+    inSR:"4326",
+    spatialRel:"esriSpatialRelIntersects",
+    outFields:"*",
+    returnGeometry:"false",
+    f:"json",
+  });
+  const j=await fetchGeo(base+"?"+params.toString(),8000);
+  if(j.error)throw 0;
+  if(!j.features||j.features.length===0)throw 0; // sin dato en este punto (correcto)
+  // GUARDA CONTRA BUG: si devuelve MUCHOS features, la consulta no filtro por punto
+  // (devolvio toda la capa). Ese dato NO es fiable para el punto -> lo rechazamos.
+  if(j.features.length>3)throw 0;
+  return j.features[0].attributes||{};
+}
+
+function interpretarSuelo(a, nombreCapa){
+  const buscar=(re)=>{const k=Object.keys(a).find(k=>re.test(k)&&a[k]!=null&&String(a[k]).trim()!=="");return k?a[k]:null;};
+  const serie=buscar(/serie|nom_ser|nombre_su/i);
+  const capacidad=buscar(/cap.*uso|capuso|clase.*cap|^ccu$|^cus$|c_uso|categoria_uso/i);
+  const drenaje=buscar(/drenaj/i);
+  const textura=buscar(/textur/i);
+  const aptFrutal=buscar(/apt.*frut|frutal/i);
+  const aptAgricola=buscar(/apt.*agric|agricol/i);
+  const riego=buscar(/riego|categ.*rieg/i);
+  const erosion=buscar(/erosi/i);
+  const prof=buscar(/profund/i);
+  const topografia=buscar(/topograf|pendient/i);
+  const ph=buscar(/^ph$|ph_/i);
+
+  // VALIDACION ESTRICTA: si no hay NINGUN campo agronomico util, no es un dato fiable.
+  const utiles=[serie,capacidad,drenaje,textura,aptFrutal,aptAgricola].filter(v=>v!=null);
+  if(utiles.length===0) return null;
+
+  let estado="apto";const notas=[];
+  const capStr=(capacidad!=null?String(capacidad):"");
+  const num=(capStr.match(/(VIII|VII|VI|IV|III|II|I|V)/)||[])[0];
+  const mapaRomano={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8};
+  const cn=mapaRomano[num];
+  if(cn){
+    if(cn<=4)estado="apto";
+    else if(cn<=6){estado="riesgo";notas.push("capacidad de uso "+num+": limitaciones para cultivo intensivo (secano/laderas)");}
+    else{estado="riesgo";notas.push("capacidad de uso "+num+": suelo marginal");}
+  }
+  if(drenaje&&/(pobre|imperfect|mal)/i.test(String(drenaje))){if(estado==="apto")estado="riesgo";notas.push("drenaje "+String(drenaje).toLowerCase()+": la vid no tolera encharcamiento");}
+  const juicio=notas.length?notas.join("; ")+".":"Sin limitaciones mayores para vid segun el estudio agrologico.";
+  return{estado,conectado:true,fuente:"CIREN",region:nombreCapa,serie,capacidad:capStr||null,drenaje,textura,aptFrutal,aptAgricola,riego,erosion,prof,topografia,ph,juicio};
+}
+
+// Descubre capas con su NOMBRE (para verificar que corresponde a la region del punto).
+async function listarCapasConNombre(servicio){
+  try{
+    const j=await fetchGeo(servicio+"?f=json",8000);
+    if(!j.layers)return [];
+    return j.layers.map(l=>({id:l.id,nombre:l.name||("capa "+l.id)}));
+  }catch(e){return [];}
+}
+
+async function consultarCapaDist(servicio,capa,lat,lon,dist){
+  const base=servicio+"/"+capa+"/query";
+  const params=new URLSearchParams({
+    where:"1=1",
+    geometry:JSON.stringify({x:lon,y:lat,spatialReference:{wkid:4326}}),
+    geometryType:"esriGeometryPoint",inSR:"4326",
+    spatialRel:"esriSpatialRelIntersects",outFields:"*",returnGeometry:"false",f:"json",
+  });
+  if(dist&&dist>0){ params.set("distance",String(dist)); params.set("units","esriSRUnit_Meter"); }
+  const j=await fetchGeo(base+"?"+params.toString(),8000);
+  if(j.error||!j.features||!j.features.length)throw 0;
+  // Con distancia puede devolver varios; tomamos el primero pero avisamos que es aproximado.
+  return j.features[0].attributes||{};
+}
+
+// Ordena las capas para consultar primero la region probable segun latitud.
+// Rangos aprox de latitud por region (para priorizar, no para excluir).
+function prioridadRegion(nombre, lat){
+  const R=[
+    [/atacama/i,-29,-25],[/coquimbo/i,-32.3,-29],[/valpara/i,-33.3,-32],
+    [/metropolit/i,-34.3,-32.9],[/higgins/i,-35,-33.8],[/maule/i,-36.4,-34.7],
+    [/uble|ñuble/i,-37.3,-36],[/b[ií]o/i,-38.5,-36.8],[/araucan/i,-39.6,-37.5],
+    [/r[ií]os/i,-40.5,-39.2],[/lagos/i,-44,-40],[/ays[eé]n/i,-49,-43.5],
+    [/magallan/i,-56,-48.5],[/pascua/i,-27.2,-27.0],
+  ];
+  for(const [re,a,b] of R){ if(re.test(nombre)) return (lat<=b&&lat>=a)?0:1; }
+  return 2;
+}
+
+async function pedirSuelo(lat,lon){
+  // FASE 1: punto EXACTO en cada servicio (dato 100% del lugar).
+  for(const servicio of CIREN_SERVICIOS){
+    let capas=await listarCapasConNombre(servicio);
+    if(!capas.length)continue;
+    capas=capas.slice().sort((a,b)=>prioridadRegion(a.nombre,lat)-prioridadRegion(b.nombre,lat));
+    const intentos=await Promise.allSettled(capas.map(async c=>{
+      const attr=await consultarCapa(servicio,c.id,lat,lon);
+      return {attr,nombre:c.nombre};
+    }));
+    for(const it of intentos){
+      if(it.status==="fulfilled"&&it.value.attr){
+        const r=interpretarSuelo(it.value.attr,it.value.nombre);
+        if(r){r.aprox=null;return r;}
+      }
+    }
+  }
+  // FASE 2: BUSCAR COMO LOCO. Radios crecientes hasta 5 km. El suelo cercano es
+  // orientativo (no exactamente el del punto), y lo marcamos como tal.
+  const radios=[300,1000,3000,5000];
+  for(const servicio of CIREN_SERVICIOS){
+    const capas=await listarCapasConNombre(servicio);
+    if(!capas.length)continue;
+    for(const dist of radios){
+      const intentos=await Promise.allSettled(capas.map(async c=>{
+        const attr=await consultarCapaDist(servicio,c.id,lat,lon,dist);
+        return {attr,nombre:c.nombre};
+      }));
+      for(const it of intentos){
+        if(it.status==="fulfilled"&&it.value.attr){
+          const r=interpretarSuelo(it.value.attr,it.value.nombre);
+          if(r){r.aprox=dist;return r;} // marca distancia de aproximacion
+        }
+      }
+    }
+  }
+  return{estado:"nd",conectado:false};
+}
+
+// Explicaciones de cada fuente (que es, como leerla) — no solo un link a numeros.
+const EXPLICA = {
+  clima:{titulo:"Open-Meteo (clima ERA5)",que:"Reanálisis climático: combina estaciones, satélite y modelo para dar la temperatura y lluvia diaria de cualquier punto desde 1940. El enlace abre los datos diarios crudos (JSON) de tu punto; WineCheck ya los procesó en los indicadores de arriba.",u:(lat,lon)=>{const f=new Date().getFullYear()-1;return "https://open-meteo.com/en/docs/historical-weather-api#latitude="+lat.toFixed(4)+"&longitude="+lon.toFixed(4);}},
+  winkler:{titulo:"Índice de Winkler (referencia agronómica)",que:"El método clásico que clasifica un clima vitícola en cinco regiones según los grados-día acumulados, y qué cepas maduran bien en cada una. El enlace explica el método.",u:()=>"https://es.wikipedia.org/wiki/%C3%8Dndice_Winkler"},
+  agua:{titulo:"DGA — Áreas de restricción y prohibición",que:"La Dirección General de Aguas declara acuíferos 'en restricción' (solo derechos provisionales) o 'en prohibición' (sin nuevos derechos). El enlace abre el listado oficial con las resoluciones vigentes.",u:()=>"https://dga.mop.gob.cl/derechos-de-agua/proteccion-de-las-fuentes/areas-de-restriccion/"},
+  suelo:{titulo:"CIREN — Estudio agrológico de suelos",que:"El estudio oficial de suelos de Chile (escala 1:20.000). Define la serie de suelo, su capacidad de uso (I a VIII), drenaje, textura y aptitud frutal. Es el dato que usan los agrónomos. El enlace abre el visor de suelos de CIREN.",u:()=>"https://www.ciren.cl/productos/suelos-agrologicos/"},
+};
+
+function MiniSemaforo({estado}){
+  const c=CFG[estado]||CFG.nd;
+  return(<span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,fontWeight:600,color:c.color}}>
+    <span style={{fontSize:10}}>{c.icono}</span>{c.label}</span>);
+}
+function Dato({valor,unidad,etiqueta}){
+  return(<div style={{marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+      <span style={{fontSize:22,fontWeight:700,color:P.tinta,fontVariantNumeric:"tabular-nums"}}>{valor}</span>
+      {unidad&&<span style={{fontSize:13,color:P.suave}}>{unidad}</span>}</div>
+    <div style={{fontSize:12.5,color:P.suave,lineHeight:1.35}}>{etiqueta}</div></div>);
+}
+function Fila({etiqueta,valor}){
+  if(valor==null||valor==="")return null;
+  return(<div style={{fontSize:13,lineHeight:1.5}}><strong>{etiqueta}:</strong> {String(valor)}</div>);
+}
+function Tarjeta({titulo,estado,destacada,nota,children}){
+  return(<div style={{border:destacada?"2px solid "+P.agua:"1px solid "+P.linea,
+    borderLeft:"4px solid "+(CFG[estado]||CFG.nd).color,borderRadius:10,padding:"14px 16px",background:P.panel,marginBottom:12}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+      <h3 style={{margin:0,fontSize:14,fontWeight:700,color:destacada?P.agua:P.vid}}>{titulo}</h3>
+      <MiniSemaforo estado={estado}/></div>
+    {nota&&<div style={{fontSize:10.5,color:"#B08900",background:"#FBF3DC",borderRadius:5,padding:"3px 7px",display:"inline-block",marginBottom:10}}>{nota}</div>}
+    {children}</div>);
+}
+function ClicHandler({onClic,activo}){
+  useMapEvents({click(e){if(activo)onClic([e.latlng.lat,e.latlng.lng]);}});
+  return null;
+}
+
+function veredictoGlobal(clima,agua,suelo){
+  const orden={veto:3,riesgo:2,apto:1,nd:0};
+  const estados=[clima&&clima.estado, agua&&agua.conectado&&agua.estado, suelo&&suelo.conectado&&suelo.estado].filter(Boolean);
+  if(!estados.length)return "nd";
+  let peor="apto";for(const e of estados){if(orden[e]>orden[peor])peor=e;}return peor;
+}
+function fraseGlobal(g,clima,agua,w,rec){
+  if(g==="veto"){
+    if(agua&&agua.conectado&&agua.estado==="veto")return "Agua muy restringida (ver detalle). Si se resuelve el agua, el clima es "+w.region+" — cepas afines: "+rec.cepas+".";
+    return "No recomendado por clima. "+(clima.problemas[0]||"")+" ("+w.region+").";
+  }
+  if(g==="riesgo")return "Plantable con manejo. Revisa las capas en ámbar. Perfil: "+rec.perfil+" — cepas afines: "+rec.cepas+".";
+  return "Buena opción. "+rec.perfil+" ("+w.region+"), sin banderas en agua ni suelo. Cepas afines: "+rec.cepas+".";
+}
+
+export default function App(){
+  const esMovil=useEsMovil();
+  const [puntos,setPuntos]=useState([]);
+  const [fase,setFase]=useState("mapa");
+  const [modo,setModo]=useState("diseno");
+  const [bib,setBib]=useState(false);
+  const [clima,setClima]=useState(null);
+  const [agua,setAgua]=useState(null);
+  const [suelo,setSuelo]=useState(null);
+  const [centro,setCentro]=useState(null);
+  const [error,setError]=useState(null);
+
+  function agregarPunto(ll){if(puntos.length<4&&fase==="mapa")setPuntos([...puntos,ll]);}
+  async function evaluar(){
+    const la=puntos.reduce((s,p)=>s+p[0],0)/puntos.length;
+    const lo=puntos.reduce((s,p)=>s+p[1],0)/puntos.length;
+    setCentro([la,lo]);setFase("cargando");setError(null);
+    try{
+      const [c,a,su]=await Promise.all([pedirClima(la,lo),pedirAgua(la,lo),pedirSuelo(la,lo)]);
+      setClima(c);setAgua(a);setSuelo(su);setFase("resultado");
+    }catch(e){setError(e.message||"error");setFase("resultado");}
+  }
+  function reiniciar(){setPuntos([]);setFase("mapa");setClima(null);setAgua(null);setSuelo(null);setCentro(null);setError(null);setBib(false);}
+
+  const w=clima?regionWinkler(clima.gda):null;
+  const distCosta=centro?distanciaCostaKm(centro[0],centro[1]):null;
+  const rec=clima?cepasRecomendadas(clima.gda,clima.amplitud,distCosta):null;
+  const veredicto=clima?veredictoGlobal(clima,agua,suelo):"nd";
+  const color=fase==="resultado"&&clima?CFG[veredicto].color:P.vid;
+
+  const Panel=()=>(
+    <div style={{padding:esMovil?"10px 16px 32px":18}}>
+      <div style={{display:"flex",gap:4,background:"#EDEAE1",borderRadius:8,padding:3,marginBottom:16}}>
+        {[["diseno","Diseño · 25 años"],["escapada","Escapada · clima"]].map(([k,t])=>(
+          <button key={k} onClick={()=>setModo(k)} style={{flex:1,border:"none",borderRadius:6,padding:"9px 6px",
+            fontSize:12.5,fontWeight:600,cursor:"pointer",background:modo===k?P.panel:"transparent",
+            color:modo===k?P.vid:P.suave,boxShadow:modo===k?"0 1px 3px rgba(0,0,0,.12)":"none"}}>{t}</button>
+        ))}
+      </div>
+
+      {modo==="diseno"?(
+        <>
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:12,color:P.suave}}>{centro?centro[0].toFixed(4)+", "+centro[1].toFixed(4):""}</div>
+            <h2 style={{margin:"2px 0 0",fontSize:18,color:P.vid}}>Terreno evaluado</h2>
+          </div>
+
+          {error&&<div style={{background:"#F7E4E1",color:P.veto,borderRadius:10,padding:14,marginBottom:14,fontSize:13}}>
+            No se pudo calcular el clima: {error}. Revisa la conexión y analiza otra vez.</div>}
+
+          {clima&&(<>
+            <div style={{background:color,color:"#fff",borderRadius:12,padding:"18px 20px",marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                <span style={{fontSize:22}}>{CFG[veredicto].icono}</span>
+                <span style={{fontSize:22,fontWeight:800}}>{CFG[veredicto].label}</span></div>
+              <p style={{margin:0,fontSize:14,lineHeight:1.45,opacity:0.96}}>{fraseGlobal(veredicto,clima,agua,w,rec)}</p>
+            </div>
+
+            <div style={{background:"#EAF1F4",border:"1px solid "+P.agua,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12.5,color:P.vid}}>
+              <strong>Qué plantar aquí:</strong> {rec.cepas}.<br/><span style={{color:P.suave}}>{rec.perfil} · {w.region} · {distCosta!=null?(distCosta<0?"cordillera":distCosta+" km de la costa"):""}</span>
+            </div>
+
+            <Tarjeta titulo="Clima · 25 temporadas" estado={clima.estado}>
+              <div style={{background:"#F0EEE6",borderRadius:6,padding:"8px 10px",marginBottom:12,fontSize:12.5,color:P.vid,fontWeight:600}}>
+                Winkler {w.region} — clima {w.desc}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <Dato valor={clima.gda} etiqueta="grados-día (suma de calor de la temporada, base 10 °C) · promedio real" />
+                <Dato valor={clima.heladaTardia} unidad={"/ "+clima.temporadas} etiqueta="años con helada tras la brotación" />
+                <Dato valor={clima.amplitud??"—"} unidad="°C" etiqueta="amplitud térmica día/noche (feb–mar)" />
+                <Dato valor={clima.calor} unidad="días" etiqueta="días/año sobre 34 °C" /></div>
+              <Dato valor={clima.lluviaCosecha} unidad="mm" etiqueta={"lluvia feb–abr — riesgo de botritis "+clima.botritis} />
+              {clima.problemas.length>0&&<div style={{fontSize:12.5,color:P.suave,lineHeight:1.4,marginTop:4}}>⚠ {clima.problemas.join(" ")}</div>}
+            </Tarjeta>
+
+            <Tarjeta titulo="Agua · restricción DGA" estado={agua?agua.estado:"nd"} destacada
+              nota={agua&&!agua.conectado?"Sin dato verificable de la DGA para este punto — revisa el listado oficial abajo":null}>
+              {agua&&agua.conectado?(
+                <div style={{fontSize:13,lineHeight:1.55}}>
+                  <div style={{fontWeight:600,marginBottom:4,color:CFG[agua.estado].color}}>{agua.titular}</div>
+                  <div style={{color:P.suave}}>{agua.detalle}</div>
+                  <div style={{fontSize:11,color:"#A39C8E",marginTop:8}}>Fuente: DGA / MOP (consulta por coordenada exacta), actualización diaria. Verifica en el <a href="https://dga.mop.gob.cl/derechos-de-agua/proteccion-de-las-fuentes/areas-de-restriccion/" target="_blank" rel="noreferrer" style={{color:P.agua}}>listado oficial ↗</a></div>
+                </div>
+              ):(
+                <div style={{fontSize:13,color:P.suave,lineHeight:1.5}}>
+                  Revisa si el punto tiene restricción en el <a href="https://dga.mop.gob.cl/derechos-de-agua/proteccion-de-las-fuentes/areas-de-restriccion/" target="_blank" rel="noreferrer" style={{color:P.agua}}>listado oficial DGA ↗</a>.
+                </div>
+              )}
+            </Tarjeta>
+
+            <Tarjeta titulo="Suelo · estudio agrológico CIREN" estado={suelo?suelo.estado:"nd"}
+              nota={suelo&&!suelo.conectado?"El servidor de CIREN no respondió o no cubre el punto (suele bloquear apps externas) — usa el visor oficial abajo":null}>
+              {suelo&&suelo.conectado?(
+                <>
+                  {suelo.region&&!suelo.aprox&&<div style={{fontSize:11,color:P.apto,background:"#E4F1E7",borderRadius:5,padding:"3px 7px",display:"inline-block",marginBottom:8}}>✓ dato exacto del punto · {suelo.region}</div>}
+                  {suelo.region&&suelo.aprox&&<div style={{fontSize:11,color:"#B08900",background:"#FBF3DC",borderRadius:5,padding:"3px 7px",display:"inline-block",marginBottom:8}}>≈ suelo más cercano (~{suelo.aprox<1000?suelo.aprox+" m":(suelo.aprox/1000)+" km"}) · {suelo.region} — el punto exacto no tiene estudio; referencial</div>}
+                  <Fila etiqueta="Serie de suelo" valor={suelo.serie} />
+                  <Fila etiqueta="Capacidad de uso" valor={suelo.capacidad} />
+                  <Fila etiqueta="Textura superficial" valor={suelo.textura} />
+                  <Fila etiqueta="Drenaje" valor={suelo.drenaje} />
+                  <Fila etiqueta="Aptitud frutal" valor={suelo.aptFrutal} />
+                  <Fila etiqueta="Aptitud agrícola" valor={suelo.aptAgricola} />
+                  <Fila etiqueta="Categoría de riego" valor={suelo.riego} />
+                  <Fila etiqueta="Profundidad" valor={suelo.prof} />
+                  <Fila etiqueta="Topografía/pendiente" valor={suelo.topografia} />
+                  <Fila etiqueta="Erosión" valor={suelo.erosion} />
+                  <Fila etiqueta="pH" valor={suelo.ph} />
+                  <div style={{fontSize:12.5,color:P.suave,lineHeight:1.4,marginTop:8}}>{suelo.juicio}</div>
+                  <div style={{fontSize:11,color:"#A39C8E",marginTop:6}}>Fuente: CIREN, estudio agrológico (escala 1:20.000). Verifica en el <a href="https://www.ciren.cl/productos/suelos-agrologicos/" target="_blank" rel="noreferrer" style={{color:P.agua}}>visor oficial ↗</a></div>
+                </>
+              ):(
+                <div style={{fontSize:13,color:P.suave,lineHeight:1.5}}>
+                  Sin dato agrológico verificable para este punto exacto. Los estudios CIREN cubren de la costa a la precordillera (no todo el territorio); en cerros, cordillera o zonas sin estudio no hay dato. Revisa el <a href="https://www.ciren.cl/productos/suelos-agrologicos/" target="_blank" rel="noreferrer" style={{color:P.agua}}>visor oficial CIREN ↗</a>.
+                </div>
+              )}
+            </Tarjeta>
+
+            <button onClick={()=>setBib(!bib)} style={{width:"100%",textAlign:"left",background:"#EAF1F4",
+              border:"1px solid "+P.agua,borderRadius:10,padding:"12px 14px",marginBottom:8,marginTop:2,cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:13,fontWeight:700,color:P.agua}}>Fuentes y cómo leerlas</span>
+                <span style={{color:P.agua}}>{bib?"▲":"▼"}</span></div>
+            </button>
+            {bib&&centro&&(
+              <div style={{background:P.panel,border:"1px solid "+P.linea,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+                {Object.entries(EXPLICA).map(([k,f],i)=>(
+                  <div key={k} style={{padding:"8px 0",borderBottom:i<3?"1px solid "+P.linea:"none"}}>
+                    <a href={f.u(centro[0],centro[1])} target="_blank" rel="noreferrer" style={{fontSize:13,fontWeight:700,color:P.agua,textDecoration:"none"}}>{f.titulo} ↗</a>
+                    <div style={{fontSize:12,color:P.suave,lineHeight:1.45,marginTop:3}}>{f.que}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{background:"#F0EEE6",borderRadius:8,padding:"10px 12px",fontSize:11.5,color:P.suave,lineHeight:1.5}}>
+              <strong>Cómo se decide:</strong> el veredicto combina clima, agua y suelo; manda el peor de los tres.
+              Un clima frío no es defecto (define qué cepa). Nada reemplaza una calicata y análisis de laboratorio
+              antes de plantar: esto es orientación con datos oficiales del punto.
+            </div>
+          </>)}
+        </>
+      ):(
+        <div>
+          <h2 style={{margin:"0 0 4px",fontSize:18,color:P.vid}}>Escapada</h2>
+          <p style={{fontSize:13,color:P.suave,marginTop:0}}>Mapa de viento y clima en vivo del sector (Windy).</p>
+          {centro?(
+            <iframe title="Windy" style={{width:"100%",height:esMovil?260:340,border:0,borderRadius:10}}
+              src={"https://embed.windy.com/embed2.html?lat="+centro[0].toFixed(3)+"&lon="+centro[1].toFixed(3)+"&zoom=9&level=surface&overlay=wind&menu=&type=map&location=coordinates&metricWind=default&metricTemp=default&radarRange=-1"} />
+          ):<div style={{fontSize:13,color:P.suave}}>Analiza un sitio primero para centrar Windy.</div>}
+          <div style={{fontSize:11,color:"#A39C8E",marginTop:8}}>Fuente: Windy.com</div>
+        </div>
+      )}
+    </div>
+  );
+
+  return(
+    <div style={{fontFamily:"'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      background:P.fondo,height:"100vh",color:P.tinta,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <header style={{background:P.vid,color:"#F2EFE6",padding:"12px 18px",display:"flex",
+        justifyContent:"space-between",alignItems:"center",zIndex:1200,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:20}}>🍇</span>
+          <div><div style={{fontSize:17,fontWeight:800,letterSpacing:0.3}}>WineCheck</div>
+            <div style={{fontSize:11,opacity:0.75}}>Aptitud vitícola por sector · Chile</div></div>
+        </div>
+        {fase==="resultado"&&<button onClick={reiniciar} style={{background:"rgba(242,239,230,.15)",color:"#F2EFE6",
+          border:"1px solid rgba(242,239,230,.4)",borderRadius:6,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>Nuevo sitio</button>}
+      </header>
+
+      <div style={{display:"flex",flex:1,minHeight:0,flexDirection:esMovil?"column":"row"}}>
+        <div style={{position:"relative",flexShrink:0,
+          flex:esMovil?(fase==="resultado"?"0 0 42vh":"0 0 62vh"):"1 1 auto",minHeight:esMovil?260:"auto"}}>
+          <MapContainer center={[-34.5,-71.2]} zoom={7} zoomControl={!esMovil} style={{height:"100%",width:"100%"}}>
+            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <ClicHandler onClic={agregarPunto} activo={fase==="mapa"&&puntos.length<4} />
+            {puntos.length>=2&&<Polygon positions={puntos} pathOptions={{color:color,fillColor:color,fillOpacity:0.3,weight:2}} />}
+            {puntos.map((p,i)=>(<CircleMarker key={i} center={p} radius={6} pathOptions={{color:"#fff",weight:2,fillColor:P.vid,fillOpacity:1}} />))}
+          </MapContainer>
+
+          {fase==="mapa"&&(
+            <div style={{position:"absolute",left:0,right:0,bottom:0,zIndex:1000,
+              background:"linear-gradient(to top, rgba(28,35,29,.94), rgba(28,35,29,0))",
+              padding:"30px 16px 14px",display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
+              <div style={{color:"#fff",fontSize:13.5,fontWeight:600,textAlign:"center",textShadow:"0 1px 3px rgba(0,0,0,.6)"}}>
+                {puntos.length===0?"Navega y toca 4 puntos para marcar tu terreno"
+                  :puntos.length<4?"Punto "+puntos.length+" de 4 — sigue marcando":"Terreno listo"}
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                {puntos.length>0&&(<button onClick={()=>setPuntos([])} style={{background:"rgba(255,255,255,.95)",color:P.tinta,
+                  border:"none",borderRadius:8,padding:"12px 20px",fontSize:14,fontWeight:700,cursor:"pointer"}}>Borrar</button>)}
+                {puntos.length===4&&(<button onClick={evaluar} style={{background:P.apto,color:"#fff",border:"none",borderRadius:8,
+                  padding:"12px 28px",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:"0 3px 12px rgba(0,0,0,.4)"}}>Analizar sitio</button>)}
+              </div>
+            </div>
+          )}
+
+          {fase==="cargando"&&(
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",
+              background:"rgba(28,35,29,.6)",color:"#fff",flexDirection:"column",gap:8,textAlign:"center",padding:20,zIndex:1100}}>
+              <div style={{fontSize:15,fontWeight:600}}>Analizando clima, agua y suelo del punto…</div>
+              <div style={{fontSize:12,opacity:0.85}}>Open-Meteo · DGA · CIREN (suelo puede tardar unos segundos)</div>
+            </div>
+          )}
+        </div>
+
+        {fase==="resultado"&&(
+          esMovil?(
+            <div style={{flex:1,minHeight:0,background:P.fondo,borderTop:"3px solid "+color,overflowY:"auto",
+              borderRadius:"16px 16px 0 0",marginTop:-14,position:"relative",zIndex:500}}>
+              <div style={{width:40,height:4,background:P.linea,borderRadius:2,margin:"8px auto 0"}} />
+              <Panel/>
+            </div>
+          ):(
+            <aside style={{flex:"0 0 440px",background:P.fondo,borderLeft:"1px solid "+P.linea,overflowY:"auto"}}>
+              <Panel/>
+            </aside>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
