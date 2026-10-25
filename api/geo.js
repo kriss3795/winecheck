@@ -10,7 +10,7 @@
 //
 //  Reglas de seguridad:
 //   - Solo se permiten dominios de una lista blanca (abajo).
-//   - En consultas ArcGIS /query se fuerza returnGeometry=false
+//   - En consultas ArcGIS /query e /identify se fuerza returnGeometry=false
 //     para que la respuesta no traiga polígonos gigantes.
 //   - Si la respuesta supera ~4.5 MB se corta, para no exceder
 //     el límite de Vercel.
@@ -65,17 +65,19 @@ export default async function handler(req, res) {
   }
 
   // En consultas ArcGIS, nunca traer geometría (evita respuestas enormes)
-  if (urlObj.pathname.toLowerCase().includes("/query")) {
+  const ruta = urlObj.pathname.toLowerCase();
+  if (ruta.includes("/query") || ruta.includes("/identify")) {
     urlObj.searchParams.set("returnGeometry", "false");
   }
 
   try {
     const ctrl = new AbortController();
-    const id = setTimeout(() => ctrl.abort(), 20000); // 20 s máximo
+    const id = setTimeout(() => ctrl.abort(), 25000); // 25 s (la función tiene 30 s)
 
     const r = await fetch(urlObj.toString(), {
       headers: {
-        "User-Agent": "WineCheck/1.0 (agronomia; contacto via app)",
+        // Nominatim y Overpass piden identificar la aplicación
+        "User-Agent": "WineCheck/2.0 (+https://github.com/kriss3795/winecheck)",
         Accept: "application/json, text/plain, */*",
       },
       signal: ctrl.signal,
@@ -96,8 +98,17 @@ export default async function handler(req, res) {
       return;
     }
 
+    // Caché en la red de Vercel: respuestas correctas se guardan 6 h.
+    // Así, consultas repetidas de la misma zona no vuelven a golpear
+    // a los servidores del Estado ni a Open-Meteo (clave para escalar).
+    const esError = !r.ok || /^\s*\{\s*"error"/.test(texto);
+    res.setHeader(
+      "Cache-Control",
+      esError ? "no-store" : "public, s-maxage=21600, stale-while-revalidate=86400"
+    );
     res.status(r.status).send(texto);
   } catch (e) {
+    res.setHeader("Cache-Control", "no-store");
     res.status(502).json({
       error: "no se pudo consultar la fuente",
       detalle: String(e && e.message ? e.message : e),

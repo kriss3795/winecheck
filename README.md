@@ -18,7 +18,15 @@ npm run dev      # servidor local
 npm run build    # construye para producción (carpeta dist/)
 ```
 
+## Estructura del código
+- `src/lib/red.js` — red, timeout y proxy
+- `src/lib/geometria.js` — área, grilla de muestreo, polígonos
+- `src/lib/capas.js` — una función por fuente oficial
+- `src/lib/veredicto.js` — restricciones, semáforo y resumen
+- `src/App.jsx` — interfaz
+- `api/geo.js` — proxy CORS con lista blanca y caché
+
 ## Fuentes de datos
-Open-Meteo ERA5 (clima), CIREN (suelo), DGA/MOP (agua y escasez),
+Open-Meteo ERA5-Land (clima, 10 temporadas), CIREN (suelo), DGA/MOP (agua y escasez),
 MMA (humedales), SMA (áreas protegidas), Copernicus DEM vía Open-Meteo
 (pendiente/mar), OpenStreetMap (cuerpos de agua y búsqueda).

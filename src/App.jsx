@@ -1,669 +1,220 @@
 // =====================================================================
-//  WineCheck — App.jsx
+//  WineCheck — App.jsx (interfaz)
 //  Evalúa si un terreno en Chile es apto para plantar viñas.
-//  Combina datos oficiales (clima, suelo, agua, humedales, áreas
-//  protegidas, pendiente/mar, cuerpos de agua) y entrega un
-//  veredicto tipo semáforo.
 //
-//  PRINCIPIOS (según lo acordado con Kriss):
-//   - Todos los datos son reales y de fuentes oficiales verificables.
-//     Si una fuente no es fiable, NO se muestra.
-//   - Vetos absolutos: mar, humedal, parque/reserva, río/lago.
-//     En esos casos NO se muestran datos de clima/suelo (no tiene
-//     sentido hablar de suelo en el mar).
-//   - Se muestrea el terreno en VARIOS puntos, no uno solo, porque
-//     el suelo y otras capas varían dentro de un mismo predio.
-//   - Nunca debe irse a pantalla blanca: todo acceso a config pasa
-//     por cfg() y todo fetch tiene timeout compatible con celulares.
+//  PRINCIPIOS (acordados con Kriss):
+//   - Solo datos reales de fuentes oficiales verificables. Si una fuente
+//     falla, se muestra "Sin dato": nunca se asume que "no hay nada".
+//   - Mar, ríos, lagos, embalses, humedales y áreas protegidas no se
+//     plantan: se calcula qué % del terreno ocupan. Si es el 100%,
+//     no se muestran clima/suelo/agua.
+//   - El terreno se muestrea con una grilla de puntos interiores.
+//   - Panel "Fuentes y cómo leerlas" siempre al final.
+//   - Nunca pantalla blanca: cfg() seguro y fetch con AbortController.
+//
+//  La lógica de datos vive en src/lib/:
+//   red.js (red y proxy) · geometria.js · capas.js (fuentes) · veredicto.js
 // =====================================================================
 
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import { MapContainer, TileLayer, Polygon, CircleMarker, useMapEvents, useMap } from "react-leaflet";
+import { areaM2, centroide, grillaInterna, seAutoIntersecta } from "./lib/geometria.js";
 import {
-  MapContainer,
-  TileLayer,
-  Polygon,
-  CircleMarker,
-  useMapEvents,
-  useMap,
-} from "react-leaflet";
+  URLS,
+  fmt,
+  fecha,
+  pedirElevaciones,
+  calcularPendiente,
+  pedirClima,
+  pedirSuelo,
+  pedirAgua,
+  pedirEscasez,
+  pedirHumedales,
+  pedirProtegidas,
+  pedirOSM,
+  buscarLugar,
+} from "./lib/capas.js";
+import { calcularRestricciones, calcularVeredicto } from "./lib/veredicto.js";
 
 // ---------------------------------------------------------------------
-//  1) CONFIGURACIÓN DE ESTADOS (semáforo) — acceso siempre seguro
+//  Semáforo — acceso siempre seguro
 // ---------------------------------------------------------------------
 const CFG = {
-  apto:   { color: "#2e7d32", texto: "Buena opción" },
+  apto: { color: "#2e7d32", texto: "Buena opción" },
   riesgo: { color: "#e6a100", texto: "Con manejo" },
-  veto:   { color: "#c62828", texto: "No recomendado" },
-  nd:     { color: "#6b7280", texto: "Sin dato" },
+  veto: { color: "#c62828", texto: "No recomendado" },
+  nd: { color: "#6b7280", texto: "Sin dato" },
 };
-// cfg(): nunca devuelve undefined -> evita el crash a pantalla blanca
 function cfg(estado) {
   return CFG[estado] || CFG.nd;
 }
 
-// Orden de severidad para combinar estados
-const ORDEN = { veto: 3, riesgo: 2, apto: 1, nd: 0 };
-
-// Proxy propio (Vercel). Todas las fuentes oficiales pasan por aquí.
-const PROXY = "/api/geo?url=";
-const viaProxy = (url) => PROXY + encodeURIComponent(url);
-
 // ---------------------------------------------------------------------
-//  2) UTILIDADES DE RED — timeout compatible con todos los navegadores
+//  Componentes de mapa
 // ---------------------------------------------------------------------
-// AbortSignal.timeout() crashea en algunos webviews de celular.
-// Usamos AbortController manual, que funciona en todos lados.
-function fetchTimeout(url, ms, opts) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-  return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).finally(
-    () => clearTimeout(id)
-  );
-}
-
-// Intenta directo y, si falla por CORS, reintenta por el proxy.
-async function fetchGeo(url, ms = 15000) {
-  try {
-    const r = await fetchTimeout(url, ms);
-    if (r.ok) return await r.json();
-  } catch (e) {
-    /* cae al proxy */
-  }
-  const r2 = await fetchTimeout(viaProxy(url), ms);
-  if (!r2.ok) throw new Error("fuente respondió " + r2.status);
-  return await r2.json();
-}
-
-// ---------------------------------------------------------------------
-//  3) GEOMETRÍA — generar puntos de muestreo dentro del terreno
-// ---------------------------------------------------------------------
-function centroide(pts) {
-  const n = pts.length;
-  const lat = pts.reduce((a, p) => a + p[0], 0) / n;
-  const lon = pts.reduce((a, p) => a + p[1], 0) / n;
-  return [lat, lon];
-}
-
-// Devuelve los vértices + el centro, para muestrear variación interna.
-function puntosMuestreo(pts) {
-  if (!pts || pts.length < 3) return pts || [];
-  const c = centroide(pts);
-  return [...pts, c];
-}
-
-function distanciaKm(a, b) {
-  const R = 6371;
-  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
-  const dLon = ((b[1] - a[1]) * Math.PI) / 180;
-  const la1 = (a[0] * Math.PI) / 180;
-  const la2 = (b[0] * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-// Peor estado de una lista (para combinar varios puntos o parámetros)
-function peorEstado(estados) {
-  let peor = "nd";
-  for (const e of estados) {
-    if (ORDEN[e] > ORDEN[peor]) peor = e;
-  }
-  return peor;
-}
-
-// =====================================================================
-//  4) FUNCIONES DE CAPA — cada una consulta una fuente oficial
-// =====================================================================
-
-// ---- 4.1 CLIMA (Open-Meteo ERA5) — grados-día Winkler hemisferio sur
-async function pedirClima(lat, lon) {
-  // Temporada de crecimiento hemisferio sur: 1 oct (año-1) – 30 abr (año)
-  const hoy = new Date();
-  const anio = hoy.getFullYear();
-  const base = "https://archive-api.open-meteo.com/v1/archive";
-  const url =
-    `${base}?latitude=${lat}&longitude=${lon}` +
-    `&start_date=${anio - 1}-10-01&end_date=${anio}-04-30` +
-    `&daily=temperature_2m_max,temperature_2m_min` +
-    `&timezone=America%2FSantiago`;
-
-  const j = await fetchGeo(url, 18000);
-  const tmax = j?.daily?.temperature_2m_max || [];
-  const tmin = j?.daily?.temperature_2m_min || [];
-  if (!tmax.length) throw new Error("sin datos de temperatura");
-
-  // Grados-día base 10°C (índice de Winkler)
-  let gda = 0;
-  let heladas = 0;
-  for (let i = 0; i < tmax.length; i++) {
-    const media = (tmax[i] + tmin[i]) / 2;
-    if (media > 10) gda += media - 10;
-    if (tmin[i] <= 0) heladas++;
-  }
-  gda = Math.round(gda);
-
-  // Clasificación de aptitud por GDA
-  let estado = "apto";
-  let nota = "";
-  if (gda < 850) {
-    estado = "veto";
-    nota = "Demasiado frío: por debajo del mínimo para madurar uva de vino.";
-  } else if (gda < 1100) {
-    estado = "riesgo";
-    nota = "Clima fresco: apto para cepas tempranas con buen manejo.";
-  } else if (gda > 2700) {
-    estado = "riesgo";
-    nota = "Clima muy cálido: requiere riego y manejo de canopia.";
-  } else {
-    nota = "Rango térmico adecuado para vid.";
-  }
-  if (heladas > 25 && estado === "apto") {
-    estado = "riesgo";
-    nota += " Alta frecuencia de heladas en temporada.";
-  }
-
-  return { estado, gda, heladas, nota, region: regionWinkler(gda) };
-}
-
-// Región climática de Winkler (I–V), adaptada a vid chilena
-function regionWinkler(gda) {
-  if (gda < 1390) return { n: "I", desc: "Fría — espumantes, blancos frescos" };
-  if (gda < 1670) return { n: "II", desc: "Templada fría — Pinot Noir, Chardonnay" };
-  if (gda < 1940) return { n: "III", desc: "Templada — Merlot, Cabernet" };
-  if (gda < 2220) return { n: "IV", desc: "Cálida — Syrah, Carmenère" };
-  return { n: "V", desc: "Muy cálida — uva de mesa / vinos de volumen" };
-}
-
-function cepasRecomendadas(gda) {
-  if (gda < 1390) return "Sauvignon Blanc, Chardonnay, Pinot Noir, espumantes";
-  if (gda < 1670) return "Chardonnay, Pinot Noir, Riesling";
-  if (gda < 1940) return "Merlot, Cabernet Franc, Carmenère";
-  if (gda < 2220) return "Cabernet Sauvignon, Syrah, Carmenère";
-  return "Syrah, uva de mesa, cepas de clima cálido";
-}
-
-// ---- 4.2 PENDIENTE y MAR (Open-Meteo Elevation, DEM Copernicus)
-async function pedirPendiente(puntos) {
-  // Pide elevación de todos los puntos en una sola llamada
-  const lats = puntos.map((p) => p[0]).join(",");
-  const lons = puntos.map((p) => p[1]).join(",");
-  const url = `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lons}`;
-  const j = await fetchGeo(url, 12000);
-  const elev = j?.elevation || [];
-  if (!elev.length) return { estado: "nd", ok: false };
-
-  const emax = Math.max(...elev);
-  const emin = Math.min(...elev);
-
-  // Mar: si la elevación máxima es <= 0, el punto está en agua/mar.
-  const enAgua = emax <= 0;
-
-  // Pendiente aproximada: diferencia de altura / distancia entre extremos
-  let pendPct = 0;
-  if (puntos.length >= 2) {
-    const d = distanciaKm(puntos[0], puntos[puntos.length - 1]) * 1000; // m
-    if (d > 0) pendPct = (Math.abs(emax - emin) / d) * 100;
-  }
-
-  let estado = "apto";
-  let nota = "Terreno con pendiente apta.";
-  if (pendPct > 45) {
-    estado = "veto";
-    nota = "Pendiente excesiva (>45%): no mecanizable, erosión severa.";
-  } else if (pendPct > 20) {
-    estado = "riesgo";
-    nota = "Pendiente moderada (>20%): requiere terrazas o manejo antierosión.";
-  }
-
-  return {
-    estado,
-    ok: true,
-    enAgua,
-    elevMin: Math.round(emin),
-    elevMax: Math.round(emax),
-    pendPct: Math.round(pendPct),
-    nota,
-  };
-}
-
-// ---- 4.3 SUELO (CIREN) — capacidad de uso (clases I–VIII), multipunto
-const CLASES_SUELO = {
-  I: { estado: "apto", desc: "Clase I — suelo arable sin limitaciones. Excelente." },
-  II: { estado: "apto", desc: "Clase II — arable con limitaciones leves. Muy bueno." },
-  III: { estado: "apto", desc: "Clase III — arable con limitaciones moderadas. Apto para vid." },
-  IV: { estado: "riesgo", desc: "Clase IV — arable con limitaciones severas. Vid con manejo." },
-  V: { estado: "riesgo", desc: "Clase V — no arable, praderas; vid posible con manejo especial." },
-  VI: { estado: "riesgo", desc: "Clase VI — pastoreo/forestal; vid solo con fuerte manejo." },
-  VII: { estado: "veto", desc: "Clase VII — forestal, no cultivable. No apto para vid." },
-  VIII: { estado: "veto", desc: "Clase VIII — sin uso agrícola (roca, pantano). No apto." },
-};
-
-function parseClase(textcaus) {
-  if (!textcaus) return null;
-  const m = String(textcaus).trim().toUpperCase().match(/VIII|VII|VI|IV|V|III|II|I/);
-  return m ? m[0] : null;
-}
-
-async function pedirSuelo(puntos) {
-  const base =
-    "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer/0/query";
-  const encontrados = {}; // clase -> cuántos puntos
-  let consultados = 0;
-
-  for (const [lat, lon] of puntos) {
-    const url =
-      `${base}?geometry=${lon},${lat}&geometryType=esriGeometryPoint` +
-      `&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*` +
-      `&returnGeometry=false&f=json`;
-    try {
-      const j = await fetchGeo(url, 12000);
-      const feats = j?.features || [];
-      consultados++;
-      if (feats.length) {
-        const attrs = feats[0].attributes || {};
-        const raw =
-          attrs.textcaus || attrs.TEXTCAUS || attrs.CAPACIDAD || attrs.clase;
-        const clase = parseClase(raw);
-        if (clase) encontrados[clase] = (encontrados[clase] || 0) + 1;
-      }
-    } catch (e) {
-      /* un punto que falla no bota todo */
-    }
-  }
-
-  const clases = Object.keys(encontrados);
-  if (!clases.length) return { estado: "nd", clases: [], nota: "Sin dato de suelo en estos puntos." };
-
-  // El estado del suelo es el PEOR de todas las clases encontradas
-  const estados = clases.map((c) => CLASES_SUELO[c]?.estado || "nd");
-  const estado = peorEstado(estados);
-
-  const detalle = clases
-    .sort()
-    .map((c) => ({
-      clase: c,
-      estado: CLASES_SUELO[c]?.estado || "nd",
-      desc: CLASES_SUELO[c]?.desc || `Clase ${c}.`,
-      puntos: encontrados[c],
-    }));
-
-  return {
-    estado,
-    clases: detalle,
-    variado: clases.length > 1,
-    nota:
-      clases.length > 1
-        ? "El terreno tiene VARIAS clases de suelo (ver detalle)."
-        : "Clase de suelo homogénea en el terreno.",
-  };
-}
-
-// ---- 4.4 AGUA subterránea (DGA) — áreas de restricción / prohibición
-async function pedirAgua(puntos) {
-  const base =
-    "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Areas_de_Restriccion_y_Zonas_de_Prohibicion/MapServer/0/query";
-  let peor = "apto";
-  let acuif = null;
-  let tipo = null;
-  let huboDato = false;
-
-  for (const [lat, lon] of puntos) {
-    const url =
-      `${base}?geometry=${lon},${lat}&geometryType=esriGeometryPoint` +
-      `&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*` +
-      `&returnGeometry=false&f=json`;
-    try {
-      const j = await fetchGeo(url, 12000);
-      const feats = j?.features || [];
-      if (feats.length) {
-        huboDato = true;
-        const a = feats[0].attributes || {};
-        const t = a.TIPO_LIMIT || a.tipo_limit || "";
-        acuif = a.NOM_ACUIF || a.nom_acuif || acuif;
-        tipo = t || tipo;
-        if (/prohib/i.test(t) && ORDEN[peor] < ORDEN.veto) peor = "riesgo";
-        else if (/restric/i.test(t) && ORDEN[peor] < ORDEN.riesgo) peor = "riesgo";
-      }
-    } catch (e) {
-      /* sigue */
-    }
-  }
-
-  if (!huboDato)
-    return {
-      estado: "apto",
-      nota: "Fuera de áreas de restricción/prohibición de la DGA (acuífero abierto).",
-    };
-
-  let nota = "";
-  if (/prohib/i.test(tipo || "")) {
-    nota = `Zona de PROHIBICIÓN de la DGA${acuif ? " (acuífero " + acuif + ")" : ""}: no se otorgan nuevos derechos de agua subterránea. Requiere comprar derechos existentes.`;
-    peor = "riesgo";
-  } else if (/restric/i.test(tipo || "")) {
-    nota = `Área de RESTRICCIÓN de la DGA${acuif ? " (acuífero " + acuif + ")" : ""}: derechos provisionales sujetos a disponibilidad.`;
-    peor = "riesgo";
-  } else {
-    nota = "Acuífero con disponibilidad (abierto).";
-  }
-  return { estado: peor, acuif, tipo, nota };
-}
-
-// ---- 4.5 ESCASEZ HÍDRICA (DGA) — decretos de escasez vigentes
-async function pedirEscasez(puntos) {
-  const base =
-    "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Decretos_Escasez_Hidrica/MapServer/0/query";
-  for (const [lat, lon] of puntos) {
-    const url =
-      `${base}?geometry=${lon},${lat}&geometryType=esriGeometryPoint` +
-      `&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*` +
-      `&returnGeometry=false&f=json`;
-    try {
-      const j = await fetchGeo(url, 12000);
-      const feats = j?.features || [];
-      if (feats.length) {
-        const a = feats[0].attributes || {};
-        const dec = a.DECRETO || a.decreto || a.NOMBRE || "";
-        return {
-          estado: "riesgo",
-          nota: `Zona con decreto de escasez hídrica vigente${dec ? " (" + dec + ")" : ""}. La autoridad puede restringir extracciones.`,
-        };
-      }
-    } catch (e) {
-      /* sigue */
-    }
-  }
-  return { estado: "apto", nota: "Sin decreto de escasez hídrica vigente." };
-}
-
-// ---- 4.6 HUMEDALES (MMA) — VETO ABSOLUTO
-async function pedirHumedal(puntos) {
-  const base =
-    "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_HUMEDALES/MapServer/0/query";
-  for (const [lat, lon] of puntos) {
-    const url =
-      `${base}?geometry=${lon},${lat}&geometryType=esriGeometryPoint` +
-      `&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*` +
-      `&returnGeometry=false&f=json`;
-    try {
-      const j = await fetchGeo(url, 12000);
-      const feats = j?.features || [];
-      if (feats.length) {
-        const a = feats[0].attributes || {};
-        const nom = a.NOMBRE || a.nombre || "humedal";
-        return {
-          esHumedal: true,
-          estado: "veto",
-          nota: `Humedal protegido (${nom}). Está prohibido drenar o intervenir humedales (Ley 21.202).`,
-        };
-      }
-    } catch (e) {
-      /* sigue */
-    }
-  }
-  return { esHumedal: false, estado: "apto", nota: "Fuera de humedales del inventario MMA." };
-}
-
-// ---- 4.7 ÁREAS PROTEGIDAS (SMA / SNASPE) — VETO ABSOLUTO
-async function pedirProtegida(puntos) {
-  const base =
-    "https://ideserver.sma.gob.cl/arcgis/rest/services/IDE/Areas_proteccion_oficial2/MapServer/37/query";
-  for (const [lat, lon] of puntos) {
-    const url =
-      `${base}?geometry=${lon},${lat}&geometryType=esriGeometryPoint` +
-      `&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*` +
-      `&returnGeometry=false&f=json`;
-    try {
-      const j = await fetchGeo(url, 12000);
-      const feats = j?.features || [];
-      if (feats.length) {
-        const a = feats[0].attributes || {};
-        const nom = a.NOMBRE || a.nombre || "área protegida";
-        return {
-          protegida: true,
-          estado: "veto",
-          nota: `Área protegida oficial (${nom}). No se permite uso agrícola.`,
-        };
-      }
-    } catch (e) {
-      /* sigue */
-    }
-  }
-  return { protegida: false, estado: "apto", nota: "Fuera de áreas protegidas oficiales." };
-}
-
-// ---- 4.8 CUERPOS DE AGUA (OpenStreetMap Overpass) — ríos/lagos: VETO
-async function pedirCuerpoAgua(lat, lon) {
-  // Busca agua (lago, río, embalse) en ~80 m alrededor del punto
-  const q =
-    `[out:json][timeout:15];(` +
-    `way(around:80,${lat},${lon})["natural"="water"];` +
-    `way(around:80,${lat},${lon})["waterway"];` +
-    `relation(around:80,${lat},${lon})["natural"="water"];` +
-    `);out ids 1;`;
-  const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q);
-  try {
-    const j = await fetchGeo(url, 15000);
-    const n = (j?.elements || []).length;
-    if (n > 0)
-      return {
-        enAgua: true,
-        estado: "veto",
-        nota: "El punto cae sobre un cuerpo de agua (río, lago o embalse). No se puede plantar.",
-      };
-  } catch (e) {
-    /* si Overpass falla, no vetamos por esto */
-  }
-  return { enAgua: false, estado: "apto", nota: "Sin cuerpos de agua superficiales en el punto." };
-}
-
-// ---- 4.9 BUSCADOR DE LUGARES (Nominatim) — tipo Google Maps
-async function buscarLugar(texto) {
-  if (!texto || !texto.trim()) return null;
-  const url =
-    "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=cl&q=" +
-    encodeURIComponent(texto);
-  try {
-    const j = await fetchGeo(url, 10000);
-    if (Array.isArray(j) && j.length) {
-      return { lat: parseFloat(j[0].lat), lon: parseFloat(j[0].lon), nombre: j[0].display_name };
-    }
-  } catch (e) {
-    /* sin resultado */
-  }
-  return null;
-}
-
-// =====================================================================
-//  5) COMPONENTES DE MAPA
-// =====================================================================
-
-// Captura los clics para marcar puntos del terreno
-function CapturaClics({ puntos, setPuntos }) {
+function CapturaClics({ activo, onPunto }) {
   useMapEvents({
     click(e) {
-      setPuntos((prev) => [...prev, [e.latlng.lat, e.latlng.lng]]);
+      if (activo) onPunto([e.latlng.lat, e.latlng.lng]);
     },
   });
   return null;
 }
 
-// Mueve el mapa a un destino (resultado del buscador) de forma segura
 function VolarA({ destino }) {
   const map = useMap();
   React.useEffect(() => {
-    if (!destino || typeof destino.lat !== "number" || typeof destino.lon !== "number")
-      return;
+    if (!destino || typeof destino.lat !== "number" || typeof destino.lon !== "number") return;
     try {
       map.setView([destino.lat, destino.lon], 14);
     } catch (e) {
-      /* no botar la app si el mapa aún no está listo */
+      /* el mapa aún no está listo: no botar la app */
     }
   }, [destino, map]);
   return null;
 }
 
+function colorPunto(p) {
+  if (p.excluido) return "#c62828";
+  if (p.aviso) return "#e6a100";
+  return "#2e7d32";
+}
+
 // =====================================================================
-//  6) COMPONENTE PRINCIPAL
+//  Componente principal
 // =====================================================================
 export default function App() {
-  const [puntos, setPuntos] = useState([]);
-  const [capa, setCapa] = useState("calle"); // calle | satelite | relieve
+  const [puntos, setPuntosRaw] = useState([]);
+  const [capa, setCapa] = useState("satelite");
   const [busqueda, setBusqueda] = useState("");
   const [destino, setDestino] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [paso, setPaso] = useState("");
   const [error, setError] = useState(null);
   const [resultado, setResultado] = useState(null);
 
-  const centro = useMemo(() => (puntos.length ? centroide(puntos) : null), [puntos]);
+  // Si cambia el terreno, el resultado anterior deja de valer
+  function setPuntos(fn) {
+    setPuntosRaw(fn);
+    setResultado(null);
+  }
 
-  // --- Buscar un lugar y mover el mapa
+  const areaHa = useMemo(() => areaM2(puntos) / 10000, [puntos]);
+  const cruzado = useMemo(() => seAutoIntersecta(puntos), [puntos]);
+
   async function onBuscar(e) {
     if (e) e.preventDefault();
     setError(null);
-    const r = await buscarLugar(busqueda);
-    if (r) setDestino(r);
-    else setError("No se encontró el lugar. Prueba con otro nombre o comuna.");
+    try {
+      const r = await buscarLugar(busqueda);
+      if (r) setDestino(r);
+      else setError("No se encontró el lugar. Prueba con otro nombre o comuna.");
+    } catch (err) {
+      setError("El buscador no respondió. Intenta de nuevo en unos segundos.");
+    }
   }
 
-  // --- Analizar el terreno marcado
   async function analizar() {
     if (puntos.length < 3) {
       setError("Marca al menos 3 puntos para formar el terreno.");
       return;
     }
+    if (cruzado) {
+      setError("El contorno se cruza a sí mismo. Reinicia y marca las esquinas en orden, siguiendo el borde del terreno.");
+      return;
+    }
     setError(null);
-    setCargando(true);
     setResultado(null);
+    setCargando(true);
+
+    const fuentes = {};
+    const marca = (clave, promesa) =>
+      promesa
+        .then((v) => {
+          fuentes[clave] = "ok";
+          return v;
+        })
+        .catch((e) => {
+          fuentes[clave] = "error";
+          console.warn("[WineCheck]", clave, e);
+          return null;
+        });
 
     try {
-      const muestras = puntosMuestreo(puntos);
-      const c = centroide(puntos);
+      const poly = puntos.slice();
+      const grid = grillaInterna(poly);
+      const lls = grid.puntos.map((p) => p.ll);
 
-      // Todas las consultas en paralelo. allSettled NO se cuelga si una falla.
-      const [
+      setPaso("Revisando agua, humedales y áreas protegidas…");
+      const [elev, osm, sma, hum, agua, escasez] = await Promise.all([
+        marca("elevacion", pedirElevaciones(lls)),
+        marca("osm", pedirOSM(poly, lls)),
+        marca("sma", pedirProtegidas(poly, lls)),
+        marca("humedales", pedirHumedales(poly, lls)),
+        marca("agua", pedirAgua(poly)),
+        marca("escasez", pedirEscasez(poly)),
+      ]);
+
+      const R = calcularRestricciones(lls.length, { elev, osm, hum, sma });
+
+      let clima = null;
+      let suelo = null;
+      let pendiente = null;
+      if (R.libres.length) {
+        setPaso("Calculando clima de 10 temporadas y suelo…");
+        const c = centroide(R.libres.map((k) => lls[k]));
+        [clima, suelo] = await Promise.all([
+          marca("clima", pedirClima(c[0], c[1])),
+          marca("suelo", pedirSuelo(R.libres.map((k) => lls[k]))),
+        ]);
+        pendiente = elev ? calcularPendiente(grid, elev, R.libres) : null;
+      } else {
+        fuentes.clima = fuentes.suelo = "no aplica";
+      }
+
+      setResultado({
+        poly,
+        grid,
+        areaHa: areaM2(poly) / 10000,
+        R,
+        osm,
         clima,
-        pendiente,
         suelo,
+        pendiente,
         agua,
         escasez,
-        humedal,
-        protegida,
-        cuerpoAgua,
-      ] = await Promise.allSettled([
-        pedirClima(c[0], c[1]),
-        pedirPendiente(muestras),
-        pedirSuelo(muestras),
-        pedirAgua(muestras),
-        pedirEscasez(muestras),
-        pedirHumedal(muestras),
-        pedirProtegida(muestras),
-        pedirCuerpoAgua(c[0], c[1]),
-      ]).then((rs) => rs.map((r) => (r.status === "fulfilled" ? r.value : null)));
-
-      setResultado({ clima, pendiente, suelo, agua, escasez, humedal, protegida, cuerpoAgua, centro: c });
+        fuentes,
+        consultado: new Date(),
+      });
     } catch (e) {
       setError("No se pudo completar el análisis: " + (e?.message || e));
     } finally {
       setCargando(false);
+      setPaso("");
     }
   }
 
+  function deshacer() {
+    setPuntos((prev) => prev.slice(0, -1));
+  }
   function reiniciar() {
     setPuntos([]);
-    setResultado(null);
     setError(null);
   }
 
-  // --- Determinar vetos absolutos y veredicto global
-  const analisis = useMemo(() => {
-    if (!resultado) return null;
-    const { clima, pendiente, suelo, agua, escasez, humedal, protegida, cuerpoAgua } = resultado;
+  const ver = useMemo(() => (resultado ? calcularVeredicto(resultado) : null), [resultado]);
 
-    const enMar =
-      (cuerpoAgua && cuerpoAgua.enAgua) ||
-      (pendiente && pendiente.ok && pendiente.enAgua);
-    const esHumedal = humedal && humedal.esHumedal;
-    const esProtegida = protegida && protegida.protegida;
-    const vetoAbsoluto = enMar || esHumedal || esProtegida;
-
-    // Lista de motivos de veto absoluto
-    const motivosVeto = [];
-    if (enMar) motivosVeto.push("el terreno cae sobre agua (mar, río, lago o embalse)");
-    if (esHumedal) motivosVeto.push("es un humedal protegido");
-    if (esProtegida) motivosVeto.push("es un área protegida oficial");
-
-    // Estado global
-    let estadoGlobal;
-    if (vetoAbsoluto) {
-      estadoGlobal = "veto";
-    } else {
-      const estados = [
-        clima?.estado,
-        pendiente?.estado,
-        suelo?.estado,
-        agua?.estado,
-        escasez?.estado,
-      ].filter(Boolean);
-      estadoGlobal = peorEstado(estados);
-    }
-
-    return { vetoAbsoluto, motivosVeto, estadoGlobal };
-  }, [resultado]);
-
-  // --- Frase resumen del veredicto (explica TODOS los parámetros)
-  function fraseVeredicto() {
-    if (!resultado || !analisis) return "";
-    if (analisis.vetoAbsoluto) {
-      return (
-        "No se puede plantar aquí porque " +
-        analisis.motivosVeto.join(" y ") +
-        ". Por eso no se muestran datos de clima ni suelo: no aplican en este lugar."
-      );
-    }
-    const { clima, pendiente, suelo, agua, escasez } = resultado;
-    const problemas = [];
-    const buenos = [];
-    const rev = (p, nombre) => {
-      if (!p) return;
-      if (p.estado === "veto" || p.estado === "riesgo") problemas.push(nombre);
-      else if (p.estado === "apto") buenos.push(nombre);
-    };
-    rev(clima, "clima");
-    rev(suelo, "suelo");
-    rev(pendiente, "pendiente");
-    rev(agua, "agua subterránea");
-    rev(escasez, "disponibilidad hídrica");
-
-    if (analisis.estadoGlobal === "apto") {
-      return `Terreno apto para viña. Clima, suelo, pendiente y agua están dentro de rangos adecuados. Cepas sugeridas: ${clima ? cepasRecomendadas(clima.gda) : "según clima"}.`;
-    }
-    let f = "";
-    if (problemas.length) f += `Puntos a manejar: ${problemas.join(", ")}. `;
-    if (buenos.length) f += `A favor: ${buenos.join(", ")}. `;
-    if (analisis.estadoGlobal === "veto")
-      f += "Hay al menos un parámetro que lo hace no recomendable.";
-    else f += "Es plantable con manejo técnico adecuado.";
-    return f;
-  }
-
-  const esMovil = typeof window !== "undefined" && window.innerWidth <= 640;
-
-  // =====================================================================
-  //  7) INTERFAZ
-  // =====================================================================
   return (
     <div>
       <header className="cabecera">
         <img src="/logo.png" alt="WineCheck" />
         <div>
-          <h1>WINE CHECK</h1>
-          <p className="lema">¿Se puede plantar una viña aquí? Datos oficiales de Chile.</p>
+          <h1 className="sr-only">WineCheck</h1>
+          <p className="lema">¿Se puede plantar una viña aquí? Prefactibilidad con datos oficiales de Chile.</p>
         </div>
       </header>
 
       <div className="wrap">
-        {/* Buscador tipo Google Maps */}
         <form className="buscador" onSubmit={onBuscar}>
           <input
             type="text"
@@ -674,28 +225,22 @@ export default function App() {
           <button type="submit">Buscar</button>
         </form>
 
-        {/* Botones de capa */}
         <div className="capas">
-          <button className={capa === "calle" ? "activo" : ""} onClick={() => setCapa("calle")}>
-            Mapa
-          </button>
-          <button className={capa === "satelite" ? "activo" : ""} onClick={() => setCapa("satelite")}>
-            Satélite
-          </button>
-          <button className={capa === "relieve" ? "activo" : ""} onClick={() => setCapa("relieve")}>
-            Relieve
-          </button>
+          {[
+            ["calle", "Mapa"],
+            ["satelite", "Satélite"],
+            ["relieve", "Relieve"],
+          ].map(([k, t]) => (
+            <button key={k} className={capa === k ? "activo" : ""} onClick={() => setCapa(k)}>
+              {t}
+            </button>
+          ))}
         </div>
 
-        {/* Mapa */}
         <div className="mapa">
           <MapContainer center={[-33.85, -70.75]} zoom={9} style={{ height: "100%", width: "100%" }}>
             {capa === "calle" && (
-              <TileLayer
-                key="calle"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="© OpenStreetMap"
-              />
+              <TileLayer key="calle" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
             )}
             {capa === "satelite" && (
               <TileLayer
@@ -712,209 +257,515 @@ export default function App() {
               />
             )}
 
-            <CapturaClics puntos={puntos} setPuntos={setPuntos} />
+            <CapturaClics activo={!cargando} onPunto={(p) => setPuntos((prev) => [...prev, p])} />
             <VolarA destino={destino} />
 
-            {puntos.map((p, i) => (
-              <CircleMarker key={i} center={p} radius={6} pathOptions={{ color: "#7b1d2b", fillColor: "#7b1d2b", fillOpacity: 1 }} />
-            ))}
             {puntos.length >= 3 && (
-              <Polygon positions={puntos} pathOptions={{ color: "#7b1d2b", fillOpacity: 0.15 }} />
+              <Polygon positions={puntos} pathOptions={{ color: cruzado ? "#c62828" : "#7b1d2b", fillOpacity: 0.12 }} />
             )}
+            {puntos.map((p, i) => (
+              <CircleMarker
+                key={"v" + i}
+                center={p}
+                radius={6}
+                interactive={false}
+                pathOptions={{ color: "#fff", weight: 2, fillColor: "#7b1d2b", fillOpacity: 1 }}
+              />
+            ))}
+            {resultado &&
+              resultado.grid.puntos.map((p, k) => (
+                <CircleMarker
+                  key={"g" + k}
+                  center={p.ll}
+                  radius={4}
+                  interactive={false}
+                  pathOptions={{ color: colorPunto(resultado.R.puntos[k]), weight: 1, fillOpacity: 0.9 }}
+                />
+              ))}
           </MapContainer>
         </div>
 
-        <p style={{ fontSize: "0.85rem", color: "#6b7280", margin: "8px 0" }}>
-          Toca el mapa para marcar las esquinas del terreno (mínimo 3, sin límite). El punto central también se analiza.
-        </p>
+        {resultado && (
+          <div className="leyenda">
+            <span><i style={{ background: "#2e7d32" }} /> disponible</span>
+            <span><i style={{ background: "#e6a100" }} /> con advertencia</span>
+            <span><i style={{ background: "#c62828" }} /> restringido</span>
+            <span className="tenue">({resultado.R.n} puntos de muestreo)</span>
+          </div>
+        )}
 
-        {/* Acciones */}
+        <p className="ayuda">
+          Toca el mapa para marcar las esquinas del terreno, en orden alrededor del borde (mínimo 3).
+          {puntos.length > 0 && (
+            <strong>
+              {" "}
+              {puntos.length} {puntos.length === 1 ? "punto" : "puntos"}
+              {puntos.length >= 3 ? ` · ${fmt(areaHa, areaHa < 10 ? 2 : 1)} ha` : ""}
+            </strong>
+          )}
+        </p>
+        {cruzado && <div className="aviso">El contorno se cruza a sí mismo. Deshaz puntos o reinicia y márcalos en orden.</div>}
+
         <div className="acciones">
           <button className="btn-analizar" onClick={analizar} disabled={cargando || puntos.length < 3}>
             {cargando ? "Analizando…" : "Analizar terreno"}
           </button>
-          <button className="btn-reiniciar" onClick={reiniciar} disabled={cargando}>
+          <button className="btn-reiniciar" onClick={deshacer} disabled={cargando || !puntos.length}>
+            Deshacer punto
+          </button>
+          <button className="btn-reiniciar" onClick={reiniciar} disabled={cargando || !puntos.length}>
             Reiniciar
           </button>
         </div>
 
         {error && <div className="error">{error}</div>}
-        {cargando && <div className="cargando">Consultando fuentes oficiales… puede tardar unos segundos.</div>}
+        {cargando && <div className="cargando">{paso || "Consultando fuentes oficiales…"} Puede tardar hasta un minuto.</div>}
 
-        {/* Resultado */}
-        {resultado && analisis && (
+        {resultado && ver && (
           <>
-            {/* Veredicto global */}
-            <div className={"veredicto " + analisis.estadoGlobal}>
-              <h2>{cfg(analisis.estadoGlobal).texto}</h2>
-              <p>{fraseVeredicto()}</p>
+            <div className={"veredicto " + ver.estado}>
+              <h2>
+                {ver.titulo}
+                {ver.provisorio ? " (provisorio)" : ""}
+              </h2>
+              <ul className="resumen">
+                {ver.frases.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ul>
             </div>
 
-            {/* Si es veto absoluto, NO mostramos clima/suelo/etc. */}
-            {analisis.vetoAbsoluto ? (
-              <div className="tarjeta">
-                <h3>¿Por qué no se muestran más datos?</h3>
-                <p>
-                  Este lugar está vetado ({analisis.motivosVeto.join(", ")}). No tiene sentido
-                  mostrar clima, suelo o agua porque no se puede plantar una viña aquí bajo ninguna
-                  condición.
-                </p>
-              </div>
+            {ver.vetoTotal ? (
+              <TarjetaTerritorio r={resultado} />
             ) : (
               <>
+                <TarjetaTerritorio r={resultado} />
                 <TarjetaClima clima={resultado.clima} />
                 <TarjetaSuelo suelo={resultado.suelo} />
-                <TarjetaSimple titulo="Pendiente y relieve" p={resultado.pendiente} extra={relieveExtra(resultado.pendiente)} />
-                <TarjetaSimple titulo="Agua subterránea (DGA)" p={resultado.agua} />
-                <TarjetaSimple titulo="Disponibilidad hídrica (DGA)" p={resultado.escasez} />
-                <TarjetaSimple titulo="Humedales (MMA)" p={resultado.humedal} />
-                <TarjetaSimple titulo="Áreas protegidas (SMA)" p={resultado.protegida} />
+                <TarjetaRelieve p={resultado.pendiente} />
+                <TarjetaAgua agua={resultado.agua} />
+                <TarjetaEscasez e={resultado.escasez} />
               </>
             )}
 
-            {/* FUENTES — al final del todo */}
-            <PanelFuentes />
+            <div className="alcance">
+              WineCheck es una herramienta de prefactibilidad. No reemplaza el estudio de suelo en terreno (calicatas),
+              la verificación de derechos de agua del predio ni la revisión legal y ambiental del proyecto.
+            </div>
           </>
         )}
+
+        <PanelFuentes r={resultado} />
       </div>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------
-//  Componentes de tarjeta
-// ---------------------------------------------------------------------
-function relieveExtra(p) {
-  if (!p || !p.ok) return null;
-  return `Altitud: ${p.elevMin}–${p.elevMax} m · Pendiente aprox.: ${p.pendPct}%`;
+// =====================================================================
+//  Tarjetas
+// =====================================================================
+function Tarjeta({ titulo, estado, children }) {
+  return (
+    <div className="tarjeta">
+      <h3>
+        <span className={"punto " + (estado || "nd")} /> {titulo}
+        {estado && <span className={"chip " + estado}>{cfg(estado).texto}</span>}
+      </h3>
+      {children}
+    </div>
+  );
 }
 
+function SinDato({ titulo, texto }) {
+  return (
+    <Tarjeta titulo={titulo} estado="nd">
+      <p>{texto || "La fuente no respondió. No se muestra información para no inducir a error; reintenta en unos minutos."}</p>
+    </Tarjeta>
+  );
+}
+
+function Fila({ k, v, sub }) {
+  return (
+    <div className="fila">
+      <div className="k">{k}</div>
+      <div className="v">
+        {v}
+        {sub && <div className="sub">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ---- Superficie, restricciones y agua superficial
+function TarjetaTerritorio({ r }) {
+  const { R, fuentes, osm, areaHa } = r;
+  const disponibles = 100 - R.pctExcluido;
+  const estado = R.pctExcluido >= 100 ? "veto" : R.pctExcluido > 0 || R.pctAviso > 0 ? "riesgo" : fuentes.sma === "ok" && fuentes.humedales === "ok" ? "apto" : "nd";
+  const cauces = osm ? osm.cauces : [];
+  return (
+    <Tarjeta titulo="Superficie y restricciones territoriales" estado={estado}>
+      <div className="barra">
+        <span style={{ width: disponibles + "%", background: "#2e7d32" }} />
+        <span style={{ width: R.pctExcluido + "%", background: "#c62828" }} />
+      </div>
+      <Fila k="Superficie marcada" v={`${fmt(areaHa, areaHa < 10 ? 2 : 1)} ha`} />
+      <Fila k="Disponible para plantar" v={`${fmt((areaHa * disponibles) / 100, areaHa < 10 ? 2 : 1)} ha (${fmt(disponibles)}%)`} />
+      {R.pctMar > 0 && <Fila k="Mar" v={`${fmt(R.pctMar)}% del terreno`} sub="Elevación ≤ 0 m según el modelo Copernicus." />}
+      {(R.pctAguaNatural > 0 || R.pctAguaArtificial > 0) && (
+        <Fila
+          k="Superficie de agua"
+          v={`${fmt(R.pctAguaNatural + R.pctAguaArtificial)}% del terreno`}
+          sub={`${R.nombresAgua.join(", ")}. No es plantable.${R.pctAguaArtificial > 0 ? " Los tranques y embalses artificiales no son áreas protegidas." : ""}`}
+        />
+      )}
+      {R.protegidasVeto.length > 0 && (
+        <Fila
+          k="Áreas protegidas"
+          v={R.pctProtegida > 0 ? `${fmt(R.pctProtegida)}% del terreno` : "toca el borde del terreno"}
+          sub={R.protegidasVeto.map((p) => p.etiqueta).join("; ") + ". No admite plantación."}
+        />
+      )}
+      {R.humedalesNat.length > 0 && (
+        <Fila
+          k="Humedales (inventario MMA)"
+          v={R.pctHumedal > 0 ? `${fmt(R.pctHumedal)}% del terreno` : "toca el borde del terreno"}
+          sub={
+            R.humedalesNat.map((h) => `${h.nombre} (${h.tipo})`).join("; ") +
+            ". Intervenir un humedal (drenar, rellenar, plantar) puede requerir evaluación ambiental; esa superficie se excluye."
+          }
+        />
+      )}
+      {(R.protegidasAviso.length > 0 || R.humedalesArt.length > 0) && (
+        <Fila
+          k="Advertencias"
+          v={R.pctAviso > 0 ? `${fmt(R.pctAviso)}% del terreno` : "en el borde del terreno"}
+          sub={[...R.protegidasAviso.map((p) => p.etiqueta), ...R.humedalesArt.map((h) => `Humedal artificial: ${h.nombre}`)].join("; ") +
+            ". No impide plantar, pero conviene revisar sus normas."}
+        />
+      )}
+      {cauces.filter((c) => c.natural && c.dentro).length > 0 && (
+        <Fila
+          k="Cauces naturales"
+          v="cruzan el terreno"
+          sub={cauces.filter((c) => c.natural && c.dentro).map((c) => (c.nombre ? `${c.tipo} ${c.nombre}` : c.tipo)).join(", ") +
+            ". Considerar riesgo de crecidas y restricciones en la ribera."}
+        />
+      )}
+      {cauces.filter((c) => !c.natural).length > 0 && (
+        <Fila
+          k="Canales y acequias"
+          v={cauces.some((c) => !c.natural && c.dentro) ? "dentro o junto al terreno" : "cerca del terreno"}
+          sub={cauces.filter((c) => !c.natural).map((c) => (c.nombre ? `${c.tipo} ${c.nombre}` : c.tipo)).join(", ") +
+            " (OpenStreetMap). No restringen; pueden ser útiles para el riego si el predio tiene derechos."}
+        />
+      )}
+      {fuentes.sma !== "ok" && <p className="falla">No se pudo consultar la SMA: no se puede descartar que haya áreas protegidas.</p>}
+      {fuentes.humedales !== "ok" && <p className="falla">No se pudo consultar el inventario de humedales del MMA.</p>}
+      {fuentes.osm !== "ok" && <p className="falla">No se pudo consultar OpenStreetMap (cuerpos de agua).</p>}
+      {fuentes.elevacion !== "ok" && <p className="falla">No se pudo consultar la elevación (detección de mar y pendiente).</p>}
+      {R.dudosos > 0 && <p className="falla">En {R.dudosos} puntos no se pudo confirmar la restricción.</p>}
+    </Tarjeta>
+  );
+}
+
+// ---- Clima
 function TarjetaClima({ clima }) {
-  if (!clima) return <TarjetaSinDato titulo="Clima (Open-Meteo ERA5)" />;
+  if (!clima) return <SinDato titulo="Clima (ERA5-Land)" />;
   return (
-    <div className="tarjeta">
-      <h3>Clima — {cfg(clima.estado).texto}</h3>
-      <div className="param">
-        <span className={"punto " + clima.estado} />
-        <div>
-          <strong>Grados-día (Winkler, base 10°C): {clima.gda}</strong>
-          <div>Región climática {clima.region?.n} — {clima.region?.desc}</div>
-          <div>Heladas en temporada: {clima.heladas} días</div>
-          <div style={{ marginTop: 4 }}>{clima.nota}</div>
-          <div style={{ marginTop: 4, color: "#7b1d2b" }}>
-            Cepas sugeridas: {cepasRecomendadas(clima.gda)}
-          </div>
-        </div>
-      </div>
-    </div>
+    <Tarjeta titulo={`Clima — promedio ${clima.desde}–${clima.hasta}`} estado={clima.estado}>
+      <Fila
+        k="Grados-día (Winkler, base 10 °C, oct–abr)"
+        v={`${fmt(clima.gdd)} °C·día — Región ${clima.region.n} (${clima.region.desc})`}
+        sub={`Entre temporadas varió de ${fmt(clima.gddMin)} a ${fmt(clima.gddMax)}.`}
+      />
+      <Fila k="Temperatura media de temporada (oct–abr)" v={`${fmt(clima.gst, 1)} °C — clima ${clima.gstClase} (Jones)`} />
+      <Fila k="Índice heliotérmico de Huglin" v={`${fmt(clima.huglin)} — ${clima.huglinClase}`} />
+      {clima.nochesClase && <Fila k="Índice de frío nocturno (mínima media de marzo)" v={`${fmt(clima.noches, 1)} °C — ${clima.nochesClase}`} />}
+      <Fila
+        k="Heladas primaverales (15 sep–30 nov)"
+        v={`${fmt(clima.heladas, 1)} días por temporada en promedio`}
+        sub={`Hubo heladas en ${clima.aniosConHelada} de ${clima.temporadas} temporadas.`}
+      />
+      <Fila
+        k="Precipitación"
+        v={`${fmt(clima.lluviaTemp)} mm en temporada (oct–abr) · ${fmt(clima.lluviaVend)} mm en vendimia (mar–abr)`}
+        sub={clima.lluviaAnual != null ? `Promedio anual (mayo–abril): ${fmt(clima.lluviaAnual)} mm.` : null}
+      />
+      <ul className="notas">
+        {clima.notas.map((n, i) => (
+          <li key={i}>{n}</li>
+        ))}
+      </ul>
+
+      <h4>Cepas según su rango térmico publicado</h4>
+      <table className="tabla">
+        <thead>
+          <tr>
+            <th>Cepa</th>
+            <th>Rango óptimo (temp. media de temporada)</th>
+            <th>¿Calza?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {clima.cepas.map((c) => (
+            <tr key={c.cepa}>
+              <td>{c.cepa}</td>
+              <td>
+                {fmt(c.min, 1)}–{fmt(c.max, 1)} °C
+              </td>
+              <td className={c.encaja ? "si" : "no"}>{c.encaja ? "Sí" : "No"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="tenue">
+        Rangos publicados por G. V. Jones (ver Fuentes). Otras cepas (Carmenère, Syrah, Merlot, Sauvignon Blanc…) no se
+        listan porque no encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
+      </p>
+      <p className="tenue">
+        Datos {clima.modelo} (Copernicus/ECMWF), resolución de ~{clima.modelo === "ERA5-Land" ? "9" : "28"} km: describen el
+        clima de la zona, no el microclima de un cuartel. Las heladas en fondos de valle pueden ser más frecuentes que lo indicado.
+      </p>
+    </Tarjeta>
   );
 }
 
+// ---- Suelo
 function TarjetaSuelo({ suelo }) {
-  if (!suelo || suelo.estado === "nd" || !suelo.clases?.length)
-    return <TarjetaSinDato titulo="Suelo (CIREN — capacidad de uso)" />;
+  if (!suelo) return <SinDato titulo="Suelo (CIREN — capacidad de uso)" texto="El servidor de CIREN no respondió. Sin este dato el veredicto es provisorio; reintenta más tarde." />;
+  if (!suelo.clases.length) return <SinDato titulo="Suelo (CIREN — capacidad de uso)" texto={suelo.nota} />;
   return (
-    <div className="tarjeta">
-      <h3>Suelo — {cfg(suelo.estado).texto}</h3>
-      <p style={{ fontSize: "0.9rem", color: "#6b7280", marginTop: 0 }}>{suelo.nota}</p>
+    <Tarjeta titulo="Suelo — capacidad de uso (CIREN)" estado={suelo.estado}>
+      <div className="barra">
+        {suelo.clases.map((c) => (
+          <span key={c.clase} style={{ width: c.pct + "%", background: cfg(c.estado).color }} title={`Clase ${c.clase}`} />
+        ))}
+      </div>
       {suelo.clases.map((c) => (
         <div className="param" key={c.clase}>
           <span className={"punto " + c.estado} />
           <div>
-            <strong>Clase {c.clase}</strong> {c.puntos > 1 ? `(en ${c.puntos} puntos)` : ""}
+            <strong>
+              {c.titulo} — {fmt(c.pct)}% de la superficie disponible
+            </strong>
             <div>{c.desc}</div>
           </div>
         </div>
       ))}
-    </div>
+      {suelo.subclases.length > 0 && (
+        <p>
+          <strong>Limitaciones indicadas (subclases):</strong> {suelo.subclases.map((s) => `${s.s} = ${s.desc}`).join("; ")}.
+        </p>
+      )}
+      <p className="tenue">
+        La capacidad de uso (clases I a VIII) mide la aptitud del suelo para cultivos en general, no específicamente para
+        vid: las clases I–IV son arables y las V–VIII no arables. Muchas viñas de ladera se establecen en clases IV a VI con
+        manejo. Confirmar siempre con calicatas. Basado en {suelo.muestras} puntos
+        {suelo.fallos ? ` (${suelo.fallos} sin respuesta de CIREN)` : ""}
+        {suelo.sinCobertura ? `; ${suelo.sinCobertura} fuera de la cobertura del estudio` : ""}.
+      </p>
+    </Tarjeta>
   );
 }
 
-function TarjetaSimple({ titulo, p, extra }) {
-  if (!p) return <TarjetaSinDato titulo={titulo} />;
+// ---- Relieve
+function TarjetaRelieve({ p }) {
+  if (!p) return <SinDato titulo="Pendiente y relieve" />;
+  if (p.estado === "nd") return <SinDato titulo="Pendiente y relieve" texto={p.nota} />;
   return (
-    <div className="tarjeta">
-      <h3>{titulo} — {cfg(p.estado).texto}</h3>
-      <div className="param">
-        <span className={"punto " + p.estado} />
-        <div>
-          <div>{p.nota}</div>
-          {extra && <div style={{ marginTop: 4, color: "#6b7280" }}>{extra}</div>}
-        </div>
-      </div>
-    </div>
+    <Tarjeta titulo="Pendiente y relieve" estado={p.estado}>
+      <Fila k="Pendiente media" v={`${fmt(p.media)}%`} sub={p.nota} />
+      <Fila k="Superficie con pendiente > 15% / > 30%" v={`${fmt(p.pct15)}% / ${fmt(p.pct30)}%`} />
+      <Fila k="Altitud" v={`${fmt(p.elevMin)}–${fmt(p.elevMax)} m s.n.m.`} />
+      <Fila k="Exposición general" v={p.exposicion || "terreno prácticamente plano"} sub={p.notaExposicion} />
+      {p.resolucionBaja && (
+        <p className="tenue">
+          El modelo de elevación tiene ~90 m de resolución: en terrenos pequeños la pendiente es aproximada. Verificar con
+          topografía.
+        </p>
+      )}
+    </Tarjeta>
   );
 }
 
-function TarjetaSinDato({ titulo }) {
+// ---- Agua subterránea
+function TarjetaAgua({ agua }) {
+  if (!agua) return <SinDato titulo="Agua subterránea (DGA)" />;
   return (
-    <div className="tarjeta">
-      <h3>{titulo} — Sin dato</h3>
-      <div className="param">
-        <span className="punto nd" />
-        <div>No se obtuvo dato de esta fuente para el terreno marcado.</div>
-      </div>
-    </div>
+    <Tarjeta titulo="Agua subterránea (DGA)" estado={agua.estado}>
+      {agua.zonas.map((z, i) => (
+        <Fila key={i} k={z.tipo} v={`SHAC ${z.shac}`} sub={z.acuifero ? `Acuífero ${z.acuifero}` : null} />
+      ))}
+      <p>{agua.nota}</p>
+      <p className="tenue">
+        Indica la situación administrativa del acuífero. No reemplaza revisar los derechos de agua (subterráneos o
+        superficiales) que tenga el predio.
+      </p>
+    </Tarjeta>
   );
 }
 
-// ---------------------------------------------------------------------
-//  Panel de fuentes — SIEMPRE al final, con explicación y enlaces
-// ---------------------------------------------------------------------
-function PanelFuentes() {
-  const fuentes = [
-    {
-      n: "Clima — Open-Meteo (reanálisis ERA5)",
-      por: "ERA5 es el reanálisis climático oficial del ECMWF (Centro Europeo de Previsiones Meteorológicas), estándar científico mundial con 25+ años de datos. Open-Meteo lo entrega libremente.",
-      url: "https://open-meteo.com/en/docs/historical-weather-api",
-    },
-    {
-      n: "Suelo — CIREN (Estudio Agrológico)",
-      por: "CIREN (Centro de Información de Recursos Naturales) es el organismo técnico chileno que elabora la cartografía oficial de suelos y su capacidad de uso (clases I–VIII).",
-      url: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer",
-    },
-    {
-      n: "Agua subterránea y escasez — DGA / MOP",
-      por: "La Dirección General de Aguas (Ministerio de Obras Públicas) administra los derechos de agua y declara las áreas de restricción, zonas de prohibición y decretos de escasez.",
-      url: "https://dga.mop.gob.cl/derechos-de-agua/proteccion-de-las-fuentes/areas-de-restriccion/",
-    },
-    {
-      n: "Humedales — MMA (SIMBIO)",
-      por: "El Ministerio del Medio Ambiente mantiene el Inventario Nacional de Humedales y los humedales urbanos declarados (Ley 21.202), donde está prohibido intervenir.",
-      url: "https://humedaleschile.mma.gob.cl/",
-    },
-    {
-      n: "Áreas protegidas — SMA / SNASPE",
-      por: "La Superintendencia del Medio Ambiente publica las áreas de protección oficial (parques, reservas, santuarios). No admiten uso agrícola.",
-      url: "https://areasprotegidas.mma.gob.cl/",
-    },
-    {
-      n: "Pendiente y elevación — Copernicus DEM (vía Open-Meteo)",
-      por: "Modelo digital de elevación Copernicus (Agencia Espacial Europea), referencia global de topografía. Se usa para pendiente y para detectar mar.",
-      url: "https://open-meteo.com/en/docs/elevation-api",
-    },
-    {
-      n: "Cuerpos de agua — OpenStreetMap (Overpass)",
-      por: "Base cartográfica colaborativa mundial. Se usa como control cruzado para detectar ríos, lagos y embalses bajo el punto marcado.",
-      url: "https://www.openstreetmap.org/",
-    },
-  ];
+// ---- Escasez hídrica
+function TarjetaEscasez({ e }) {
+  if (!e) return <SinDato titulo="Escasez hídrica (DGA)" />;
+  return (
+    <Tarjeta titulo="Escasez hídrica (DGA)" estado={e.estado}>
+      <p>{e.nota}</p>
+      {e.decretos.length > 0 ? (
+        <>
+          <p>
+            <strong>Historial:</strong> {e.decretos.length} decreto{e.decretos.length > 1 ? "s" : ""} de escasez han
+            cubierto este terreno
+            {e.recurrente ? `, en ${e.aniosRecientes} de los últimos 10 años (zona con escasez recurrente)` : ""}.
+          </p>
+          <table className="tabla">
+            <thead>
+              <tr>
+                <th>Decreto</th>
+                <th>Vigencia</th>
+                <th>Territorio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {e.decretos.slice(0, 8).map((d) => (
+                <tr key={d.num + "-" + d.anio}>
+                  <td>
+                    N° {d.num}/{d.anio}
+                  </td>
+                  <td>
+                    {fecha(d.desde)} – {fecha(d.hasta)}
+                    {d.vigente ? " (vigente)" : ""}
+                  </td>
+                  <td>{d.lugar || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : (
+        <p>No hay decretos de escasez registrados para este terreno en la capa de la DGA.</p>
+      )}
+      {e.ultimoCapa && <p className="tenue">Decreto más reciente cargado en la capa de la DGA: {fecha(e.ultimoCapa)}.</p>}
+    </Tarjeta>
+  );
+}
+
+// =====================================================================
+//  Panel de fuentes — SIEMPRE al final
+// =====================================================================
+const FUENTES = [
+  {
+    clave: "clima",
+    n: "Clima — ERA5-Land (Copernicus / ECMWF), vía Open-Meteo",
+    por: "Reanálisis climático del Centro Europeo de Previsiones Meteorológicas a Plazo Medio (ECMWF) para el programa Copernicus de la Unión Europea; es la referencia científica estándar para series climáticas largas. Se usan temperaturas y lluvias diarias de las últimas 10 temporadas completas.",
+    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Huglin pondera además las máximas. Las clases vienen de Amerine & Winkler (1944), Jones (2006) y Tonietto & Carbonneau (2004).",
+    links: [
+      ["API de datos históricos (Open-Meteo)", "https://open-meteo.com/en/docs/historical-weather-api"],
+      ["Tonietto & Carbonneau (2004), Agricultural and Forest Meteorology", "https://doi.org/10.1016/j.agrformet.2003.06.001"],
+    ],
+  },
+  {
+    clave: "clima",
+    n: "Cepas — rangos térmicos de G. V. Jones",
+    por: "Gregory V. Jones es climatólogo especializado en viticultura; sus rangos de temperatura media de temporada por cepa son de uso internacional.",
+    leer: "Una cepa \"calza\" si la temperatura media de temporada del terreno está dentro de su rango óptimo publicado.",
+    links: [
+      ["Jones, Climate, Grapes and Wine (VIII Congreso Internacional de Terroir)", "https://ives-openscience.eu/wp-content/uploads/2023/03/Climate_Grape_Wine_Jones.pdf"],
+      ["Jones (2015), Climate, Grapes, and Wine — GuildSomm", "https://www.guildsomm.com/public_content/features/articles/b/gregory_jones/posts/climate-grapes-and-wine"],
+    ],
+  },
+  {
+    clave: "suelo",
+    n: "Suelo — CIREN, Estudio Agrológico (capacidad de uso)",
+    por: "El Centro de Información de Recursos Naturales (Ministerio de Agricultura) elabora la cartografía oficial de suelos de Chile y su clasificación por capacidad de uso (clases I a VIII).",
+    leer: "Clases I–IV: arables, con limitaciones crecientes. V–VIII: no arables. Las letras (subclase) indican el tipo de limitación.",
+    links: [["Capa oficial de CIREN (servicio de mapas)", URLS.ciren]],
+  },
+  {
+    clave: "agua",
+    n: "Agua subterránea — DGA (Ministerio de Obras Públicas)",
+    por: "La Dirección General de Aguas administra los derechos de agua y declara la condición de cada Sector Hidrogeológico de Aprovechamiento Común (SHAC).",
+    leer: "Abierto: se pueden pedir nuevos derechos. Área de Restricción: solo derechos provisionales. Zona de Prohibición: no se otorgan nuevos derechos.",
+    links: [["Capa oficial de la DGA", URLS.dgaAgua]],
+  },
+  {
+    clave: "escasez",
+    n: "Escasez hídrica — DGA, decretos de escasez",
+    por: "Los decretos de escasez los dicta el MOP a propuesta de la DGA y permiten redistribuir y restringir el uso del agua mientras están vigentes.",
+    leer: "Se considera vigente un decreto cuya fecha de caducidad es posterior a hoy. El historial muestra si la zona sufre sequías recurrentes.",
+    links: [["Capa oficial de la DGA", URLS.dgaEscasez]],
+  },
+  {
+    clave: "humedales",
+    n: "Humedales — MMA, Inventario Nacional de Humedales",
+    por: "El Ministerio del Medio Ambiente mantiene el inventario oficial de humedales del país, clasificados en naturales (continentales, costeros) y artificiales.",
+    leer: "La superficie de humedales naturales se excluye de lo plantable. Los artificiales (tranques, embalses) se muestran como advertencia.",
+    links: [
+      ["Capa oficial del MMA", URLS.mmaHumedales],
+      ["Portal de humedales del MMA", "https://humedaleschile.mma.gob.cl/"],
+    ],
+  },
+  {
+    clave: "sma",
+    n: "Áreas protegidas — SMA, Áreas de protección oficial",
+    por: "La Superintendencia del Medio Ambiente reúne en un solo servicio las áreas protegidas oficiales: parques y reservas nacionales, monumentos naturales, santuarios, sitios RAMSAR, humedales urbanos y otras protecciones.",
+    leer: "Parques, reservas nacionales, monumentos naturales, santuarios, sitios RAMSAR y humedales urbanos excluyen superficie. Reservas forestales, zonas típicas, monumentos históricos, ZOIT y zonas de planes reguladores se muestran como advertencia.",
+    links: [["Servicio oficial de la SMA", URLS.smaProteccion]],
+  },
+  {
+    clave: "elevacion",
+    n: "Pendiente y elevación — Copernicus DEM GLO-90, vía Open-Meteo",
+    por: "Modelo digital de elevación global del programa Copernicus (Agencia Espacial Europea), resolución de 90 m. Se usa para pendiente, exposición y detección de mar.",
+    leer: "Las clases de pendiente siguen la guía de descripción de suelos de la FAO (2006).",
+    links: [
+      ["API de elevación (Open-Meteo)", "https://open-meteo.com/en/docs/elevation-api"],
+      ["FAO (2006), Guidelines for Soil Description", "https://fao.org/4/a0541e/a0541e.pdf"],
+    ],
+  },
+  {
+    clave: "osm",
+    n: "Cuerpos de agua y canales — OpenStreetMap (control cruzado)",
+    por: "Cartografía colaborativa mundial; NO es una fuente oficial. Se usa solo como control cruzado para detectar lagos, ríos, embalses y canales.",
+    leer: "La superficie de agua se excluye de lo plantable. Canales y acequias se informan, pero no restringen.",
+    links: [["OpenStreetMap", "https://www.openstreetmap.org/"]],
+  },
+];
+
+const ESTADO_FUENTE = { ok: "consultada", error: "no respondió", "no aplica": "no aplica" };
+
+function PanelFuentes({ r }) {
   return (
     <div className="tarjeta fuentes">
       <h3>Fuentes y cómo leerlas</h3>
       <p>
-        Todos los datos provienen de organismos oficiales y públicos. Cada fuente se puede verificar
-        en su enlace:
+        Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales; OpenStreetMap se
+        usa solo como control cruzado. Cada fuente se puede verificar en su enlace.
+        {r && ` Consulta realizada el ${r.consultado.toLocaleString("es-CL")}.`}
       </p>
-      {fuentes.map((f, i) => (
-        <details key={i}>
-          <summary>{f.n}</summary>
-          <p style={{ margin: "6px 0" }}>{f.por}</p>
-          <a href={f.url} target="_blank" rel="noreferrer">
-            Ver fuente ↗
-          </a>
-        </details>
-      ))}
+      {FUENTES.map((f, i) => {
+        const est = r ? r.fuentes[f.clave] : null;
+        return (
+          <details key={i}>
+            <summary>
+              {f.n}
+              {est && <span className={"badge " + (est === "ok" ? "ok" : est === "error" ? "error" : "")}>{ESTADO_FUENTE[est] || est}</span>}
+            </summary>
+            <p><strong>Qué es y por qué es autoridad:</strong> {f.por}</p>
+            <p><strong>Cómo leerlo:</strong> {f.leer}</p>
+            <p>
+              {f.links.map(([t, u], j) => (
+                <React.Fragment key={j}>
+                  <a href={u} target="_blank" rel="noreferrer">
+                    {t} ↗
+                  </a>
+                  <br />
+                </React.Fragment>
+              ))}
+            </p>
+          </details>
+        );
+      })}
+      <p>Búsqueda de lugares: Nominatim (OpenStreetMap). Mapas base: OpenStreetMap y Esri.</p>
     </div>
   );
 }
