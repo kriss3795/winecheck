@@ -408,7 +408,17 @@ export function parseClase(raw) {
 }
 
 export async function pedirSuelo(lls) {
-  const res = await enParalelo(lls, CONCURRENCIA, (ll) => fetchJSON(urlQueryPunto(URLS.ciren, ll, "*"), 12000));
+  const consulta = (ll) => fetchJSON(urlQueryPunto(URLS.ciren, ll, "*"), 10000);
+  // Sonda: si CIREN no responde el primer punto, se avisa de inmediato
+  // en vez de esperar el tiempo límite en cada uno de los puntos.
+  let primero;
+  try {
+    primero = { ok: true, v: await consulta(lls[0]) };
+  } catch (e) {
+    throw new Error("el servidor de CIREN no respondió");
+  }
+  const resto = await enParalelo(lls.slice(1), CONCURRENCIA, consulta);
+  const res = [primero, ...resto];
   const fallos = res.filter((r) => !r.ok).length;
   if (fallos === lls.length) throw new Error("el servidor de CIREN no respondió");
 
@@ -750,7 +760,7 @@ async function consultarOverpass(q) {
   let ultimo = null;
   for (const u of intentos) {
     try {
-      const r = await fetchTimeout(u, 15000);
+      const r = await fetchTimeout(u, 10000);
       if (!r.ok) throw new Error("Overpass HTTP " + r.status);
       const j = await r.json();
       if (!Array.isArray(j.elements)) throw new Error("respuesta de Overpass inválida");
