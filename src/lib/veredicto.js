@@ -140,7 +140,7 @@ export function calcularVeredicto(r) {
       `Clima (promedio de ${clima.temporadas} temporadas): ${fmt(clima.gdd)} grados-día, Región ${clima.region.n} de Winkler (${clima.region.desc}); temperatura media de temporada ${fmt(
         clima.gst,
         1
-      )} °C (clima ${clima.gstClase} según Jones).${clima.heladas >= 1 ? " Hay riesgo de heladas primaverales." : ""}`
+      )} °C (categoría ${clima.gstClase} según Jones).${clima.heladas >= 1 ? " Hay riesgo de heladas primaverales." : ""}`
     );
   } else f.push("Clima: no se pudo obtener; sin clima no es posible un veredicto.");
 
@@ -171,12 +171,13 @@ export function calcularVeredicto(r) {
   if (avisos.length) f.push(`Advertencias (no impiden plantar, pero hay que revisarlas): ${unicos(avisos).join("; ")}.`);
 
   if (clima) {
-    const encajan = clima.cepas.filter((c) => c.encaja).map((c) => c.cepa);
-    f.push(
-      encajan.length
-        ? `Cepas cuyo rango térmico publicado incluye esta zona: ${encajan.join(", ")}.`
-        : "Ninguna de las cepas con rango térmico publicado por Jones calza exactamente con esta zona."
-    );
+    const encajan = clima.cepas.filter((c) => c.encaja === "si").map((c) => c.cepa);
+    const limite = clima.cepas.filter((c) => c.encaja === "limite").map((c) => c.cepa);
+    let txt = encajan.length
+      ? `Cepas cuyo rango térmico publicado incluye esta zona: ${encajan.join(", ")}.`
+      : "Ninguna de las cepas con rango térmico publicado por Jones calza dentro de su rango.";
+    if (limite.length) txt += ` En el límite de su rango (±0,5 °C): ${limite.join(", ")}.`;
+    f.push(txt);
   }
 
   if (incompleto) {

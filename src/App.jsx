@@ -478,7 +478,7 @@ function TarjetaClima({ clima }) {
         v={`${fmt(clima.gdd)} °C·día — Región ${clima.region.n} (${clima.region.desc})`}
         sub={`Entre temporadas varió de ${fmt(clima.gddMin)} a ${fmt(clima.gddMax)}.`}
       />
-      <Fila k="Temperatura media de temporada (oct–abr)" v={`${fmt(clima.gst, 1)} °C — clima ${clima.gstClase} (Jones)`} />
+      <Fila k="Temperatura media de temporada (oct–abr)" v={`${fmt(clima.gst, 1)} °C — categoría ${clima.gstClase} (Jones)`} />
       <Fila k="Índice heliotérmico de Huglin" v={`${fmt(clima.huglin)} — ${clima.huglinClase}`} />
       {clima.nochesClase && <Fila k="Índice de frío nocturno (mínima media de marzo)" v={`${fmt(clima.noches, 1)} °C — ${clima.nochesClase}`} />}
       <Fila
@@ -488,8 +488,12 @@ function TarjetaClima({ clima }) {
       />
       <Fila
         k="Precipitación"
-        v={`${fmt(clima.lluviaTemp)} mm en temporada (oct–abr) · ${fmt(clima.lluviaVend)} mm en vendimia (mar–abr)`}
-        sub={clima.lluviaAnual != null ? `Promedio anual (mayo–abril): ${fmt(clima.lluviaAnual)} mm.` : null}
+        v={
+          clima.lluviaTemp == null
+            ? "sin dato (la fuente no respondió)"
+            : `${fmt(clima.lluviaTemp)} mm en temporada (oct–abr) · ${fmt(clima.lluviaVend)} mm en vendimia (mar–abr)`
+        }
+        sub={clima.lluviaAnual != null ? `Promedio anual (mayo–abril): ${fmt(clima.lluviaAnual)} mm. Fuente: ERA5 (~28 km).` : null}
       />
       <ul className="notas">
         {clima.notas.map((n, i) => (
@@ -513,7 +517,7 @@ function TarjetaClima({ clima }) {
               <td>
                 {fmt(c.min, 1)}–{fmt(c.max, 1)} °C
               </td>
-              <td className={c.encaja ? "si" : "no"}>{c.encaja ? "Sí" : "No"}</td>
+              <td className={c.encaja}>{{ si: "Sí", limite: "En el límite", no: "No" }[c.encaja]}</td>
             </tr>
           ))}
         </tbody>
@@ -523,8 +527,10 @@ function TarjetaClima({ clima }) {
         listan porque no encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
       </p>
       <p className="tenue">
-        Datos {clima.modelo} (Copernicus/ECMWF), resolución de ~{clima.modelo === "ERA5-Land" ? "9" : "28"} km: describen el
-        clima de la zona, no el microclima de un cuartel. Las heladas en fondos de valle pueden ser más frecuentes que lo indicado.
+        Temperaturas {clima.modelo} (Copernicus/ECMWF), resolución de ~{clima.modelo === "ERA5-Land" ? "9" : "28"} km:
+        describen el clima de la zona, no el microclima de un cuartel. Los reanálisis pueden diferir en torno a ±1 °C de una
+        estación local, por eso "en el límite" considera ±0,5 °C. Las heladas en fondos de valle pueden ser más frecuentes que
+        lo indicado; conviene validar con una estación agrometeorológica cercana.
       </p>
     </Tarjeta>
   );

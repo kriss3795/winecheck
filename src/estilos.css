@@ -210,6 +210,7 @@ body {
 .tabla th { color: var(--gris); font-weight: 600; }
 .tabla td.si { color: var(--verde); font-weight: 700; }
 .tabla td.no { color: var(--gris); }
+.tabla td.limite { color: #9a6b00; font-weight: 700; }
 
 .fuentes summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .badge { font-size: 0.7rem; padding: 2px 7px; border-radius: 999px; background: #eee; color: var(--gris); font-weight: 600; }

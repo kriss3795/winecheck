@@ -241,37 +241,44 @@ export const CEPAS_JONES = [
 export async function pedirClima(lat, lon) {
   const fin = temporadaFinal();
   const ini = fin - 10;
-  const base =
+  const comun =
     `${URLS.clima}?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}` +
-    `&start_date=${ini}-05-01&end_date=${fin}-04-30` +
-    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=America%2FSantiago`;
+    `&start_date=${ini}-05-01&end_date=${fin}-04-30&timezone=America%2FSantiago`;
+  const urlT = comun + "&daily=temperature_2m_max,temperature_2m_min";
+  // Verificado: ERA5-Land vía Open-Meteo no entrega precipitación diaria,
+  // así que la lluvia se toma de ERA5 (misma fuente Copernicus, ~28 km).
+  const urlP = comun + "&daily=precipitation_sum&models=era5";
 
   const nulos = (j) => {
     const t = j?.daily?.temperature_2m_max || [];
     return t.length ? t.filter((v) => v == null).length / t.length : 1;
   };
-  let j;
-  let modelo = "ERA5-Land";
-  try {
-    j = await fetchJSON(base + "&models=era5_land", 25000);
-    if (nulos(j) > 0.2) throw new Error("ERA5-Land sin datos en este punto");
-  } catch (e) {
-    // En la costa ERA5-Land puede no tener dato: se usa ERA5 (más gruesa)
-    j = await fetchJSON(base + "&models=era5", 25000);
-    modelo = "ERA5";
-    if (nulos(j) > 0.2) throw new Error("sin datos climáticos para este punto");
-  }
+  const pedirTemperaturas = async () => {
+    try {
+      const j = await fetchJSON(urlT + "&models=era5_land", 25000);
+      if (nulos(j) > 0.2) throw new Error("ERA5-Land sin datos en este punto");
+      return { j, modelo: "ERA5-Land" };
+    } catch (e) {
+      // En la costa ERA5-Land puede no tener dato: se usa ERA5 (más gruesa)
+      const j = await fetchJSON(urlT + "&models=era5", 25000);
+      if (nulos(j) > 0.2) throw new Error("sin datos climáticos para este punto");
+      return { j, modelo: "ERA5" };
+    }
+  };
+  const [{ j, modelo }, jp] = await Promise.all([pedirTemperaturas(), fetchJSON(urlP, 25000).catch(() => null)]);
+  const lluviaPorDia = new Map();
+  if (jp?.daily?.time) jp.daily.time.forEach((t, i) => lluviaPorDia.set(t, jp.daily.precipitation_sum[i]));
 
   const d = j.daily;
   const T = {}; // acumuladores por temporada (año de inicio, octubre)
   const get = (y) =>
-    (T[y] = T[y] || { gdd: 0, sumMed: 0, nMed: 0, hug: 0, nMin3: 0, sMin3: 0, heladas: 0, lluviaTemp: 0, lluviaVend: 0, lluviaAnual: 0, nAnual: 0 });
+    (T[y] = T[y] || { gdd: 0, sumMed: 0, nMed: 0, hug: 0, nMin3: 0, sMin3: 0, heladas: 0, lluviaTemp: 0, nLluTemp: 0, lluviaVend: 0, lluviaAnual: 0, nAnual: 0 });
 
   for (let i = 0; i < d.time.length; i++) {
     const [yy, mm, dd] = d.time[i].split("-").map(Number);
     const tx = d.temperature_2m_max[i];
     const tn = d.temperature_2m_min[i];
-    const pp = d.precipitation_sum[i];
+    const pp = lluviaPorDia.has(d.time[i]) ? lluviaPorDia.get(d.time[i]) : null;
     const anioAgri = mm >= 5 ? yy : yy - 1; // año agrícola mayo–abril
     if (pp != null) {
       get(anioAgri).lluviaAnual += pp;
@@ -285,7 +292,10 @@ export async function pedirClima(lat, lon) {
       t.gdd += Math.max(0, tm - 10);
       t.sumMed += tm;
       t.nMed++;
-      if (pp != null) t.lluviaTemp += pp;
+      if (pp != null) {
+        t.lluviaTemp += pp;
+        t.nLluTemp++;
+      }
       if (mm >= 3 && mm <= 4 && pp != null) t.lluviaVend += pp;
       if (mm !== 4) t.hug += Math.max(0, (tm - 10 + (tx - 10)) / 2);
       if (mm === 3) {
@@ -317,6 +327,8 @@ export async function pedirClima(lat, lon) {
   const aniosConHelada = validas.filter((t) => t.heladas > 0).length;
   const anuales = validas.filter((t) => t.nAnual >= 360);
   const lluviaAnual = anuales.length ? anuales.reduce((a, t) => a + t.lluviaAnual, 0) / anuales.length : null;
+  const conLluvia = validas.filter((t) => t.nLluTemp >= 0.95 * 212);
+  const promLluvia = (f) => (conLluvia.length ? conLluvia.reduce((a, t) => a + f(t), 0) / conLluvia.length : null);
 
   // Estado (criterios con fuente)
   let estado = "apto";
@@ -363,10 +375,14 @@ export async function pedirClima(lat, lon) {
     nochesClase: isFinite(noches) ? claseNoches(noches) : null,
     heladas,
     aniosConHelada,
-    lluviaTemp: prom((t) => t.lluviaTemp),
-    lluviaVend: prom((t) => t.lluviaVend),
+    lluviaTemp: promLluvia((t) => t.lluviaTemp),
+    lluviaVend: promLluvia((t) => t.lluviaVend),
     lluviaAnual,
-    cepas: CEPAS_JONES.map((c) => ({ ...c, encaja: gst >= c.min && gst <= c.max })),
+    // "límite": a menos de 0,5 °C del rango (incertidumbre típica del reanálisis)
+    cepas: CEPAS_JONES.map((c) => ({
+      ...c,
+      encaja: gst >= c.min && gst <= c.max ? "si" : gst >= c.min - 0.5 && gst <= c.max + 0.5 ? "limite" : "no",
+    })),
   };
 }
 
@@ -755,22 +771,35 @@ const SERVIDORES_OVERPASS = [
   "https://overpass.kumi.systems/api/interpreter",
 ];
 async function consultarOverpass(q) {
+  // Se consultan todos a la vez y se usa la primera respuesta válida,
+  // con un máximo de 15 s, para que OSM nunca frene el análisis.
   const data = "?data=" + encodeURIComponent(q);
-  const intentos = [...SERVIDORES_OVERPASS.map((u) => u + data), viaProxy(URLS.overpass + data)];
-  let ultimo = null;
-  for (const u of intentos) {
-    try {
-      const r = await fetchTimeout(u, 10000);
-      if (!r.ok) throw new Error("Overpass HTTP " + r.status);
-      const j = await r.json();
-      if (!Array.isArray(j.elements)) throw new Error("respuesta de Overpass inválida");
-      if (j.remark && /error|timed out/i.test(j.remark)) throw new Error(j.remark);
-      return j;
-    } catch (e) {
-      ultimo = e;
-    }
-  }
-  throw ultimo;
+  const urls = [...SERVIDORES_OVERPASS.map((u) => u + data), viaProxy(URLS.overpass + data)];
+  return new Promise((resolve, reject) => {
+    let pendientes = urls.length;
+    let listo = false;
+    const fallo = () => {
+      pendientes--;
+      if (!pendientes && !listo) {
+        listo = true;
+        reject(new Error("ningún servidor de OpenStreetMap respondió"));
+      }
+    };
+    urls.forEach((u) =>
+      fetchTimeout(u, 15000)
+        .then(async (r) => {
+          if (!r.ok) throw new Error("Overpass HTTP " + r.status);
+          const j = await r.json();
+          if (!Array.isArray(j.elements)) throw new Error("respuesta inválida");
+          if (j.remark && /error|timed out/i.test(j.remark)) throw new Error(j.remark);
+          if (!listo) {
+            listo = true;
+            resolve(j);
+          }
+        })
+        .catch(fallo)
+    );
+  });
 }
 
 export async function pedirOSM(pts, lls) {
