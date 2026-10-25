@@ -7,7 +7,7 @@
 //  (octubre 2026).
 // =====================================================================
 
-import { fetchJSON, enParalelo } from "./red.js";
+import { fetchJSON, fetchTimeout, viaProxy, enParalelo } from "./red.js";
 import { anilloArcGIS, caja, dentro, lineaTocaPoligono } from "./geometria.js";
 
 export const URLS = {
@@ -737,6 +737,32 @@ function tipoAgua(tags) {
   return { tipo: "lago o laguna", artificial: false };
 }
 
+// Overpass es un servicio comunitario que a veces se satura: se prueban
+// varios servidores públicos y, al final, el principal vía nuestro proxy.
+const SERVIDORES_OVERPASS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+async function consultarOverpass(q) {
+  const data = "?data=" + encodeURIComponent(q);
+  const intentos = [...SERVIDORES_OVERPASS.map((u) => u + data), viaProxy(URLS.overpass + data)];
+  let ultimo = null;
+  for (const u of intentos) {
+    try {
+      const r = await fetchTimeout(u, 15000);
+      if (!r.ok) throw new Error("Overpass HTTP " + r.status);
+      const j = await r.json();
+      if (!Array.isArray(j.elements)) throw new Error("respuesta de Overpass inválida");
+      if (j.remark && /error|timed out/i.test(j.remark)) throw new Error(j.remark);
+      return j;
+    } catch (e) {
+      ultimo = e;
+    }
+  }
+  throw ultimo;
+}
+
 export async function pedirOSM(pts, lls) {
   const b = caja(pts, 0.0015);
   const bb = `${b.s},${b.o},${b.n},${b.e}`;
@@ -746,7 +772,7 @@ export async function pedirOSM(pts, lls) {
     `way["landuse"="reservoir"](${bb});` +
     `way["waterway"~"^(river|stream|canal|ditch|drain)$"](${bb});` +
     `);out geom;`;
-  const j = await fetchJSON(URLS.overpass + "?data=" + encodeURIComponent(q), 30000);
+  const j = await consultarOverpass(q);
 
   const superficies = [];
   const cauces = [];

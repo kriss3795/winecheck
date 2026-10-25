@@ -48,8 +48,8 @@ export function calcularRestricciones(n, { elev, osm, hum, sma }) {
   // Nombres de lo encontrado (aunque no caiga sobre ningún punto)
   const protegidasVeto = sma ? sma.encontradas.filter((p) => p.veto) : [];
   const protegidasAviso = sma ? sma.encontradas.filter((p) => !p.veto) : [];
-  const humedalesNat = hum ? hum.encontradas.filter((h) => !h.artificial) : [];
-  const humedalesArt = hum ? hum.encontradas.filter((h) => h.artificial) : [];
+  const humedalesNat = hum ? hum.encontrados.filter((h) => !h.artificial) : [];
+  const humedalesArt = hum ? hum.encontrados.filter((h) => h.artificial) : [];
 
   return {
     n,

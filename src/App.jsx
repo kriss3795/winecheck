@@ -209,7 +209,7 @@ export default function App() {
       <header className="cabecera">
         <img src="/logo.png" alt="WineCheck" />
         <div>
-          <h1 className="sr-only">WineCheck</h1>
+          <h1>WINE CHECK</h1>
           <p className="lema">¿Se puede plantar una viña aquí? Prefactibilidad con datos oficiales de Chile.</p>
         </div>
       </header>
