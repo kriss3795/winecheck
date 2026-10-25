@@ -1,33 +1,24 @@
-# WineCheck — Aptitud vitícola por sector (Chile)
+# WineCheck 🍷
 
-## Conclusión verificada sobre los datos de suelo (CIREN)
-Tras probar los servidores reales de CIREN, quedó confirmado con datos:
-CIREN entrega por su API pública SOLO la capacidad de uso del suelo (clase I a
-VIII). No expone serie, textura, drenaje, pH ni aptitud por este medio — esos
-datos están en sus informes/calicatas, no en el servicio web.
+App web que evalúa si un terreno en Chile es apto para plantar viñas,
+combinando datos oficiales (clima, suelo, agua, humedales, áreas
+protegidas, pendiente/mar) en un veredicto tipo semáforo.
 
-Por eso WineCheck ahora presenta la CAPACIDAD DE USO como dato principal, bien
-explicada: es el mejor resumen único de la aptitud de un suelo, el que usan los
-agrónomos. Clases I–IV: suelos cultivables (aptos para vid). V–VIII: limitaciones
-crecientes. Es un dato real, verificado y del punto exacto.
+**Empieza por el archivo [`EMPIEZA-AQUI.md`](./EMPIEZA-AQUI.md).**
 
-## Estado de cada capa (todo verificado con los servidores reales)
-- CLIMA — Open-Meteo ERA5, 25 años, del punto. Completo.
-- AGUA — DGA (ArcGIS oficial del MOP): si el punto está en área de restricción o
-  prohibición de aguas subterráneas. Del punto exacto.
-- SUELO — CIREN: capacidad de uso del punto (búsqueda exhaustiva: punto exacto y,
-  si no hay, radios de 300 m a 5 km marcados como aproximados).
+## Stack
+- React + Vite
+- Leaflet / react-leaflet (mapa)
+- Proxy CORS en Vercel (`api/geo.js`)
 
-## Búsqueda exhaustiva pero honesta
-Busca el dato del punto exacto; si no existe, amplía a 5 km y lo marca como
-aproximado. Solo cuando de verdad no hay estudio (alta cordillera, zonas sin
-levantar) dice "sin dato" — nunca inventa.
+## Desarrollo local (opcional)
+```bash
+npm install
+npm run dev      # servidor local
+npm run build    # construye para producción (carpeta dist/)
+```
 
-## Despliegue
-Ya está en GitHub y Netlify con el proxy activo (confirmado: las consultas a
-CIREN responden). Para actualizar: sube los cambios al repositorio y Netlify
-reconstruye solo.
-
-## Honestidad de fondo
-Nada reemplaza una calicata antes de plantar. WineCheck es orientación con datos
-oficiales del punto.
+## Fuentes de datos
+Open-Meteo ERA5 (clima), CIREN (suelo), DGA/MOP (agua y escasez),
+MMA (humedales), SMA (áreas protegidas), Copernicus DEM vía Open-Meteo
+(pendiente/mar), OpenStreetMap (cuerpos de agua y búsqueda).

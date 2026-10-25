@@ -1,0 +1,161 @@
+/* ===== WineCheck — estilos base, responsive (celular y computador) ===== */
+:root {
+  --vino: #7b1d2b;
+  --vino-osc: #5a141f;
+  --verde: #2e7d32;
+  --amarillo: #e6a100;
+  --rojo: #c62828;
+  --gris: #6b7280;
+  --fondo: #faf7f5;
+  --tarjeta: #ffffff;
+  --borde: #e7e1dd;
+  --texto: #2a2320;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Encabezado */
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--tarjeta);
+  border-bottom: 1px solid var(--borde);
+}
+.cabecera img { height: 56px; width: auto; }
+.cabecera .lema { font-size: 0.9rem; color: var(--gris); margin: 2px 0 0; }
+.cabecera h1 { font-size: 1.15rem; margin: 0; color: var(--vino); }
+
+/* Buscador */
+.buscador {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.buscador input {
+  flex: 1;
+  padding: 11px 13px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  font-size: 1rem;
+}
+.buscador button {
+  padding: 11px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--vino);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Botones de capa del mapa */
+.capas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.capas button {
+  padding: 7px 12px;
+  border: 1px solid var(--borde);
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.capas button.activo {
+  background: var(--vino);
+  color: #fff;
+  border-color: var(--vino);
+}
+
+/* Mapa */
+.mapa { height: 420px; border-radius: 12px; overflow: hidden; border: 1px solid var(--borde); }
+
+/* Acciones */
+.acciones { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+.acciones button {
+  padding: 11px 16px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-analizar { background: var(--verde); color: #fff; }
+.btn-reiniciar { background: #efe9e6; color: var(--texto); }
+.acciones button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Tarjetas */
+.tarjeta {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.tarjeta h3 { margin: 0 0 8px; font-size: 1rem; }
+
+/* Veredicto */
+.veredicto {
+  border-radius: 12px;
+  padding: 18px;
+  color: #fff;
+  margin: 12px 0;
+}
+.veredicto.apto { background: var(--verde); }
+.veredicto.riesgo { background: var(--amarillo); }
+.veredicto.veto { background: var(--rojo); }
+.veredicto.nd { background: var(--gris); }
+.veredicto h2 { margin: 0 0 6px; font-size: 1.3rem; }
+.veredicto p { margin: 4px 0; }
+
+/* Estado de cada parámetro */
+.param { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--borde); }
+.param:last-child { border-bottom: none; }
+.punto { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.punto.apto { background: var(--verde); }
+.punto.riesgo { background: var(--amarillo); }
+.punto.veto { background: var(--rojo); }
+.punto.nd { background: var(--gris); }
+
+/* Fuentes (al final) */
+.fuentes { font-size: 0.85rem; color: var(--gris); }
+.fuentes details { margin: 6px 0; }
+.fuentes summary { cursor: pointer; font-weight: 600; color: var(--vino); }
+.fuentes a { color: var(--vino); }
+
+.error {
+  background: #fdecea;
+  border: 1px solid #f5c6c0;
+  color: #8a1c13;
+  padding: 12px;
+  border-radius: 10px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+
+.cargando { text-align: center; color: var(--gris); padding: 20px; }
+
+/* ===== Celular ===== */
+@media (max-width: 640px) {
+  .cabecera img { height: 42px; }
+  .cabecera h1 { font-size: 1rem; }
+  .mapa { height: 320px; }
+  .acciones button { flex: 1; }
+}

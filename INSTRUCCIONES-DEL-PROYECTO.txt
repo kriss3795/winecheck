@@ -1,0 +1,80 @@
+====================================================================
+ PEGA ESTE TEXTO EN "INSTRUCCIONES" DEL PROYECTO DE CLAUDE
+ (es la memoria del proyecto: así no se pierde el contexto nunca)
+====================================================================
+
+Estoy construyendo WineCheck, una app web que evalúa si un terreno en
+Chile es apto para plantar viñas. El usuario marca un polígono en un
+mapa y recibe un veredicto tipo semáforo (Buena opción / Con manejo /
+No recomendado) combinando datos oficiales del Estado chileno.
+
+SOBRE MÍ: soy Kriss, médico veterinario en Laguna de Aculeo, Paine.
+Respóndeme en español, de forma didáctica y simple, paso a paso.
+
+STACK TÉCNICO:
+- React + Vite (se construye con "npm run build").
+- Mapa con Leaflet / react-leaflet.
+- Proxy CORS en Vercel: carpeta api/geo.js (función serverless). Sirve
+  para esquivar el bloqueo CORS de los servidores del Estado.
+- Despliegue: GitHub conectado a Vercel (gratis). Cada vez que subo
+  cambios a GitHub, Vercel reconstruye el sitio solo.
+
+REGLAS DE DATOS (INNEGOCIABLES):
+1. Todos los datos deben ser reales y de fuentes oficiales verificables.
+   Si una fuente no es fiable, NO se muestra. "Mejor que no esté a que un
+   ingeniero me lo cuestione."
+2. Vetos absolutos (no se puede plantar, bajo ninguna condición): mar,
+   ríos, lagos, embalses, humedales, parques/reservas/áreas protegidas.
+   En esos casos NO mostrar clima/suelo/agua (no aplican).
+3. El terreno se muestrea en VARIOS puntos (vértices + centro), no uno
+   solo, porque el suelo y otras capas varían dentro de un mismo predio.
+   Mostrar TODAS las clases de suelo encontradas, no solo una.
+4. Explicar bien cada clase de suelo (qué significa clase I, III, etc.).
+5. Panel "Fuentes y cómo leerlas" SIEMPRE al final del todo, con qué es
+   cada fuente, por qué es autoridad, y enlace para verificarla.
+6. Nunca ir a pantalla blanca: acceso a config por cfg() y fetch con
+   timeout por AbortController (no AbortSignal.timeout, crashea en
+   celulares).
+7. El veredicto final debe venir con un resumen explicado que considere
+   TODOS los parámetros.
+8. No incluir precio de la uva (no es específico del punto marcado).
+
+FUENTES OFICIALES CONFIRMADAS (URLs reales, ya verificadas):
+- Clima: Open-Meteo ERA5
+  https://archive-api.open-meteo.com/v1/archive
+  (grados-día Winkler base 10°C, temporada hemisferio sur 1 oct–30 abr)
+- Elevación/pendiente/mar: Open-Meteo Elevation (Copernicus DEM)
+  https://api.open-meteo.com/v1/elevation
+- Suelo: CIREN Suelos Agrológicos (clases I–VIII). Campo: textcaus
+  https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer/0
+- Agua subterránea: DGA Áreas de Restricción y Zonas de Prohibición.
+  Campos: TIPO_LIMIT, SHAC, NOM_ACUIF
+  https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Areas_de_Restriccion_y_Zonas_de_Prohibicion/MapServer/0
+- Escasez hídrica: DGA Decretos Escasez
+  https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Decretos_Escasez_Hidrica/MapServer/0
+- Humedales: MMA SIMBIO_HUMEDALES (campo NOMBRE)
+  https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_HUMEDALES/MapServer/0
+- Áreas protegidas: SMA Áreas de protección oficial
+  https://ideserver.sma.gob.cl/arcgis/rest/services/IDE/Areas_proteccion_oficial2/MapServer/37
+- Cuerpos de agua (control cruzado): OpenStreetMap Overpass
+  https://overpass-api.de/api/interpreter
+- Buscador de lugares: Nominatim (OpenStreetMap)
+- Mapas base: OpenStreetMap (calle), Esri World_Imagery (satélite),
+  Esri World_Topo_Map (relieve).
+
+DETALLES TÉCNICOS DE LAS CONSULTAS ARCGIS:
+- Punto como geometry="lon,lat", inSR=4326 (ArcGIS reproyecta solo).
+- spatialRel=esriSpatialRelIntersects, returnGeometry=false, f=json.
+- El proxy fuerza returnGeometry=false y corta respuestas >4.5 MB.
+
+ESCALABILIDAD (lo que preguntan los inversionistas):
+- Las capas del Estado (DGA/CIREN/MMA/SMA) no tienen límite práctico.
+- El cuello de botella es Open-Meteo gratis (~600 llamadas/hora por IP):
+  con muchos usuarios simultáneos daría error 429. Solución: plan de
+  pago de Open-Meteo (~10–30 EUR/mes) + caché de resultados por zona.
+  Es un costo marginal bajo y predecible.
+
+CÓMO QUIERO QUE TRABAJES:
+- Didáctico, en español, paso a paso.
+- Antes de reescribir código grande, dime qué vas a tocar.
+- No inventes datos ni fuentes. Si algo no se puede confirmar, dímelo.
