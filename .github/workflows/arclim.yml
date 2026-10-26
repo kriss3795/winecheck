@@ -1,6 +1,9 @@
 name: Datos climáticos ARClim
 on:
   workflow_dispatch:
+  push:
+    branches: [mejoras-v2]
+    paths: [scripts/arclim.mjs, .github/workflows/arclim.yml]
 jobs:
   construir:
     runs-on: ubuntu-latest
