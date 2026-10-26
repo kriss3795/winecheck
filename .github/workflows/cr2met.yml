@@ -1,0 +1,23 @@
+name: Clima actual CR2MET
+on:
+  workflow_dispatch:
+  push:
+    branches: [mejoras-v2]
+    paths: [scripts/cr2met*, .github/workflows/cr2met.yml]
+permissions:
+  contents: write
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/cr2met-probe.sh > cr2-log.txt 2>&1 || true
+      - name: Guardar
+        run: |
+          mkdir -p public/clima && cp cr2-log.txt public/clima/cr2-log.txt
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add public/clima
+          git commit -m "Log CR2MET" || echo "sin cambios"
+          git pull --rebase && git push
