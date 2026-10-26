@@ -191,8 +191,8 @@ export function calcularVeredicto(r) {
         clima.gdd
       )} grados-día, Región ${clima.region.n} de Winkler; temperatura media de temporada ${fmt(clima.gst, 1)} °C (categoría ${
         clima.gstClase
-      } según Jones)${clima.actual ? `, frente a ${fmt(clima.base.gst, 1)} °C en 1980–2010` : ""}.${
-        clima.f245 ? ` Hacia 2035–2065 (escenario SSP2-4.5, ARClim) se proyectan ${fmt(clima.f245.gst, 1)} °C.` : ""
+      } según Jones).${
+        clima.f245 ? ` Hacia 2035–2065 (escenario moderado SSP2-4.5, cambio proyectado por ARClim) llegaría a ${fmt(clima.f245.gst, 1)} °C.` : ""
       }${(clima.actual?.heladasPrimavera ?? clima.base.heladasPrimavera) >= 1 ? " Hay riesgo de heladas primaverales." : ""}`
     );
   } else f.push("Clima: no se pudo obtener; sin clima no es posible un veredicto.");

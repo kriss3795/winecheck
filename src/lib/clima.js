@@ -99,8 +99,10 @@ export function indicesMensuales(m, lat) {
     dias += DIAS[k];
     gdd += Math.max(0, m.tm[k] - 10) * DIAS[k];
     if (k < 6) hi += Math.max(0, (m.tm[k] - 10 + (m.tx[k] - 10)) / 2) * DIAS[k];
-    et0 += m.et0[k] * DIAS[k];
-    etc += m.et0[k] * DIAS[k] * KC[k];
+    if (m.et0) {
+      et0 += m.et0[k] * DIAS[k];
+      etc += m.et0[k] * DIAS[k] * KC[k];
+    }
     pr += m.pr[k];
   }
   return {
@@ -110,8 +112,8 @@ export function indicesMensuales(m, lat) {
     tminMar: m.tnMar,
     tmaxEnero: m.tx[3],
     tmedEnero: m.tm[3],
-    et0Temp: et0,
-    etcTemp: etc,
+    et0Temp: m.et0 ? et0 : null,
+    etcTemp: m.et0 ? etc : null,
     lluviaTemp: pr,
   };
 }
@@ -146,10 +148,30 @@ async function climaActual(clave) {
   return {
     desde: d.desde,
     hasta: d.hasta,
-    m: { tm: c.tm, tx: c.tx, tnMar: c.tn[5], et0: c.et, pr: c.pr },
-    tmin: c.tn,
-    heladasPrimavera: c.hp,
+    m: { tm: c.tm, tx: c.tx, tnMar: c.tn[5], et0: null, pr: c.pr },
+    extra: { heladasPrimavera: c.hp, heladasAnio: c.ha, dias30: c.d30, dias35: c.d35, lluviaAnual: c.pa },
   };
+}
+
+// Proyección: clima actual observado + CAMBIO que proyecta ARClim entre
+// 1980–2010 y 2035–2065 (método delta). Se usa el cambio y no el valor
+// absoluto de ARClim porque su "presente" es el promedio de 20–30 modelos
+// corregidos, que en algunas celdas difiere en más de 1 °C de lo observado.
+function proyectar(mAct, base, fut, lat) {
+  if (!fut) return null;
+  const dT = fut.gst - base.gst;
+  const dTx = fut.tmaxEnero != null && base.tmaxEnero != null ? fut.tmaxEnero - base.tmaxEnero : dT;
+  const dTn = fut.tminMar != null && base.tminMar != null ? fut.tminMar - base.tminMar : dT;
+  const fLluvia = base.lluviaTemp > 0 ? Math.min(3, Math.max(0, fut.lluviaTemp / base.lluviaTemp)) : 1;
+  const fAnual = base.lluviaAnual > 0 ? Math.min(3, Math.max(0, fut.lluviaAnual / base.lluviaAnual)) : 1;
+  const m = {
+    tm: mAct.tm.map((v) => v + dT),
+    tx: mAct.tx.map((v) => v + dTx),
+    tnMar: mAct.tnMar + dTn,
+    et0: null,
+    pr: mAct.pr.map((v) => v * fLluvia),
+  };
+  return { r: redondear(indicesMensuales(m, lat)), fAnual };
 }
 
 // ---- Clasificaciones con fuente -------------------------------------
@@ -220,8 +242,8 @@ function redondear(o) {
     tminMar: o.tminMar != null ? r1(o.tminMar) : null,
     tmaxEnero: o.tmaxEnero != null ? r1(o.tmaxEnero) : null,
     tmedEnero: o.tmedEnero != null ? r1(o.tmedEnero) : null,
-    et0Temp: Math.round(o.et0Temp),
-    etcTemp: Math.round(o.etcTemp),
+    et0Temp: o.et0Temp != null ? Math.round(o.et0Temp) : null,
+    etcTemp: o.etcTemp != null ? Math.round(o.etcTemp) : null,
     lluviaTemp: Math.round(o.lluviaTemp),
   };
 }
@@ -241,11 +263,18 @@ export async function pedirClima(lat, lon) {
   // Clima actual observado (CR2MET). Si no está disponible, se usa 1980–2010.
   let actual = null;
   let periodo = null;
+  let f245 = c.f245;
+  let f585 = c.f585;
   try {
     const a = await climaActual(c.clave);
     if (a) {
-      actual = { ...redondear(indicesMensuales(a.m, lat)), heladasPrimavera: a.heladasPrimavera };
+      actual = { ...redondear(indicesMensuales(a.m, lat)), ...a.extra };
       periodo = { desde: a.desde, hasta: a.hasta };
+      const p245 = proyectar(a.m, base, c.f245, lat);
+      const p585 = proyectar(a.m, base, c.f585, lat);
+      const anual = (p) => (actual.lluviaAnual != null ? Math.round(actual.lluviaAnual * p.fAnual) : null);
+      if (p245) f245 = { ...p245.r, lluviaAnual: anual(p245) };
+      if (p585) f585 = { ...p585.r, lluviaAnual: anual(p585) };
     }
   } catch (e) {
     console.warn("[WineCheck] clima actual", e);
@@ -267,11 +296,16 @@ export async function pedirClima(lat, lon) {
     notas.push("Temperatura media de temporada dentro del rango que Jones asocia a vinos de calidad (13–21 °C).");
   }
   const hel = actual ? actual.heladasPrimavera : b.heladasPrimavera;
+  if (actual && actual.dias35 != null && actual.dias35 >= 1) {
+    notas.push(
+      `En promedio ${actual.dias35.toLocaleString("es-CL")} días al año superan los 35 °C (dato informativo: temperaturas así reducen la fotosíntesis de la vid y pueden afectar la maduración; su efecto depende del manejo y la cepa).`
+    );
+  }
   if (hel != null && hel >= 1) {
     if (estado === "apto") estado = "riesgo";
     notas.push(
       actual
-        ? `En las temporadas ${periodo.desde}–${periodo.hasta} hubo en promedio ${hel.toLocaleString("es-CL")} días por año con mínima bajo 0 °C entre septiembre y noviembre (brotación y floración).`
+        ? `En ${periodo.desde}–${periodo.hasta} hubo en promedio ${hel.toLocaleString("es-CL")} días por año con mínima de 0 °C o menos entre septiembre y noviembre (brotación y floración).`
         : `En 1980–2010 hubo en promedio ${hel.toLocaleString("es-CL")} días con helada entre septiembre y noviembre (brotación y floración).`
     );
   }
@@ -284,8 +318,9 @@ export async function pedirClima(lat, lon) {
     base,
     actual,
     periodo,
-    f245: c.f245,
-    f585: c.f585,
+    f245,
+    f585,
+    arclim: { base, f245: c.f245, f585: c.f585 },
     ref,
     gst: ref.gst,
     gdd: ref.gdd,

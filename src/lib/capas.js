@@ -196,7 +196,7 @@ export function calcularRiego(clima, agroclima) {
   if (clima && clima.base && clima.base.etcTemp != null) {
     const p = clima.base;
     out.arclim = fila(p);
-    const f = clima.f245;
+    const f = clima.arclim ? clima.arclim.f245 : clima.f245;
     if (f && f.etcTemp != null) out.futuro = { etc: f.etcTemp, lluvia: f.lluviaTemp, deficit: Math.max(0, f.etcTemp - f.lluviaTemp) };
   }
   const m = agroclima?.disponible ? agroclima.actual?.mensual : null;

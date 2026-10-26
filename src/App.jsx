@@ -692,9 +692,15 @@ function TarjetaClima({ clima }) {
     ["Índice heliotérmico de Huglin", "huglin", "", 0],
     ["Mínima media de marzo (frío nocturno)", "tminMar", " °C", 1],
     ["Máxima media de enero", "tmaxEnero", " °C", 1],
-    ["Días con helada en primavera (sep–nov)", "heladasPrimavera", " días", 1],
-    ["Días con helada al año", "heladasAnio", " días", 1],
-    ["Días sobre 30 °C al año", "diasCalurosos", " días", 0],
+    ["Temperatura media de enero", "tmedEnero", " °C", 1],
+    ...(a
+      ? [
+          ["Días con helada en primavera (mínima ≤ 0 °C, sep–nov)", "heladasPrimavera", " días", 1],
+          ["Días con helada al año (mínima ≤ 0 °C)", "heladasAnio", " días", 1],
+          ["Días con máxima sobre 30 °C al año", "dias30", " días", 0],
+          ["Días con máxima sobre 35 °C al año", "dias35", " días", 0],
+        ]
+      : []),
     ["Lluvia anual", "lluviaAnual", " mm", 0],
     ["Lluvia de temporada (oct–abr)", "lluviaTemp", " mm", 0],
   ];
@@ -720,24 +726,24 @@ function TarjetaClima({ clima }) {
           <thead>
             <tr>
               <th>Variable</th>
-              {a && (
+              {a ? (
                 <th>
-                  Actual
+                  Actual (observado)
                   <br />
                   {per.desde}–{per.hasta}
                 </th>
+              ) : (
+                <th>1980–2010</th>
               )}
-              <th>Histórico 1980–2010</th>
-              {f2 && <th>2035–2065 (SSP2-4.5)</th>}
-              {f5 && <th>2035–2065 (SSP5-8.5)</th>}
+              {f2 && <th>2035–2065 escenario moderado (SSP2-4.5)</th>}
+              {f5 && <th>2035–2065 escenario alto (SSP5-8.5)</th>}
             </tr>
           </thead>
           <tbody>
             {filas.map(([t, k, u, d]) => (
               <tr key={k}>
                 <td>{t}</td>
-                {a && <td className="destacar">{val(a, k, u, d)}</td>}
-                <td>{val(p, k, u, d)}</td>
+                <td className="destacar">{val(a || p, k, u, d)}</td>
                 {f2 && <td>{val(f2, k, u, d)}</td>}
                 {f5 && <td>{val(f5, k, u, d)}</td>}
               </tr>
@@ -781,11 +787,10 @@ function TarjetaClima({ clima }) {
         encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
       </p>
       <p className="tenue">
-        Fuentes: columna "Actual" = CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, datos diarios
-        observados (construidos con estaciones de la DMC y la DGA) de las últimas 10 temporadas completas; en esa columna las
-        heladas son los días con mínima bajo 0 °C y "—" indica que el dato no se calculó para ese período. Columnas 1980–2010 y
-        2035–2065 = ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente (grilla de ~5 km referenciada a
-        CR2MET; futuro según el promedio de modelos climáticos CMIP6 corregidos). Índices calculados con promedios mensuales. Elevación media de la celda: {fmt(clima.elevCelda)} m
+        {a
+          ? `Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, datos diarios observados (construidos con estaciones de la DMC y la DGA), promedio de mayo ${per.desde} a abril ${per.hasta}. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de 20–30 modelos climáticos corregidos) entre 1980–2010 y 2035–2065; "—" = ARClim no permite proyectar ese dato con la misma definición. `
+          : "Fuente: ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente (grilla de ~5 km referenciada a CR2MET; futuro según el promedio de modelos climáticos corregidos). "}
+        Índices calculados con promedios mensuales. Elevación media de la celda: {fmt(clima.elevCelda)} m
         {clima.vecina ? " (se usó la celda vecina más cercana)" : ""}. Una celda de 5 km no capta el microclima de un cuartel:
         en fondos de valle las heladas pueden ser más frecuentes y en laderas o quebradas la temperatura puede diferir.
       </p>
@@ -855,7 +860,6 @@ function TarjetaRiego({ clima, agroclima, pron }) {
   const proxEt0 = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.et0 || 0), 0) : null;
   const proxLluvia = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.lluvia || 0), 0) : null;
   const col = [
-    riego.actual && [`Actual ${clima.periodo.desde}–${clima.periodo.hasta} (CR2MET)`, riego.actual],
     riego.arclim && ["ARClim 1980–2010", riego.arclim],
     riego.futuro && ["ARClim 2035–2065 (SSP2-4.5)", riego.futuro],
     riego.ciren && ["Estudio CIREN", riego.ciren],
@@ -911,6 +915,9 @@ function TarjetaRiego({ clima, agroclima, pron }) {
         una viña adulta sin estrés hídrico: no descuenta la lluvia que no aprovecha el cultivo ni la eficiencia del sistema
         de riego. Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998).
         {riego.ciren && " Las dos fuentes oficiales difieren porque usan datos y métodos distintos; tómalas como un rango."}
+        {clima && clima.actual
+          ? ` Ojo: entre octubre y abril de ${clima.periodo.desde}–${clima.periodo.hasta} llovieron en promedio ${fmt(clima.actual.lluviaTemp)} mm (CR2MET, observado): si llueve menos de lo que considera la tabla, el riego necesario aumenta en esa diferencia.`
+          : ""}
       </p>
       {proxEt0 != null && (
         <Fila
@@ -1285,7 +1292,7 @@ const FUENTES = [
   {
     n: "Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2",
     por: "Producto científico chileno (Universidad de Chile y otras, financiado por ANID) que reconstruye temperatura máxima, mínima, lluvia y evapotranspiración diarias en una grilla de ~5 km a partir de las estaciones de la Dirección Meteorológica de Chile y la DGA. Es la misma base a la que está referenciado ARClim, y se actualiza todos los meses.",
-    leer: "La columna \"Actual\" es el promedio de las últimas 10 temporadas completas (octubre a abril) observadas, y es la que se usa para clasificar el clima, sugerir cepas y estimar el riego. La evapotranspiración de CR2MET usa una fórmula de Hargreaves-Samani modificada (basada en temperatura), por eso puede diferir de la de ARClim.",
+    leer: "La columna \"Actual\" es el promedio de las últimas 10 temporadas completas (octubre a abril) observadas, y es la que se usa para clasificar el clima y sugerir cepas. Heladas = días con mínima de 0 °C o menos (misma definición que CIREN). La evapotranspiración de CR2MET (fórmula de Hargreaves-Samani modificada) no se usa: en Paine y Pudahuel daba bastante más que la del estudio agroclimático de CIREN, así que el riego se calcula con ARClim y CIREN.",
     links: [
       ["Servidor de datos CR2MET", "https://ftp.cr2.cl/browse/cr2met/"],
       ["Documentación de versiones (PDF)", "https://ftp.cr2.cl/download/cr2met/readme.pdf"],
@@ -1296,7 +1303,7 @@ const FUENTES = [
     clave: "clima",
     n: "Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)",
     por: "Plataforma oficial del MMA. Su clima histórico (1980–2010) está referenciado a CR2MET, la grilla de temperatura y lluvia de ~5 km del Centro de Ciencia del Clima y la Resiliencia (CR)2 construida con estaciones chilenas; el futuro (2035–2065) es el promedio de modelos CMIP6 corregidos, en escenarios SSP2-4.5 y SSP5-8.5.",
-    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Clases: Jones et al. (2010) y Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). En la app se muestra como referencia histórica (1980–2010) y para el futuro (2035–2065). Se prefirió esta familia de datos (CR2MET/ARClim) porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C.",
+    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Clases: Jones et al. (2010) y Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). En la app se usa el CAMBIO que proyecta entre 1980–2010 y 2035–2065 (sumado al clima actual observado), y su evapotranspiración para el riego. No se muestra su valor de 1980–2010 junto al observado porque es el promedio de 20–30 modelos corregidos y en algunas celdas (p. ej. Vicuña, Casablanca) difiere en más de 1 °C de lo observado por CR2MET. Se prefirió esta familia de datos (CR2MET/ARClim) porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C.",
     links: [
       ["ARClim (MMA)", "https://arclim.mma.gob.cl/"],
       ["Metodología ARClim", "https://arclim.mma.gob.cl/media/learning/Metodologia_ARCLIM.pdf"],
