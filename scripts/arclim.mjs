@@ -101,21 +101,44 @@ const per = { p: "present", f245: "future$ssp245", f585: "future$ssp585" };
 const datos = {};
 for (const [k, p] of Object.entries(per)) datos[k] = await tabla(atributos(p));
 
+// Presente: se guardan los valores MENSUALES (oct–abr) para que la app
+// pueda ajustarlos al clima reciente. Futuro: índices ya calculados.
+function mensuales(o, per) {
+  const v = (n, m) => o[`$CLIMA$${n}$${m}$${per}`];
+  const r1 = (x) => (x == null || isNaN(x) ? null : Math.round(x * 10) / 10);
+  const tm = MESES.map((m) => r1(v("mean_temperature", m)));
+  if (tm.some((x) => x == null)) return null;
+  return [
+    tm,
+    MESES.slice(0, 6).map((m) => r1(v("tasmax_mean", m))),
+    r1(v("tasmin_mean", "mar")),
+    MESES.map((m) => Math.round((v("eto_mean", m) || 0) * 100) / 100),
+    MESES.map((m) => r1(v("pr_sum", m) || 0)),
+    r1(v("frost_days", "son")),
+    r1(v("frost_days", "annual")),
+    r1(v("hot_days", "annual")),
+    r1(v("pr_sum", "annual")),
+  ];
+}
+
 const bandas = {};
 for (const c of celdas) {
-  const fila = { e: Math.round(c.elev) };
-  for (const k of Object.keys(per)) {
+  const op = datos.p.get(c.id);
+  const pm = op ? mensuales(op, per.p) : null;
+  if (!pm) continue;
+  const fila = { e: Math.round(c.elev), m: pm };
+  for (const k of ["f245", "f585"]) {
     const o = datos[k].get(c.id);
     fila[k] = o ? indices(o, per[k], c.lat) : null;
   }
-  if (!fila.p) continue;
   const b = Math.floor(c.lat);
   (bandas[b] = bandas[b] || {})[`${c.i},${c.j}`] = fila;
 }
 fs.mkdirSync("public/clima", { recursive: true });
 const campos = ["gst", "gdd", "huglin", "tminMar", "heladasPrimavera", "heladasAnio", "diasCalurosos", "et0Temp", "etcTemp", "lluviaTemp", "lluviaAnual", "tmaxEnero", "tmedEnero"];
+const camposMensuales = ["tmedOctAbr", "tmaxOctMar", "tminMar", "et0DiaOctAbr", "lluviaOctAbr", "heladasPrimavera", "heladasAnio", "diasCalurosos", "lluviaAnual"];
 for (const [b, cel] of Object.entries(bandas)) {
-  fs.writeFileSync(`public/clima/b${b}.json`, JSON.stringify({ campos, celdas: cel }));
+  fs.writeFileSync(`public/clima/b${b}.json`, JSON.stringify({ version: 2, meses: MESES, camposMensuales, campos, celdas: cel }));
 }
 fs.writeFileSync(
   "public/clima/meta.json",
