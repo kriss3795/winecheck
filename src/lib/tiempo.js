@@ -51,6 +51,21 @@ function leer(attrs, suf) {
   };
 }
 
+// Valores mensuales de ETP y precipitación (sufijos verificados en el
+// servicio: en, fe, mz, ab, my, jn, jl, ag, se, oc, no, di).
+const MESES = { 10: "oc", 11: "no", 12: "di", 1: "en", 2: "fe", 3: "mz", 4: "ab" };
+function mensual(attrs, suf) {
+  if (!attrs) return null;
+  const out = {};
+  for (const [m, c] of Object.entries(MESES)) {
+    const etp = Number(attrs[`etp_${suf}_${c}`]);
+    const ppa = Number(attrs[`ppa_${suf}_${c}`]);
+    if (!isFinite(etp) || attrs[`etp_${suf}_${c}`] == null) return null;
+    out[m] = { etp, ppa: isFinite(ppa) ? ppa : 0 };
+  }
+  return out;
+}
+
 export async function pedirAgroclimaCIREN(centro) {
   // "identify" solo devuelve la capa del clima actual (verificado), así
   // que las capas futuras se consultan con "query" en la misma región.
@@ -58,8 +73,8 @@ export async function pedirAgroclimaCIREN(centro) {
   const ac = (j.results || []).find((r) => CAPAS.ac.includes(r.layerId));
   if (!ac) return { disponible: false };
   const i = CAPAS.ac.indexOf(ac.layerId);
-  const [fc, fm] = await Promise.all(
-    [CAPAS.fc[i], CAPAS.fm[i]].map((id) =>
+  const [acq, fc, fm] = await Promise.all(
+    [CAPAS.ac[i], CAPAS.fc[i], CAPAS.fm[i]].map((id) =>
       fetchJSON(urlQueryPunto(`${URLS.cirenAgroclima}/${id}`, centro, "*"), 15000)
         .then((q) => q.features?.[0]?.attributes || null)
         .catch(() => null)
@@ -71,7 +86,7 @@ export async function pedirAgroclimaCIREN(centro) {
     disponible: true,
     zona: kz ? a[kz] : null,
     estudio: ESTUDIOS[i],
-    actual: leer(a, "ac"),
+    actual: { ...leer(a, "ac"), mensual: mensual(acq, "ac") },
     cercano: fc ? leer(fc, "fc") : null,
     medio: fm ? leer(fm, "fm") : null,
   };

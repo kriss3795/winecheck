@@ -248,6 +248,30 @@ export function claseNoches(t) {
 // mediados de temporada (ene–feb) y final (mar–abr).
 export const KC_VID = { 10: 0.3, 11: 0.43, 12: 0.57, 1: 0.7, 2: 0.7, 3: 0.58, 4: 0.45 };
 
+// Necesidad de riego: usa el estudio oficial de CIREN (ETP y lluvia
+// mensuales) cuando existe; si no, el reanálisis ERA5.
+// Verificado en Paine: el ET0 de ERA5 (oct–abr) fue 1.132 mm y el de
+// CIREN 834 mm (≈36% más en el reanálisis), por eso ERA5 se presenta
+// como cota superior.
+export function calcularRiego(clima, agroclima) {
+  const m = agroclima?.disponible ? agroclima.actual?.mensual : null;
+  if (m) {
+    let et0 = 0;
+    let etc = 0;
+    let lluvia = 0;
+    for (const [mes, v] of Object.entries(m)) {
+      et0 += v.etp;
+      etc += v.etp * KC_VID[mes];
+      lluvia += v.ppa;
+    }
+    return { fuente: "ciren", et0, etc, lluvia, deficit: Math.max(0, etc - lluvia), estudio: agroclima.estudio };
+  }
+  if (clima && clima.etcTemp != null) {
+    return { fuente: "era5", et0: clima.et0Temp, etc: clima.etcTemp, lluvia: clima.lluviaTemp, deficit: clima.deficit };
+  }
+  return null;
+}
+
 export const CEPAS_JONES = [
   { cepa: "Pinot Noir", min: 14.0, max: 16.0, ref: "jones2006" },
   { cepa: "Chardonnay", min: 14.0, max: 18.0, ref: "jones2015" },

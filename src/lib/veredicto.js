@@ -2,7 +2,7 @@
 //  veredicto.js — combina todas las capas en restricciones por punto,
 //  un veredicto (semáforo) y un resumen explicado de TODOS los parámetros.
 // =====================================================================
-import { fmt } from "./capas.js";
+import { fmt, calcularRiego } from "./capas.js";
 
 export const ORDEN = { veto: 3, riesgo: 2, apto: 1, nd: 0 };
 export function peorEstado(lista) {
@@ -210,13 +210,14 @@ export function calcularVeredicto(r) {
       }.`
     );
   }
-  if (clima && clima.etcTemp != null) {
+  const riego = calcularRiego(clima, r.agroclima);
+  if (riego) {
     f.push(
-      `Riego: la viña demandaría unos ${fmt(clima.etcTemp)} mm por temporada (método FAO-56) y llueven ${fmt(
-        clima.lluviaTemp
-      )} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(clima.deficit)} mm (≈ ${fmt(
-        clima.deficit * 10
-      )} m³/ha) con riego.`
+      `Riego: la viña consumiría unos ${fmt(riego.etc)} mm por temporada (método FAO-56) y llueven ${fmt(
+        riego.lluvia
+      )} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(riego.deficit)} mm (≈ ${fmt(
+        riego.deficit * 10
+      )} m³/ha) con riego${riego.fuente === "ciren" ? " (según el estudio agroclimático de CIREN)" : " (según el reanálisis ERA5, que tiende a sobreestimar)"}.`
     );
   }
   if (agot && agot.fuentes.length) f.push(`Agua superficial: ${agot.fuentes.map((x) => x.nombre).join("; ")} tiene declaración de agotamiento de la DGA (no se otorgan nuevos derechos permanentes).`);

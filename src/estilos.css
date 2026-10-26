@@ -225,7 +225,7 @@ body {
 }
 
 /* ===== v3: logo, índice, Windy, pronóstico ===== */
-.cabecera .logo { height: 72px; width: auto; }
+.cabecera .logo { height: 96px; width: auto; }
 .cabecera .lema { font-size: 0.92rem; color: var(--gris); margin: 0; line-height: 1.35; }
 .capas .btn-windy { margin-left: auto; border-color: var(--vino); color: var(--vino); font-weight: 600; }
 .capas .btn-windy.activo { color: #fff; }
@@ -245,7 +245,7 @@ html { scroll-behavior: smooth; }
 .tarjeta { scroll-margin-top: 12px; }
 
 @media (max-width: 640px) {
-  .cabecera .logo { height: 56px; }
+  .cabecera .logo { height: 72px; }
   .cabecera .lema { font-size: 0.82rem; }
   .windy iframe { height: 380px; }
   .capas .btn-windy { margin-left: 0; }

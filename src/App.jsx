@@ -23,6 +23,7 @@ import { areaM2, centroide, grillaInterna, seAutoIntersecta } from "./lib/geomet
 import {
   URLS,
   fmt,
+  calcularRiego,
   fecha,
   pedirElevaciones,
   calcularPendiente,
@@ -419,7 +420,7 @@ export default function App() {
                 <TarjetaUso uso={resultado.uso} />
                 <TarjetaClima clima={resultado.clima} />
                 <TarjetaAgroclima a={resultado.agroclima} />
-                <TarjetaRiego clima={resultado.clima} pron={resultado.pronostico} />
+                <TarjetaRiego clima={resultado.clima} agroclima={resultado.agroclima} pron={resultado.pronostico} />
                 <TarjetaSuelo suelo={resultado.suelo} />
                 <TarjetaPropSuelo soil={resultado.soil} erosion={resultado.erosion} />
                 <TarjetaRelieve p={resultado.pendiente} />
@@ -748,24 +749,42 @@ function TarjetaAgroclima({ a }) {
 }
 
 // ---- Riego (FAO-56)
-function TarjetaRiego({ clima, pron }) {
-  if (!clima || clima.etcTemp == null) return <SinDato id="s-riego" titulo="Necesidad de riego (FAO-56)" />;
+function TarjetaRiego({ clima, agroclima, pron }) {
+  const riego = calcularRiego(clima, agroclima);
+  if (!riego) return <SinDato id="s-riego" titulo="Necesidad de riego (FAO-56)" />;
   const proxEt0 = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.et0 || 0), 0) : null;
   const proxLluvia = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.lluvia || 0), 0) : null;
   return (
     <Tarjeta id="s-riego" titulo="Necesidad de riego estimada (FAO-56)">
-      <Fila k="Evapotranspiración de referencia ET0 (oct–abr)" v={`${fmt(clima.et0Temp)} mm por temporada`} />
+      <Fila
+        k="Evapotranspiración de referencia (oct–abr)"
+        v={`${fmt(riego.et0)} mm por temporada`}
+        sub={riego.fuente === "ciren" ? `Fuente: ${riego.estudio}.` : "Fuente: reanálisis ERA5 (sin estudio agroclimático de CIREN en esta región)."}
+      />
       <Fila
         k="Consumo de la viña ETc = Kc × ET0"
-        v={`${fmt(clima.etcTemp)} mm por temporada`}
+        v={`${fmt(riego.etc)} mm por temporada`}
         sub="Kc de vid vinífera FAO-56: 0,30 (brotación) → 0,70 (enero–febrero) → 0,45 (cosecha)."
       />
-      <Fila k="Lluvia de la temporada" v={`${fmt(clima.lluviaTemp)} mm`} />
+      <Fila k="Lluvia de la temporada (oct–abr)" v={`${fmt(riego.lluvia)} mm`} />
       <Fila
         k="Riego necesario (aprox.)"
-        v={`${fmt(clima.deficit)} mm ≈ ${fmt(clima.deficit * 10)} m³ por hectárea y temporada`}
+        v={`${fmt(riego.deficit)} mm ≈ ${fmt(riego.deficit * 10)} m³ por hectárea y temporada`}
         sub="Estimación de referencia para una viña adulta sin estrés hídrico. No descuenta lluvia inefectiva ni eficiencia del sistema de riego (por goteo, típicamente 85–90%)."
       />
+      {riego.fuente === "ciren" && clima && clima.etcTemp != null && (
+        <Fila
+          k="Comparación con el reanálisis ERA5"
+          v={`ET0 ${fmt(clima.et0Temp)} mm · riego ${fmt(clima.deficit)} mm`}
+          sub="El reanálisis global suele dar una evapotranspiración mayor que el estudio local de CIREN; se usa el de CIREN por ser la fuente oficial local."
+        />
+      )}
+      {riego.fuente === "era5" && (
+        <p className="aviso">
+          Sin estudio local de CIREN en esta región, el cálculo usa el reanálisis ERA5. En Paine, donde sí hay estudio, el
+          ET0 de ERA5 resultó un 36% mayor que el oficial: toma esta cifra como un máximo.
+        </p>
+      )}
       {proxEt0 != null && (
         <Fila
           k="Próximos 7 días (pronóstico)"
@@ -773,10 +792,7 @@ function TarjetaRiego({ clima, pron }) {
           sub={`Consumo esperado de una viña en plena temporada (Kc 0,70): ${fmt(proxEt0 * 0.7)} mm ≈ ${fmt(proxEt0 * 7)} m³/ha.`}
         />
       )}
-      <p className="tenue">
-        ET0 y lluvia: reanálisis ERA5 (Copernicus) vía Open-Meteo, promedio de las últimas temporadas. Método: FAO,
-        Estudio Riego y Drenaje N° 56 (Allen et al., 1998).
-      </p>
+      <p className="tenue">Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998).</p>
     </Tarjeta>
   );
 }
