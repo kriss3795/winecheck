@@ -19,8 +19,8 @@
 // Dominios oficiales permitidos (fuentes verificadas en el proyecto)
 const DOMINIOS_OK = [
   "rest-sit.mop.gob.cl",        // DGA / MOP (agua, restricciones, escasez)
-  "esri.ciren.cl",              // CIREN (suelos agrológicos)
-  "arcgis.mma.gob.cl",          // MMA (humedales)
+  "esri.ciren.cl",              // CIREN (suelos, erosión, agroclima)
+  "arcgis.mma.gob.cl",          // MMA (humedales, cuencas, hidrografía, uso de suelo)
   "gis.mma.gob.cl",             // MMA (humedales, respaldo)
   "ideserver.sma.gob.cl",       // SMA (áreas protegidas oficiales)
   "archive-api.open-meteo.com", // Open-Meteo ERA5 (clima histórico)
@@ -28,6 +28,10 @@ const DOMINIOS_OK = [
   "customer-archive-api.open-meteo.com", // Open-Meteo plan de pago (futuro)
   "overpass-api.de",            // OpenStreetMap Overpass (cuerpos de agua)
   "nominatim.openstreetmap.org",// Buscador de lugares
+  "geoide.minvu.cl",            // MINVU (límites urbanos, áreas de riesgo)
+  "rest.isric.org",             // ISRIC SoilGrids (propiedades del suelo)
+  "overpass.private.coffee",    // Overpass (respaldo)
+  "overpass.kumi.systems",      // Overpass (respaldo)
 ];
 
 export default async function handler(req, res) {

@@ -83,8 +83,18 @@ export const TITULOS = {
 };
 
 export function calcularVeredicto(r) {
-  const { R, clima, suelo, pendiente, agua, escasez, fuentes, areaHa } = r;
+  const { R, clima, suelo, pendiente, agua, escasez, fuentes, areaHa, ubic, uso, hidro, limUrb, riesgoIPT, agot, erosion } = r;
   const haLibres = (areaHa * (100 - R.pctExcluido)) / 100;
+
+  // 0) Fuera de Chile: las fuentes oficiales no aplican
+  if (ubic && ubic.enChile === false) {
+    return {
+      estado: "nd",
+      titulo: "Fuera de Chile",
+      vetoTotal: true,
+      frases: ["El terreno marcado no está dentro de Chile según la División Político-Administrativa oficial. WineCheck solo evalúa terrenos en Chile."],
+    };
+  }
 
   // 1) Todo el terreno restringido: veto absoluto
   if (R.n && R.pctExcluido >= 100) {
@@ -105,7 +115,7 @@ export function calcularVeredicto(r) {
   if (fuentes.sma !== "ok") sinVerificar.push("áreas protegidas (SMA)");
   if (fuentes.humedales !== "ok") sinVerificar.push("humedales (MMA)");
 
-  const parametros = [clima, suelo, pendiente, agua, escasez];
+  const parametros = [clima, suelo, pendiente, agua, escasez, agot];
   let estado = peorEstado(parametros.map((p) => p && p.estado));
   if (R.pctExcluido >= 50 && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
 
@@ -117,6 +127,15 @@ export function calcularVeredicto(r) {
 
   // 3) Resumen explicado, parámetro por parámetro
   const f = [];
+  if (ubic && ubic.comuna) {
+    f.push(
+      `Ubicación: comuna de ${ubic.comuna} (${ubic.region})${ubic.cuenca ? `, cuenca del ${ubic.cuenca}` : ""}. ${
+        ubic.do
+          ? `Pertenece a la denominación de origen ${ubic.do.valle}${ubic.do.zona ? ` (${ubic.do.zona})` : ""}, ${ubic.do.region}.`
+          : "La comuna no figura en la zonificación vitícola del Decreto 464 (no tiene denominación de origen de vinos)."
+      }`
+    );
+  }
   f.push(
     R.pctExcluido > 0
       ? `Superficie marcada: ${fmt(areaHa, 1)} ha. Quedan disponibles para plantar unas ${fmt(haLibres, 1)} ha (${fmt(
@@ -133,6 +152,31 @@ export function calcularVeredicto(r) {
     f.push(`Ojo: el terreno toca el borde de ${unicos(borde).join("; ")}. Verifica el límite exacto en terreno antes de plantar en ese sector.`);
     if (!incompleto && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
   }
+  // Otras restricciones territoriales (advertencias)
+  if (limUrb && limUrb.pct > 0) {
+    f.push(
+      `Límite urbano: el ${fmt(limUrb.pct)}% del terreno está dentro de un límite urbano (${limUrb.encontrados.join("; ")}); ahí el uso del suelo lo define el plan regulador y la plantación agrícola puede no estar permitida.`
+    );
+    if (!incompleto && limUrb.pct >= 50 && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
+  }
+  if (uso && uso.hayBosqueNativo) {
+    f.push(
+      `Uso actual: hay ${uso.tiposBosque.join(" y ").toLowerCase()} según el catastro de CONAF. Cortar bosque nativo exige un plan de manejo aprobado por CONAF (Ley 20.283, art. 5).`
+    );
+    if (!incompleto && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
+  }
+  if (riesgoIPT && riesgoIPT.zonas.length) {
+    f.push(`Áreas de riesgo del plan regulador: ${riesgoIPT.zonas.map((z) => z.nombre + (z.cat ? ` (${z.cat})` : "")).join("; ")}.`);
+    if (!incompleto && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
+  }
+  const caucesNat = hidro ? hidro.cauces.filter((c) => !c.artificial) : [];
+  if (caucesNat.length) {
+    f.push(
+      `Cauces que cruzan el terreno (red hidrográfica oficial): ${caucesNat
+        .map((c) => (c.nombre ? `${c.tipo} ${c.nombre}` : c.tipo).toLowerCase())
+        .join(", ")}. Considerar riesgo de crecidas y la faja de protección de la ribera.`
+    );
+  }
   if (R.dudosos > 0) f.push(`En ${R.dudosos} de ${R.n} puntos no se pudo confirmar si hay restricción (la fuente no respondió).`);
 
   if (clima) {
@@ -148,7 +192,16 @@ export function calcularVeredicto(r) {
     f.push(
       `Suelo (CIREN): ${suelo.clases.map((c) => `clase ${c.clase} en ${fmt(c.pct)}%`).join(", ")} de la superficie disponible.`
     );
-  } else f.push("Suelo: sin dato de CIREN; el veredicto es provisorio hasta conocer la clase de capacidad de uso.");
+  } else f.push("Suelo: sin clase de capacidad de uso de CIREN en este lugar; el veredicto es provisorio hasta tener un estudio de suelo.");
+  if (r.soil && r.soil.superficial) {
+    const s0 = r.soil.superficial;
+    f.push(
+      `Propiedades estimadas del suelo (SoilGrids, 0–30 cm): textura ${s0.textura}, pH ${fmt(s0.ph, 1)} (${s0.phClase}), ${fmt(
+        s0.pedregosidad
+      )}% de fragmentos gruesos.`
+    );
+  }
+  if (erosion && erosion.actual) f.push(`Erosión actual (CIREN): ${erosion.actual}${erosion.riesgoPotencial ? `; riesgo potencial ${erosion.riesgoPotencial}` : ""}.`);
 
   if (pendiente && pendiente.estado !== "nd") {
     f.push(
@@ -157,6 +210,16 @@ export function calcularVeredicto(r) {
       }.`
     );
   }
+  if (clima && clima.etcTemp != null) {
+    f.push(
+      `Riego: la viña demandaría unos ${fmt(clima.etcTemp)} mm por temporada (método FAO-56) y llueven ${fmt(
+        clima.lluviaTemp
+      )} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(clima.deficit)} mm (≈ ${fmt(
+        clima.deficit * 10
+      )} m³/ha) con riego.`
+    );
+  }
+  if (agot && agot.fuentes.length) f.push(`Agua superficial: ${agot.fuentes.map((x) => x.nombre).join("; ")} tiene declaración de agotamiento de la DGA (no se otorgan nuevos derechos permanentes).`);
   if (agua) f.push(`Agua subterránea (DGA): ${agua.zonas.length ? agua.zonas.map((z) => `${z.tipo} (SHAC ${z.shac})`).join(", ") : "sin delimitación"}.`);
   else f.push("Agua subterránea: no se pudo consultar la DGA.");
 
@@ -204,6 +267,10 @@ function problemas(r, soloVeto) {
   add(r.pendiente, "pendiente");
   add(r.agua, "agua subterránea");
   add(r.escasez, "escasez hídrica");
+  add(r.agot, "agua superficial (agotamiento)");
+  if (!soloVeto && r.limUrb && r.limUrb.pct >= 50) out.push("límite urbano");
+  if (!soloVeto && r.uso && r.uso.hayBosqueNativo) out.push("bosque nativo");
+  if (!soloVeto && r.riesgoIPT && r.riesgoIPT.zonas.length) out.push("áreas de riesgo");
   if (!soloVeto && r.R.pctExcluido >= 50) out.push("superficie restringida");
   return out;
 }

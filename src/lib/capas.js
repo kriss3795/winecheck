@@ -13,7 +13,18 @@ import { anilloArcGIS, caja, dentro, lineaTocaPoligono } from "./geometria.js";
 export const URLS = {
   clima: "https://archive-api.open-meteo.com/v1/archive",
   elevacion: "https://api.open-meteo.com/v1/elevation",
-  ciren: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer/0",
+  cirenSuelos: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer",
+  cirenErosion: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/EROSION/MapServer",
+  cirenAgroclima: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/AGROCLIMA_IDEMINAGRI/MapServer",
+  dgaAgotamiento: "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Declaracion_de_Agotamiento/MapServer/0",
+  dpaComunas: "https://rest-sit.mop.gob.cl/arcgis/rest/services/INTEROP/SERVICIO_DPA/MapServer/1",
+  mmaCuencas: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_DIVISION_CUENCA/MapServer",
+  mmaHidrografia: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_HIDROGRAFIA/MapServer/0",
+  mmaUsoSuelo: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_CATASTRO_BN/MapServer/0",
+  minvuLimUrbano: "https://geoide.minvu.cl/server/rest/services/IPT/Limites_Urbanos/MapServer",
+  minvuRiesgo: "https://geoide.minvu.cl/server/rest/services/IPT/IPT_AREA_RIESGO/MapServer",
+  soilgrids: "https://rest.isric.org/soilgrids/v2.0/properties/query",
+  pronostico: "https://api.open-meteo.com/v1/forecast",
   dgaAgua:
     "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Areas_de_Restriccion_y_Zonas_de_Prohibicion/MapServer/0",
   dgaEscasez: "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Decretos_Escasez_Hidrica/MapServer/0",
@@ -23,7 +34,7 @@ export const URLS = {
   nominatim: "https://nominatim.openstreetmap.org/search",
 };
 
-const CONCURRENCIA = 6;
+export const CONCURRENCIA = 6;
 const fmt = (n, d = 0) =>
   n == null || !isFinite(n) ? "—" : Number(n).toLocaleString("es-CL", { maximumFractionDigits: d, minimumFractionDigits: d });
 const fecha = (ms) => (ms ? new Date(ms).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" }) : "—");
@@ -31,17 +42,17 @@ const fecha = (ms) => (ms ? new Date(ms).toLocaleDateString("es-CL", { day: "2-d
 // ---------------------------------------------------------------------
 //  Constructores de consultas ArcGIS
 // ---------------------------------------------------------------------
-function geomPoligono(pts) {
+export function geomPoligono(pts) {
   return JSON.stringify({ rings: [anilloArcGIS(pts)], spatialReference: { wkid: 4326 } });
 }
-function urlQueryPoligono(base, pts, campos, extra = "") {
+export function urlQueryPoligono(base, pts, campos, extra = "") {
   return (
     `${base}/query?geometry=${encodeURIComponent(geomPoligono(pts))}` +
     `&geometryType=esriGeometryPolygon&inSR=4326&spatialRel=esriSpatialRelIntersects` +
     `&outFields=${campos}&returnGeometry=false&f=json${extra}`
   );
 }
-function urlQueryPunto(base, [lat, lon], campos) {
+export function urlQueryPunto(base, [lat, lon], campos) {
   return (
     `${base}/query?geometry=${lon.toFixed(6)},${lat.toFixed(6)}` +
     `&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects` +
@@ -231,6 +242,12 @@ export function claseNoches(t) {
 // Cepas con rango térmico publicado en texto por G. V. Jones.
 // Solo se incluyen cepas cuyo rango numérico está escrito en la fuente;
 // el resto del gráfico de Jones no se transcribe para no inventar cifras.
+// Coeficiente de cultivo de vid vinífera, FAO-56 (Allen et al., 1998),
+// Tabla 12: Kc ini 0,30 · Kc med 0,70 · Kc fin 0,45. Se reparte por mes
+// para el hemisferio sur: brotación (oct), desarrollo (nov–dic, lineal),
+// mediados de temporada (ene–feb) y final (mar–abr).
+export const KC_VID = { 10: 0.3, 11: 0.43, 12: 0.57, 1: 0.7, 2: 0.7, 3: 0.58, 4: 0.45 };
+
 export const CEPAS_JONES = [
   { cepa: "Pinot Noir", min: 14.0, max: 16.0, ref: "jones2006" },
   { cepa: "Chardonnay", min: 14.0, max: 18.0, ref: "jones2015" },
@@ -247,7 +264,9 @@ export async function pedirClima(lat, lon) {
   const urlT = comun + "&daily=temperature_2m_max,temperature_2m_min";
   // Verificado: ERA5-Land vía Open-Meteo no entrega precipitación diaria,
   // así que la lluvia se toma de ERA5 (misma fuente Copernicus, ~28 km).
-  const urlP = comun + "&daily=precipitation_sum&models=era5";
+  // También de ERA5: evapotranspiración de referencia FAO-56 (ET0) y
+  // radiación solar (verificado: ERA5-Land no las entrega vía Open-Meteo).
+  const urlP = comun + "&daily=precipitation_sum,et0_fao_evapotranspiration,shortwave_radiation_sum&models=era5";
 
   const nulos = (j) => {
     const t = j?.daily?.temperature_2m_max || [];
@@ -267,12 +286,19 @@ export async function pedirClima(lat, lon) {
   };
   const [{ j, modelo }, jp] = await Promise.all([pedirTemperaturas(), fetchJSON(urlP, 25000).catch(() => null)]);
   const lluviaPorDia = new Map();
-  if (jp?.daily?.time) jp.daily.time.forEach((t, i) => lluviaPorDia.set(t, jp.daily.precipitation_sum[i]));
+  const et0PorDia = new Map();
+  const radPorDia = new Map();
+  if (jp?.daily?.time)
+    jp.daily.time.forEach((t, i) => {
+      lluviaPorDia.set(t, jp.daily.precipitation_sum[i]);
+      et0PorDia.set(t, jp.daily.et0_fao_evapotranspiration?.[i]);
+      radPorDia.set(t, jp.daily.shortwave_radiation_sum?.[i]);
+    });
 
   const d = j.daily;
   const T = {}; // acumuladores por temporada (año de inicio, octubre)
   const get = (y) =>
-    (T[y] = T[y] || { gdd: 0, sumMed: 0, nMed: 0, hug: 0, nMin3: 0, sMin3: 0, heladas: 0, lluviaTemp: 0, nLluTemp: 0, lluviaVend: 0, lluviaAnual: 0, nAnual: 0 });
+    (T[y] = T[y] || { gdd: 0, sumMed: 0, nMed: 0, hug: 0, nMin3: 0, sMin3: 0, heladas: 0, lluviaTemp: 0, nLluTemp: 0, lluviaVend: 0, lluviaAnual: 0, nAnual: 0, et0: 0, etc: 0, nEt: 0, rad: 0, nRad: 0, dias35: 0, heladasInv: 0 });
 
   for (let i = 0; i < d.time.length; i++) {
     const [yy, mm, dd] = d.time[i].split("-").map(Number);
@@ -297,6 +323,18 @@ export async function pedirClima(lat, lon) {
         t.nLluTemp++;
       }
       if (mm >= 3 && mm <= 4 && pp != null) t.lluviaVend += pp;
+      const e0 = et0PorDia.get(d.time[i]);
+      if (e0 != null) {
+        t.et0 += e0;
+        t.etc += e0 * KC_VID[mm];
+        t.nEt++;
+      }
+      const rd = radPorDia.get(d.time[i]);
+      if (rd != null) {
+        t.rad += rd;
+        t.nRad++;
+      }
+      if (tx >= 35) t.dias35++;
       if (mm !== 4) t.hug += Math.max(0, (tm - 10 + (tx - 10)) / 2);
       if (mm === 3) {
         t.sMin3 += tn;
@@ -329,6 +367,14 @@ export async function pedirClima(lat, lon) {
   const lluviaAnual = anuales.length ? anuales.reduce((a, t) => a + t.lluviaAnual, 0) / anuales.length : null;
   const conLluvia = validas.filter((t) => t.nLluTemp >= 0.95 * 212);
   const promLluvia = (f) => (conLluvia.length ? conLluvia.reduce((a, t) => a + f(t), 0) / conLluvia.length : null);
+  const conEt = validas.filter((t) => t.nEt >= 0.95 * 212 && t.nLluTemp >= 0.95 * 212);
+  const promEt = (f) => (conEt.length ? conEt.reduce((a, t) => a + f(t), 0) / conEt.length : null);
+  const et0Temp = promEt((t) => t.et0);
+  const etcTemp = promEt((t) => t.etc);
+  const lluviaParaRiego = promEt((t) => t.lluviaTemp);
+  const deficit = etcTemp != null ? Math.max(0, etcTemp - lluviaParaRiego) : null;
+  const conRad = validas.filter((t) => t.nRad >= 0.95 * 212);
+  const radMedia = conRad.length ? conRad.reduce((a, t) => a + t.rad / t.nRad, 0) / conRad.length : null;
 
   // Estado (criterios con fuente)
   let estado = "apto";
@@ -378,6 +424,11 @@ export async function pedirClima(lat, lon) {
     lluviaTemp: promLluvia((t) => t.lluviaTemp),
     lluviaVend: promLluvia((t) => t.lluviaVend),
     lluviaAnual,
+    et0Temp,
+    etcTemp,
+    deficit,
+    radMedia,
+    dias35: prom((t) => t.dias35),
     // "límite": a menos de 0,5 °C del rango (incertidumbre típica del reanálisis)
     cepas: CEPAS_JONES.map((c) => ({
       ...c,
@@ -407,12 +458,18 @@ export const SUBCLASES = {
 };
 export const ORDEN_CLASES = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
+// Verificado (oct 2026): el servicio de CIREN tiene UNA CAPA POR REGIÓN
+// (0 = Atacama, 1 = Coquimbo, 2 = Valparaíso, 3 = Metropolitana, ...).
+// La versión anterior consultaba solo la capa 0 (Atacama): por eso fuera
+// de Atacama el suelo salía siempre "sin dato". Ahora se usa "identify"
+// sobre todas las capas regionales. El campo de la clase es "textcaus"
+// (en identify llega con su alias). "N.C." = no clasificado.
 function leerCampoClase(attrs) {
   const claves = Object.keys(attrs || {});
-  for (const c of ["textcaus", "cap_uso", "capuso", "capacidad", "clase_cap", "clase"]) {
-    const k = claves.find((x) => x.toLowerCase() === c);
-    if (k && attrs[k] != null && String(attrs[k]).trim() !== "") return String(attrs[k]).trim();
-  }
+  const k =
+    claves.find((x) => x.toLowerCase() === "textcaus") ||
+    claves.find((x) => /capacidad de uso/i.test(x));
+  if (k && attrs[k] != null && String(attrs[k]).trim() !== "") return String(attrs[k]).trim();
   return null;
 }
 export function parseClase(raw) {
@@ -423,8 +480,17 @@ export function parseClase(raw) {
   return { clase: m[1], sub: m[2].toLowerCase().split("").filter((x) => SUBCLASES[x]) };
 }
 
+export function urlIdentifyPunto(base, [lat, lon], capas = "all", margen = 0.01) {
+  return (
+    `${base}/identify?geometry=${lon.toFixed(6)},${lat.toFixed(6)}&geometryType=esriGeometryPoint` +
+    `&sr=4326&layers=${capas}&tolerance=0` +
+    `&mapExtent=${(lon - margen).toFixed(5)},${(lat - margen).toFixed(5)},${(lon + margen).toFixed(5)},${(lat + margen).toFixed(5)}` +
+    `&imageDisplay=400,400,96&returnGeometry=false&f=json`
+  );
+}
+
 export async function pedirSuelo(lls) {
-  const consulta = (ll) => fetchJSON(urlQueryPunto(URLS.ciren, ll, "*"), 10000);
+  const consulta = (ll) => fetchJSON(urlIdentifyPunto(URLS.cirenSuelos, ll), 12000);
   // Sonda: si CIREN no responde el primer punto, se avisa de inmediato
   // en vez de esperar el tiempo límite en cada uno de los puntos.
   let primero;
@@ -436,46 +502,49 @@ export async function pedirSuelo(lls) {
   const resto = await enParalelo(lls.slice(1), CONCURRENCIA, consulta);
   const res = [primero, ...resto];
   const fallos = res.filter((r) => !r.ok).length;
-  if (fallos === lls.length) throw new Error("el servidor de CIREN no respondió");
 
   const conteo = {};
   const subclases = new Set();
-  const noClasificados = new Set();
+  const estudios = new Set();
+  let noClasif = 0;
   let sinCobertura = 0;
   for (const r of res) {
     if (!r.ok) continue;
-    const f = r.v.features || [];
+    const f = r.v.results || [];
     if (!f.length) {
       sinCobertura++;
       continue;
     }
+    if (f[0].layerName) estudios.add(f[0].layerName);
     const raw = leerCampoClase(f[0].attributes);
     const c = parseClase(raw);
     if (!c) {
-      noClasificados.add(raw || "sin valor");
+      noClasif++;
       continue;
     }
     conteo[c.clase] = (conteo[c.clase] || 0) + 1;
     c.sub.forEach((s) => subclases.add(s));
   }
   const clasificados = Object.values(conteo).reduce((a, v) => a + v, 0);
+  const conDato = clasificados + noClasif;
   if (!clasificados) {
     return {
       estado: "nd",
       clases: [],
-      nota: sinCobertura
-        ? "El estudio agrológico de CIREN no cubre estos puntos (o no tienen clase asignada)."
-        : "CIREN respondió, pero sin clase de capacidad de uso reconocible.",
+      nota: noClasif
+        ? "CIREN marca estos puntos como \"N.C.\" (no clasificados en el estudio agrológico)."
+        : "El estudio agrológico de CIREN no cubre este lugar. CIREN no tiene estudio para las regiones de Arica y Parinacota, Tarapacá y Antofagasta, y dentro de cada región cubre principalmente las zonas agrícolas.",
       fallos,
-      noClasificados: [...noClasificados],
+      estudios: [...estudios],
     };
   }
 
   const clases = ORDEN_CLASES.filter((c) => conteo[c]).map((c) => ({
     clase: c,
     ...CLASES_SUELO[c],
-    pct: (100 * conteo[c]) / clasificados,
+    pct: (100 * conteo[c]) / conDato,
   }));
+  const pctNC = (100 * noClasif) / conDato;
   const pctDe = (lista) => clases.filter((c) => lista.includes(c.clase)).reduce((a, c) => a + c.pct, 0);
   const pctVIIVIII = pctDe(["VII", "VIII"]);
   const pctIVmas = pctDe(["IV", "V", "VI", "VII", "VIII"]);
@@ -486,13 +555,14 @@ export async function pedirSuelo(lls) {
   return {
     estado,
     clases,
+    pctNC,
     subclases: [...subclases].map((s) => ({ s, desc: SUBCLASES[s] })),
     pctVIIVIII,
     pctIVmas,
-    muestras: clasificados,
+    muestras: conDato,
     fallos,
     sinCobertura,
-    noClasificados: [...noClasificados],
+    estudios: [...estudios],
   };
 }
 
@@ -872,4 +942,4 @@ export async function buscarLugar(texto) {
   return null;
 }
 
-export { fmt, fecha };
+export { fmt, fecha, normal };

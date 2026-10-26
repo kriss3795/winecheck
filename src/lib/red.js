@@ -2,16 +2,16 @@
 //  red.js — utilidades de red
 //  - Timeout con AbortController (AbortSignal.timeout crashea en
 //    algunos webviews de celular).
-//  - Las fuentes del Estado no permiten CORS: van por nuestro proxy.
+//  - Verificado (oct 2026): los servidores del Estado (DGA, CIREN, MMA,
+//    SMA, MINVU), Open-Meteo, Nominatim e ISRIC aceptan consultas
+//    directas del navegador (CORS). Se consulta DIRECTO primero y, si
+//    falla, se reintenta por nuestro proxy en Vercel.
 //  - Detecta respuestas de error de ArcGIS (que llegan con HTTP 200),
 //    para no confundir "la fuente falló" con "no hay nada aquí".
 // =====================================================================
 
 const PROXY = "/api/geo?url=";
 export const viaProxy = (url) => PROXY + encodeURIComponent(url);
-
-// Fuentes que sí aceptan consultas directas desde el navegador (CORS).
-const DIRECTO_PRIMERO = ["open-meteo.com", "overpass-api.de", "nominatim.openstreetmap.org"];
 
 export function fetchTimeout(url, ms, opts) {
   const ctrl = new AbortController();
@@ -35,12 +35,8 @@ async function leerJSON(r) {
 // Pide un JSON. Si algo falla, LANZA un error (nunca devuelve "vacío"),
 // para que la app muestre "Sin dato" en vez de asumir que no hay nada.
 export async function fetchJSON(url, ms = 15000) {
-  const host = new URL(url).hostname;
-  const directo = DIRECTO_PRIMERO.some((d) => host === d || host.endsWith("." + d));
-  // Directo y luego proxy; o proxy con un reintento (servidores del Estado).
-  const intentos = directo ? [url, viaProxy(url)] : [viaProxy(url), viaProxy(url)];
   let ultimoError = null;
-  for (const u of intentos) {
+  for (const u of [url, viaProxy(url)]) {
     try {
       return await leerJSON(await fetchTimeout(u, ms));
     } catch (e) {
