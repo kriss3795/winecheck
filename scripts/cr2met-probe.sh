@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
-B=https://ftp.cr2.cl/download/cr2met
-curl -sS -m 30 $B/ | head -60
-curl -sS -m 30 $B/v2.5_best/ | head -60
-for v in txn pr et0 tmean; do curl -sS -m 30 $B/v2.5_best/$v/ | head -40; done
-curl -sSI -m 30 $B/v2.5_best/txn/CR2MET_txn_v2.5_best_day_2025_01_005deg.nc
+B=https://ftp.cr2.cl
+curl -sS -m 30 $B/browse/cr2met/ | grep -o 'href="[^"]*"' | head -80
+for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025; do
+  echo "== $d"; curl -sS -m 30 "$B/browse/cr2met/$d/" | grep -o 'href="[^"]*"' | head -60
+done
