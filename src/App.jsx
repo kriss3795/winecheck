@@ -266,25 +266,40 @@ export default function App() {
 
   const ver = useMemo(() => (resultado ? calcularVeredicto(resultado) : null), [resultado]);
 
+  // Al terminar el análisis, llevar la vista al veredicto (útil en celular)
+  const refVeredicto = React.useRef(null);
+  React.useEffect(() => {
+    if (resultado && refVeredicto.current) {
+      try {
+        refVeredicto.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (e) {
+        /* navegadores antiguos */
+      }
+    }
+  }, [resultado]);
+
   return (
     <div>
       <header className="cabecera">
-        <img src="/logo.png" alt="WineCheck" className="logo" />
-        <div>
-          <h1 className="sr-only">WineCheck</h1>
-          <p className="lema">
-            ¿Se puede plantar una viña aquí?
-            <br />
-            Prefactibilidad con datos oficiales de Chile.
-          </p>
+        <div className="cabecera-in">
+          <img src="/logo.png" alt="WineCheck" className="logo" width="111" height="72" />
+          <div>
+            <h1 className="sr-only">WineCheck</h1>
+            <p className="lema">
+              <strong>¿Se puede plantar una viña aquí?</strong>
+              Prefactibilidad con datos oficiales de Chile.
+            </p>
+          </div>
         </div>
       </header>
 
       <div className="wrap">
         <form className="buscador" onSubmit={onBuscar}>
           <input
-            type="text"
-            placeholder="Buscar lugar o comuna (ej: Paine, Casablanca, Colchagua)"
+            type="search"
+            enterKeyHint="search"
+            aria-label="Buscar lugar o comuna"
+            placeholder="Buscar lugar o comuna"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -390,11 +405,15 @@ export default function App() {
         </div>
 
         {error && <div className="error">{error}</div>}
-        {cargando && <div className="cargando">{paso || "Consultando fuentes oficiales…"} Puede tardar hasta un minuto.</div>}
+        {cargando && (
+          <div className="cargando" role="status">
+            {paso || "Consultando fuentes oficiales…"} Puede tardar hasta un minuto.
+          </div>
+        )}
 
         {resultado && ver && (
           <>
-            <div className={"veredicto " + ver.estado}>
+            <div className={"veredicto " + ver.estado} ref={refVeredicto} style={{ scrollMarginTop: 12 }}>
               <h2>
                 {ver.titulo}
                 {ver.provisorio ? " (provisorio)" : ""}
