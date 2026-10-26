@@ -47,7 +47,7 @@ const DO = [
   ["Región Vitícola Austral", "Valle de Osorno", [], ["Osorno", "San Pablo", "Purranque", "La Unión", "Futrono"], null],
   // Agregados por el Decreto N° 27 de 2024 (Diario Oficial, 14-05-2025)
   ["Región Vitícola Austral", "Chiloé", ["Chiloé"], [], null],
-  ["Área Rapa Nui - Isla de Pascua", "Área Rapa Nui - Isla de Pascua", [], ["Isla de Pascua"], null],
+  ["Área especial del Decreto 464", "Área Rapa Nui - Isla de Pascua", [], ["Isla de Pascua"], null],
 ];
 
 export function denominacionDeOrigen({ comuna, provincia, cutReg }) {
