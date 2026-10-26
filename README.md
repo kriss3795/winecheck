@@ -21,12 +21,13 @@ npm run build    # construye para producción (carpeta dist/)
 ## Estructura del código
 - `src/lib/red.js` — red, timeout y proxy
 - `src/lib/geometria.js` — área, grilla de muestreo, polígonos
-- `src/lib/capas.js` — una función por fuente oficial
+- `src/lib/capas.js`, `clima.js`, `territorio.js`, `suelo.js`, `tiempo.js` — una función por fuente oficial
+- `scripts/arclim.mjs` — genera `public/clima/` desde ARClim (GitHub Actions)
 - `src/lib/veredicto.js` — restricciones, semáforo y resumen
 - `src/App.jsx` — interfaz
 - `api/geo.js` — proxy CORS con lista blanca y caché
 
 ## Fuentes de datos
-Open-Meteo ERA5-Land (clima, 10 temporadas), CIREN (suelo), DGA/MOP (agua y escasez),
+ARClim del MMA (clima presente y futuro), Open-Meteo (pronóstico), CIREN (suelo), DGA/MOP (agua y escasez),
 MMA (humedales), SMA (áreas protegidas), Copernicus DEM vía Open-Meteo
-(pendiente/mar), OpenStreetMap (cuerpos de agua y búsqueda).
+(pendiente/mar), Nominatim/OpenStreetMap (búsqueda de lugares).

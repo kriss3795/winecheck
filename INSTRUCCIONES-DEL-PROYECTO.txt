@@ -46,36 +46,44 @@ UBICACIÓN
 - Comuna/provincia/región: MOP IDE, INTEROP/SERVICIO_DPA/MapServer/1
   (campos COMUNA, PROVINCIA, REGION, CUT_REG, CUT_COM).
 - Cuenca/subcuenca: MMA SIMBIO_DIVISION_CUENCA capas 0 y 1 (NOM_CUEN, NOM_SUBC).
-- Denominación de origen: Decreto 464/1994 (texto SAG), asignada por
-  comuna y provincia en src/lib/denominaciones.js.
+- Denominación de origen: Decreto 464/1994 (texto SAG) + Decreto 27/2024
+  (Chiloé, Área Rapa Nui). Limache y Olmué van en Aconcagua (en 1994 eran
+  de la provincia de Quillota). Asignada en src/lib/denominaciones.js.
 
-CLIMA
-- Open-Meteo archive: temperaturas ERA5-Land (respaldo ERA5); lluvia,
-  ET0 FAO y radiación desde ERA5 (ERA5-Land no las trae). 10 temporadas.
-- Índices: Winkler (°C·día base 10, clases Jones et al.), GST de Jones
-  (2006), Huglin y frío nocturno (Tonietto & Carbonneau 2004).
-- Cepas: SOLO rangos publicados en texto por G. V. Jones: Pinot Noir
-  14–16, Chardonnay 14–18, Cabernet Franc 15,4–19,8, Cabernet Sauvignon
-  16,8–20,2 °C. "En el límite" = ±0,5 °C.
-- CIREN AGROCLIMA_IDEMINAGRI: zonificación agroclimática oficial (actual,
-  futuro cercano, futuro medio) solo en Atacama, Valparaíso, RM,
-  O'Higgins y Magallanes. Capas actual 16,21,43,36,26; cercano
-  17,22,44,37,27; medio 18,23,45,38,28. Campos sut, hfri, plh, nh, ppa,
-  etp, defh (+ mensuales _en, _fe, _mz, _ab, _oc, _no, _di).
-- Pronóstico: Open-Meteo forecast 16 días. Windy embebido (embed.windy.com).
+CLIMA (verificado 26-10-2026)
+- Fuente principal: ARClim (MMA), grilla 0,05° referenciada a CR2MET.
+  Histórico 1980–2010; futuro 2035–2065 SSP2-4.5 y SSP5-8.5.
+  Preprocesado por GitHub Actions (scripts/arclim.mjs) en public/clima/b{banda}.json.
+- NO usar ERA5/ERA5-Land para temperatura: frente a la estación DMC
+  Pudahuel (enero: máx 29,4 / mín 12,2 °C) ERA5-Land dio mín 16,1 °C
+  (+4 °C); ARClim dio 12,5 °C. CIREN Paine coincide con ARClim (±1 °C).
+- Índices con promedios mensuales: Winkler (clases Jones et al. 2010),
+  GST (Jones 2006), Huglin y frío nocturno (Tonietto & Carbonneau 2004).
+- Cepas: SOLO rangos publicados en texto por Jones: Pinot Noir 14–16,
+  Chardonnay 14–18, Cabernet Franc 15,4–19,8, Cabernet Sauvignon
+  16,8–20,2 °C. "En el límite" = ±1 °C (incertidumbre ARClim vs estación).
+- CIREN AGROCLIMA_IDEMINAGRI (Atacama, Valparaíso, RM, O'Higgins,
+  Magallanes) como contraste oficial. No mostrar horas frío (CIREN 1988
+  y 2024 dan valores muy distintos).
+- Pronóstico: Open-Meteo 16 días + Windy embebido. Los modelos
+  subestiman el frío nocturno en valles: alerta desde mínimas ≤ 3 °C.
 
 RIEGO (FAO-56)
 - Kc vid vinífera 0,30 / 0,70 / 0,45 repartido oct–abr.
-- Usa ETP y lluvia mensual de CIREN si existe; si no, ERA5 (cota
-  superior: en Paine ERA5 dio ET0 36% mayor que CIREN).
+- ET0 y lluvia de ARClim (eto_mean en mm/día) y, donde existe, CIREN; se
+  muestran ambas como rango.
 
 SUELO
 - CIREN SUELOS_AGROLOGICOS: UNA CAPA POR REGIÓN (0 Atacama ... 13 Isla de
   Pascua). Usar "identify" con layers=all. Campo textcaus (I–VIII o N.C.).
   (Error corregido: antes solo se consultaba la capa 0 = Atacama.)
 - CIREN EROSION: capas 1–16 erosión actual, 18–33 riesgo actual, 35+ riesgo potencial.
-- ISRIC SoilGrids 2.0 (rest.isric.org): textura, pH, piedras, MO, CIC.
+- ISRIC SoilGrids 2.0 (rest.isric.org): solo textura, pH y piedras.
+  NO mostrar materia orgánica ni CIC (valores atípicos, no validables).
   Límite 5 consultas/minuto; estimación modelada 250 m.
+- Clases de capacidad de uso: definiciones de la Pauta para Estudio de
+  Suelos del SAG (2016). Semáforo WineCheck: I–III verde, IV y VI
+  amarillo, V, VII y VIII rojo.
 
 AGUA
 - DGA Áreas de Restricción y Zonas de Prohibición (TIPO_LIMIT, SHAC, NOM_ACUIF).
@@ -96,7 +104,8 @@ TERRITORIO
 - Red hidrográfica: MMA SIMBIO_HIDROGRAFIA (TIPO_DREN, NOMBRE).
 - Límites urbanos: MINVU geoide IPT/Limites_Urbanos capas 0–4.
 - Áreas de riesgo: MINVU IPT/IPT_AREA_RIESGO capas 0 y 2 (NOM, CAT).
-- OpenStreetMap Overpass: solo control cruzado (lagos, canales).
+- OpenStreetMap Overpass: ELIMINADO (no oficial y caído en todas las pruebas).
+- Mar: elevación ≤ 0 m Y punto fuera de toda comuna (capa comunas MMA).
 - Elevación: Open-Meteo (Copernicus GLO-90); pendiente con clases FAO 2006.
 
 REGLAS DE RESTRICCIÓN (decididas por Kriss)
@@ -105,12 +114,16 @@ REGLAS DE RESTRICCIÓN (decididas por Kriss)
 - Si una fuente falla: "Sin dato", nunca asumir que no hay nada.
 
 DESCARTADO (por no cumplir la regla de datos)
+- Temperaturas de ERA5/ERA5-Land (sesgo de +4 °C en mínimas de verano).
 - Proyecciones CMIP6 de Open-Meteo: no documentan el escenario de emisiones.
+- OpenStreetMap; materia orgánica y CIC de SoilGrids; horas frío de CIREN.
 - Rangos de Carmenère, Syrah, Merlot, etc.: no publicados en texto por Jones.
 
 CÓDIGO
-- src/lib/: red.js, geometria.js, capas.js, territorio.js, suelo.js,
-  tiempo.js, denominaciones.js, veredicto.js. Interfaz: src/App.jsx.
+- src/lib/: red.js, geometria.js, capas.js, clima.js, territorio.js,
+  suelo.js, tiempo.js, denominaciones.js, veredicto.js. Interfaz: src/App.jsx.
+- Datos ARClim: scripts/arclim.mjs + .github/workflows/arclim.yml (se
+  ejecuta al cambiar el script y guarda public/clima en la rama).
 
 ESCALABILIDAD (lo que preguntan los inversionistas):
 - Las capas del Estado (DGA/CIREN/MMA/SMA) no tienen límite práctico.
