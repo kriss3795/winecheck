@@ -14,8 +14,12 @@
 #    tx[7]   máxima media mensual oct..abr (°C)
 #    tn[7]   mínima media mensual oct..abr (°C)
 #    pr[7]   lluvia media mensual oct..abr (mm/mes)
-#    et[7]   ET0 media diaria oct..abr (mm/día; CR2MET, Hargreaves-Samani modificada)
-#    hp      días con mínima < 0 °C entre sep y nov (promedio por temporada)
+#    hp      días con mínima ≤ 0 °C entre septiembre y noviembre (promedio por año)
+#    ha      días con mínima ≤ 0 °C en el año (mayo–abril)
+#    d30/d35 días con máxima sobre 30 °C / 35 °C en el año
+#    pa      lluvia anual (mayo–abril, mm)
+#  La ET0 de CR2MET (Hargreaves-Samani modificada) NO se usa: en Paine y
+#  Pudahuel daba bastante más que la ETP del estudio agroclimático de CIREN.
 #  y en la cabecera el período usado.
 # =====================================================================
 import json, os, glob, subprocess, sys, datetime, math
@@ -23,8 +27,8 @@ import numpy as np
 import netCDF4
 
 BASE = "https://ftp.cr2.cl/download/cr2met/v2.5_best"
-CARPETA = {"txn": "txn", "tmean": "tmean", "pr": "pr", "et0": "et0"}
-PREFIJO = {"txn": "CR2MET_tmin_tmax", "tmean": "CR2MET_tmean", "pr": "CR2MET_pr", "et0": "CR2MET_et0hsm"}
+CARPETA = {"txn": "txn", "tmean": "tmean", "pr": "pr"}
+PREFIJO = {"txn": "CR2MET_tmin_tmax", "tmean": "CR2MET_tmean", "pr": "CR2MET_pr"}
 MESES = [10, 11, 12, 1, 2, 3, 4]
 TMP = "/tmp/cr2"
 os.makedirs(TMP, exist_ok=True)
@@ -59,8 +63,6 @@ print("temporadas", temporadas[0], "-", temporadas[-1] + 1, flush=True)
 lat = lon = None
 acum = {}  # (campo, k) -> suma
 cuenta = {}
-helada = None
-n_helada = 0
 
 
 def sumar(campo, k, arr):
@@ -73,45 +75,49 @@ def sumar(campo, k, arr):
     cuenta[(campo, k)] += ok.sum(axis=0)
 
 
-for t in temporadas:
-    # Heladas sep–nov (con la mínima diaria)
-    hs = None
-    for m in (9, 10, 11):
-        f = bajar("txn", t, m)
-        with netCDF4.Dataset(f) as ds:
-            if lat is None:
-                lat = ds["lat"][:].astype("f8")
-                lon = ds["lon"][:].astype("f8")
-                print("variables txn:", variables(ds), "forma", ds[variables(ds)[0]].shape, flush=True)
-                print("lat", lat[0], lat[-1], "lon", lon[0], lon[-1], flush=True)
-            vn = [v for v in variables(ds) if "min" in v.lower()][0]
-            tn = np.ma.filled(ds[vn][:].astype("f8"), np.nan)
-            c = (tn < 0).sum(axis=0).astype("f8")
-            c[np.all(np.isnan(tn), axis=0)] = np.nan
-            hs = c if hs is None else hs + c
-        if m == 9:
-            os.remove(f)
-    helada = hs if helada is None else helada + hs
-    n_helada += 1
+conteos = {}  # nombre -> suma de días por celda (todas las temporadas)
 
-    for k, m in enumerate(MESES):
-        y = t if m >= 10 else t + 1
+
+def contar(nombre, mascara_dias, todo_nan):
+    c = mascara_dias.sum(axis=0).astype("f8")
+    c[todo_nan] = np.nan
+    conteos[nombre] = c if nombre not in conteos else conteos[nombre] + c
+
+
+for t in temporadas:
+    # Año agrícola completo: mayo(t) … abril(t+1). Incluye la temporada oct(t)–abr(t+1).
+    for m in [5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4]:
+        y = t if m >= 5 else t + 1
         f = bajar("txn", y, m)
         with netCDF4.Dataset(f) as ds:
             vs = variables(ds)
-            vmax = [v for v in vs if "max" in v.lower()][0]
-            vmin = [v for v in vs if "min" in v.lower()][0]
-            sumar("tx", k, ds[vmax][:])
-            sumar("tn", k, ds[vmin][:])
+            if lat is None:
+                lat = ds["lat"][:].astype("f8")
+                lon = ds["lon"][:].astype("f8")
+                print("variables txn:", vs, "forma", ds[vs[0]].shape, flush=True)
+                print("lat", lat[0], lat[-1], "lon", lon[0], lon[-1], flush=True)
+            tx = np.ma.filled(ds[[v for v in vs if "max" in v.lower()][0]][:].astype("f8"), np.nan)
+            tn = np.ma.filled(ds[[v for v in vs if "min" in v.lower()][0]][:].astype("f8"), np.nan)
         os.remove(f)
-        for var, campo in (("tmean", "tm"), ("pr", "pr"), ("et0", "et")):
-            f = bajar(var, y, m)
+        nan = np.all(np.isnan(tn), axis=0)
+        contar("ha", tn <= 0, nan)
+        if m in (9, 10, 11):
+            contar("hp", tn <= 0, nan)
+        contar("d30", tx > 30, nan)
+        contar("d35", tx > 35, nan)
+        f = bajar("pr", y, m)
+        with netCDF4.Dataset(f) as ds:
+            pr = np.ma.filled(ds[variables(ds)[0]][:].astype("f8"), np.nan)
+        os.remove(f)
+        contar("pa", np.nan_to_num(pr), np.all(np.isnan(pr), axis=0))  # suma de lluvia (mm)
+        if m in MESES:
+            k = MESES.index(m)
+            sumar("tx", k, tx)
+            sumar("tn", k, tn)
+            sumar("pr", k, pr)
+            f = bajar("tmean", y, m)
             with netCDF4.Dataset(f) as ds:
-                vs = variables(ds)
-                if t == temporadas[0] and k == 0:
-                    v = ds[vs[0]]
-                    print(var, vs, {a: v.getncattr(a) for a in v.ncattrs()}, flush=True)
-                sumar(campo, k, ds[vs[0]][:])
+                sumar("tm", k, ds[variables(ds)[0]][:])
             os.remove(f)
         print("ok", y, m, flush=True)
 
@@ -120,7 +126,8 @@ media = {}
 for (campo, k), s in acum.items():
     with np.errstate(invalid="ignore", divide="ignore"):
         media[(campo, k)] = s / cuenta[(campo, k)]
-helada = helada / n_helada
+for k in conteos:
+    conteos[k] = conteos[k] / len(temporadas)
 
 # Índices de la grilla CR2MET más cercanos a cada centro de celda ARClim
 lat_asc = lat[0] < lat[-1]
@@ -152,7 +159,7 @@ for fb in sorted(glob.glob("public/clima/b*.json")):
             continue
         reg = {}
         valido = True
-        for campo in ("tm", "tx", "tn", "pr", "et"):
+        for campo in ("tm", "tx", "tn", "pr"):
             vals = []
             for k in range(7):
                 v = media[(campo, k)][yi, xi]
@@ -161,13 +168,15 @@ for fb in sorted(glob.glob("public/clima/b*.json")):
                     break
                 if campo == "pr":
                     v = v * DIAS[k]
-                vals.append(round(float(v), 2 if campo == "et" else 1))
+                vals.append(round(float(v), 1))
             if not valido:
                 break
             reg[campo] = vals
         if not valido:
             continue
-        reg["hp"] = r1(helada[yi, xi])
+        for k in ("hp", "ha", "d30", "d35"):
+            reg[k] = r1(conteos[k][yi, xi])
+        reg["pa"] = None if math.isnan(conteos["pa"][yi, xi]) else round(float(conteos["pa"][yi, xi]))
         out[key] = reg
     total += len(out)
     nombre = os.path.basename(fb).replace("b", "a", 1)
