@@ -1,0 +1,56 @@
++ B=https://ftp.cr2.cl/download/cr2met
++ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/
++ head -60
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
++ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/
++ head -60
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
++ for v in txn pr et0 tmean
++ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/txn/
++ head -40
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
++ for v in txn pr et0 tmean
++ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/pr/
++ head -40
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
++ for v in txn pr et0 tmean
++ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/et0/
++ head -40
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
++ for v in txn pr et0 tmean
++ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/tmean/
++ head -40
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
++ curl -sSI -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/txn/CR2MET_txn_v2.5_best_day_2025_01_005deg.nc
+HTTP/2 404 
+server: nginx
+date: Mon, 26 Oct 2026 16:06:17 GMT
+content-type: text/html; charset=utf-8
+content-length: 207
+vary: Cookie
+content-security-policy: default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; frame-src 'self' https://www.google.com https://*.cr2.cl
+
