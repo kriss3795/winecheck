@@ -1,23 +1,30 @@
 name: Clima actual CR2MET
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 9 20 5 *"   # cada 20 de mayo, cuando ya cerró la temporada anterior
   push:
     branches: [mejoras-v2]
-    paths: [scripts/cr2met*, .github/workflows/cr2met.yml]
+    paths: [scripts/cr2met.py, .github/workflows/cr2met.yml]
 permissions:
   contents: write
 jobs:
   construir:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 340
     steps:
       - uses: actions/checkout@v4
-      - run: bash scripts/cr2met-probe.sh > cr2-log.txt 2>&1 || true
-      - name: Guardar
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q netCDF4 numpy
+      - run: python3 scripts/cr2met.py 2>&1 | tee cr2met-log.txt; exit ${PIPESTATUS[0]}
+      - name: Guardar datos en la rama
+        if: always()
         run: |
-          mkdir -p public/clima && cp cr2-log.txt public/clima/cr2-log.txt
+          mkdir -p public/clima && cp cr2met-log.txt public/clima/log-cr2met.txt || true
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add public/clima
-          git commit -m "Log CR2MET" || echo "sin cambios"
+          git commit -m "Clima actual CR2MET generado automáticamente" || echo "sin cambios"
           git pull --rebase && git push
