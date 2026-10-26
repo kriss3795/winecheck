@@ -87,6 +87,7 @@ function indices(o, per, lat) {
   ];
 }
 
+console.log("inicio", new Date().toISOString());
 const geo = await get(`${API}/geojson/?attributes=id,elev`);
 const celdas = geo.data.features.map((f) => {
   const c = f.geometry.coordinates[0];
