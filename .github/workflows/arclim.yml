@@ -1,0 +1,17 @@
+name: Datos climáticos ARClim
+on:
+  workflow_dispatch:
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/arclim.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clima-arclim
+          path: public/clima/
