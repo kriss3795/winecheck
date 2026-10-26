@@ -99,7 +99,9 @@ export async function pedirHidrografia(pts) {
     const tipo = String(a.TIPO_DREN || "").trim() || "Curso de agua";
     const nombre = String(a.NOMBRE || "").trim() || null;
     const k = tipo + "|" + (nombre || "");
-    if (!vistos.has(k)) vistos.set(k, { tipo, nombre, artificial: /canal|zanj/i.test(tipo) });
+    // Evita "Río Río Elqui": si el nombre ya empieza con el tipo, se usa solo el nombre
+    const etiqueta = nombre ? (normal(nombre).startsWith(normal(tipo)) ? nombre : `${tipo} ${nombre}`) : tipo;
+    if (!vistos.has(k)) vistos.set(k, { tipo, nombre, etiqueta, artificial: /canal|zanj/i.test(tipo) });
   }
   return { cauces: [...vistos.values()] };
 }

@@ -230,7 +230,7 @@ body {
 .capas .btn-windy { margin-left: auto; border-color: var(--vino); color: var(--vino); font-weight: 600; }
 .capas .btn-windy.activo { color: #fff; }
 .capas .abrir { margin-left: auto; align-self: center; font-size: 0.85rem; color: var(--vino); }
-.windy iframe { width: 100%; height: 460px; border: 1px solid var(--borde); border-radius: 12px; display: block; }
+.windy iframe { width: 100%; height: 560px; border: 1px solid var(--borde); border-radius: 12px; display: block; }
 .tarjeta .windy { margin-top: 14px; }
 .indice { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
 .indice a {
@@ -247,6 +247,6 @@ html { scroll-behavior: smooth; }
 @media (max-width: 640px) {
   .cabecera .logo { height: 72px; }
   .cabecera .lema { font-size: 0.82rem; }
-  .windy iframe { height: 380px; }
+  .windy iframe { height: 460px; }
   .capas .btn-windy { margin-left: 0; }
 }

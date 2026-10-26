@@ -577,7 +577,7 @@ function TarjetaTerritorio({ r }) {
           k="Cauces que cruzan el terreno"
           v={`${caucesMMA.length} curso${caucesMMA.length > 1 ? "s" : ""} de agua`}
           sub={
-            caucesMMA.map((c) => (c.nombre ? `${c.tipo} ${c.nombre}` : c.tipo)).join(", ") +
+            caucesMMA.map((c) => c.etiqueta).join(", ") +
             " (red hidrográfica oficial, MMA). Los cauces naturales implican riesgo de crecidas y una faja de ribera que no conviene plantar; los canales pueden servir para el riego si el predio tiene derechos."
           }
         />
@@ -929,7 +929,11 @@ function TarjetaRelieve({ p }) {
       <Fila k="Pendiente media" v={`${fmt(p.media)}%`} sub={p.nota} />
       <Fila k="Superficie con pendiente > 15% / > 30%" v={`${fmt(p.pct15)}% / ${fmt(p.pct30)}%`} />
       <Fila k="Altitud" v={`${fmt(p.elevMin)}–${fmt(p.elevMax)} m s.n.m.`} />
-      <Fila k="Exposición general" v={p.exposicion || "terreno prácticamente plano"} sub={p.notaExposicion} />
+      <Fila
+        k="Exposición general"
+        v={p.exposicion || (p.media >= 5 ? "sin una orientación dominante" : "terreno prácticamente plano")}
+        sub={p.exposicion ? p.notaExposicion : p.media >= 5 ? "El terreno tiene laderas con distintas orientaciones (por ejemplo, ambos lados de una quebrada)." : null}
+      />
       {p.resolucionBaja && (
         <p className="tenue">
           El modelo de elevación tiene ~90 m de resolución: en terrenos pequeños la pendiente es aproximada. Verificar con

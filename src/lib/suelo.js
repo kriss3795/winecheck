@@ -83,7 +83,14 @@ export async function pedirSoilGrids([lat, lon]) {
     props.map((p) => `&property=${p}`).join("") +
     PROFUNDIDADES.map((d) => `&depth=${d}`).join("") +
     `&value=mean`;
-  const j = await fetchJSON(url, 25000);
+  let j;
+  try {
+    j = await fetchJSON(url, 25000);
+  } catch (e) {
+    // El servicio limita a 5 consultas por minuto: se reintenta una vez
+    await new Promise((r) => setTimeout(r, 15000));
+    j = await fetchJSON(url, 25000);
+  }
   const capas = j?.properties?.layers || [];
   if (!capas.length) throw new Error("SoilGrids sin datos");
 

@@ -172,9 +172,7 @@ export function calcularVeredicto(r) {
   const caucesNat = hidro ? hidro.cauces.filter((c) => !c.artificial) : [];
   if (caucesNat.length) {
     f.push(
-      `Cauces que cruzan el terreno (red hidrográfica oficial): ${caucesNat
-        .map((c) => (c.nombre ? `${c.tipo} ${c.nombre}` : c.tipo).toLowerCase())
-        .join(", ")}. Considerar riesgo de crecidas y la faja de protección de la ribera.`
+      `Cauces que cruzan el terreno (red hidrográfica oficial): ${caucesNat.map((c) => c.etiqueta).join(", ")}. Considerar riesgo de crecidas y la faja de protección de la ribera.`
     );
   }
   if (R.dudosos > 0) f.push(`En ${R.dudosos} de ${R.n} puntos no se pudo confirmar si hay restricción (la fuente no respondió).`);
