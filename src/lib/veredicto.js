@@ -161,7 +161,7 @@ export function calcularVeredicto(r) {
   }
   if (uso && uso.hayBosqueNativo) {
     f.push(
-      `Uso actual: hay ${uso.tiposBosque.join(" y ").toLowerCase()} según el catastro de CONAF. Cortar bosque nativo exige un plan de manejo aprobado por CONAF (Ley 20.283, art. 5).`
+      `Uso actual: hay bosque nativo en el terreno según el catastro de CONAF. Cortar bosque nativo exige un plan de manejo aprobado por CONAF (Ley 20.283, art. 5).`
     );
     if (!incompleto && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
   }

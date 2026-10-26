@@ -39,61 +39,78 @@ REGLAS DE DATOS (INNEGOCIABLES):
    TODOS los parámetros.
 8. No incluir precio de la uva (no es específico del punto marcado).
 
-FUENTES OFICIALES CONFIRMADAS (verificadas en vivo, octubre 2026):
-- Clima: Open-Meteo, modelo ERA5-Land (respaldo ERA5)
-  https://archive-api.open-meteo.com/v1/archive
-  Promedio de las últimas 10 temporadas completas (oct–abr).
-  Índices: Winkler base 10 °C (clases Amerine & Winkler / Jones et al.),
-  temperatura media de temporada GST (Jones 2006: <13 muy frío, 13–21
-  vinos de calidad, >21 fortificados/mesa, >24 fuera de rango),
-  Huglin y frío nocturno (Tonietto & Carbonneau 2004), heladas
-  15 sep–30 nov, lluvias.
-- Cepas: SOLO rangos publicados en texto por G. V. Jones: Pinot Noir
-  14–16, Chardonnay 14–18, Cabernet Franc 15,4–19,8, Cabernet
-  Sauvignon 16,8–20,2 °C (GST). No inventar rangos de otras cepas.
-- Elevación/pendiente/mar: Open-Meteo Elevation (Copernicus GLO-90)
-  https://api.open-meteo.com/v1/elevation  — clases FAO 2006.
-- Suelo: CIREN Suelos Agrológicos (clases I–VIII). Campo esperado:
-  textcaus (no se pudo verificar: servidor caído en oct 2026).
-  https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer/0
-- Agua subterránea: DGA. Campos TIPO_LIMIT (Abierto / Area de
-  Restriccion / Zona de Prohibicion), SHAC, NOM_ACUIF.
-  https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Areas_de_Restriccion_y_Zonas_de_Prohibicion/MapServer/0
-- Escasez hídrica: DGA Decretos Escasez. Campos NUM_DECRETO,
-  ANO_DECRETO, FECHA_DECRETO, FECHA_CADUCIDAD. OJO: el campo VIGENTE
-  no es confiable (hay "SI" caducados); vigencia = caducidad > hoy.
-  La capa solo tiene decretos hasta abril de 2023.
-  https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Decretos_Escasez_Hidrica/MapServer/0
-- Humedales: MMA Inventario Nacional. Campos NOM_HUMDET (nombre) y
-  ORDEN_1 (10 artificial, 20 continental, 30 costero, 999 sin clasif.)
-  https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_HUMEDALES/MapServer/0
-- Áreas protegidas: SMA Areas_proteccion_oficial2 (una capa por
-  categoría; se consulta con "identify").
-  VETO: 1 y 40 Santuarios, 30 Humedales urbanos (Ley 21.202),
-  34 Monumentos naturales, 35 Parques nacionales, 39 Reservas
-  nacionales, 41 SNASPE, 42 RAMSAR, 31/32/36/38 marinas.
-  ADVERTENCIA: 0 Monumentos históricos, 2 Zonas típicas, 3 Acuíferos
-  protegidos, 33 Bienes Nacionales Protegidos, 37 Reservas forestales,
-  43 Zonas de conservación histórica, 44 ZOIT, 5–29 zonas de planes
-  reguladores.
-  https://ideserver.sma.gob.cl/arcgis/rest/services/IDE/Areas_proteccion_oficial2/MapServer
-- Cuerpos de agua y canales (control cruzado, no oficial): Overpass.
-  Canales y acequias NO restringen.
-- Buscador: Nominatim. Mapas base: OSM, Esri Imagery, Esri Topo.
+FUENTES CONFIRMADAS (verificadas en vivo, 26 octubre 2026)
+Todas aceptan consultas directas del navegador (CORS); el proxy queda de respaldo.
 
-REGLAS DE RESTRICCIÓN (decididas por Kriss):
-- Se calcula el % del terreno restringido con una grilla de puntos.
-  Si es el 100%, veto total y no se muestran clima/suelo/agua.
-- Tranques y humedales artificiales: advertencia.
+UBICACIÓN
+- Comuna/provincia/región: MOP IDE, INTEROP/SERVICIO_DPA/MapServer/1
+  (campos COMUNA, PROVINCIA, REGION, CUT_REG, CUT_COM).
+- Cuenca/subcuenca: MMA SIMBIO_DIVISION_CUENCA capas 0 y 1 (NOM_CUEN, NOM_SUBC).
+- Denominación de origen: Decreto 464/1994 (texto SAG), asignada por
+  comuna y provincia en src/lib/denominaciones.js.
+
+CLIMA
+- Open-Meteo archive: temperaturas ERA5-Land (respaldo ERA5); lluvia,
+  ET0 FAO y radiación desde ERA5 (ERA5-Land no las trae). 10 temporadas.
+- Índices: Winkler (°C·día base 10, clases Jones et al.), GST de Jones
+  (2006), Huglin y frío nocturno (Tonietto & Carbonneau 2004).
+- Cepas: SOLO rangos publicados en texto por G. V. Jones: Pinot Noir
+  14–16, Chardonnay 14–18, Cabernet Franc 15,4–19,8, Cabernet Sauvignon
+  16,8–20,2 °C. "En el límite" = ±0,5 °C.
+- CIREN AGROCLIMA_IDEMINAGRI: zonificación agroclimática oficial (actual,
+  futuro cercano, futuro medio) solo en Atacama, Valparaíso, RM,
+  O'Higgins y Magallanes. Capas actual 16,21,43,36,26; cercano
+  17,22,44,37,27; medio 18,23,45,38,28. Campos sut, hfri, plh, nh, ppa,
+  etp, defh (+ mensuales _en, _fe, _mz, _ab, _oc, _no, _di).
+- Pronóstico: Open-Meteo forecast 16 días. Windy embebido (embed.windy.com).
+
+RIEGO (FAO-56)
+- Kc vid vinífera 0,30 / 0,70 / 0,45 repartido oct–abr.
+- Usa ETP y lluvia mensual de CIREN si existe; si no, ERA5 (cota
+  superior: en Paine ERA5 dio ET0 36% mayor que CIREN).
+
+SUELO
+- CIREN SUELOS_AGROLOGICOS: UNA CAPA POR REGIÓN (0 Atacama ... 13 Isla de
+  Pascua). Usar "identify" con layers=all. Campo textcaus (I–VIII o N.C.).
+  (Error corregido: antes solo se consultaba la capa 0 = Atacama.)
+- CIREN EROSION: capas 1–16 erosión actual, 18–33 riesgo actual, 35+ riesgo potencial.
+- ISRIC SoilGrids 2.0 (rest.isric.org): textura, pH, piedras, MO, CIC.
+  Límite 5 consultas/minuto; estimación modelada 250 m.
+
+AGUA
+- DGA Áreas de Restricción y Zonas de Prohibición (TIPO_LIMIT, SHAC, NOM_ACUIF).
+- DGA Declaración de Agotamiento (NOM_AGOTA, RES_DGA, F_RES_DGA): Art. 282
+  Código de Aguas, no hay nuevos derechos consuntivos permanentes superficiales.
+- DGA Decretos de Escasez: vigencia por FECHA_CADUCIDAD (campo VIGENTE no
+  confiable). La capa solo llega a abril 2023 (hay decretos posteriores,
+  p. ej. Decreto MOP 185/2026 Choapa).
+
+TERRITORIO
+- Humedales MMA (NOM_HUMDET, ORDEN_1: 10 artificial).
+- Áreas protegidas SMA Areas_proteccion_oficial2 (identify).
+  VETO: 1 y 40 Santuarios, 30 Humedales urbanos, 34 Monumentos naturales,
+  35 Parques nacionales, 39 Reservas nacionales, 41 SNASPE, 42 RAMSAR,
+  31/32/36/38 marinas. ADVERTENCIA: 0, 2, 3, 33, 37, 43, 44 y 5–29.
+- Uso actual: MMA SIMBIO_CATASTRO_BN (CONAF; NIVEL_1, NIVEL_2, ANIO_FUENTE).
+  Bosque nativo => Ley 20.283 art. 5 (plan de manejo CONAF).
+- Red hidrográfica: MMA SIMBIO_HIDROGRAFIA (TIPO_DREN, NOMBRE).
+- Límites urbanos: MINVU geoide IPT/Limites_Urbanos capas 0–4.
+- Áreas de riesgo: MINVU IPT/IPT_AREA_RIESGO capas 0 y 2 (NOM, CAT).
+- OpenStreetMap Overpass: solo control cruzado (lagos, canales).
+- Elevación: Open-Meteo (Copernicus GLO-90); pendiente con clases FAO 2006.
+
+REGLAS DE RESTRICCIÓN (decididas por Kriss)
+- % del terreno restringido con grilla de puntos; 100% => veto total.
+- Canales y acequias no restringen; tranques/humedales artificiales = advertencia.
 - Si una fuente falla: "Sin dato", nunca asumir que no hay nada.
 
-DETALLES TÉCNICOS DE LAS CONSULTAS ARCGIS:
-- Polígono como geometry={"rings":[...]} en sentido horario, inSR=4326.
-- Punto como geometry="lon,lat", inSR=4326.
-- spatialRel=esriSpatialRelIntersects, returnGeometry=false, f=json.
-- El proxy fuerza returnGeometry=false, cachea 6 h y corta >4,5 MB.
-- Código separado en src/lib/: red.js, geometria.js, capas.js,
-  veredicto.js. La interfaz está en src/App.jsx.
+DESCARTADO (por no cumplir la regla de datos)
+- Proyecciones CMIP6 de Open-Meteo: no documentan el escenario de emisiones.
+- Rangos de Carmenère, Syrah, Merlot, etc.: no publicados en texto por Jones.
+
+CÓDIGO
+- src/lib/: red.js, geometria.js, capas.js, territorio.js, suelo.js,
+  tiempo.js, denominaciones.js, veredicto.js. Interfaz: src/App.jsx.
 
 ESCALABILIDAD (lo que preguntan los inversionistas):
 - Las capas del Estado (DGA/CIREN/MMA/SMA) no tienen límite práctico.

@@ -610,7 +610,7 @@ function TarjetaUso({ uso }) {
       ))}
       {uso.hayBosqueNativo && (
         <p>
-          <strong>Hay bosque nativo ({uso.tiposBosque.join(", ").toLowerCase()}).</strong> Toda corta de bosque nativo requiere
+          <strong>Hay bosque nativo en el terreno según el catastro.</strong> Toda corta de bosque nativo requiere
           un plan de manejo aprobado por CONAF (Ley 20.283, art. 5), y la corta sin plan se multa.
         </p>
       )}
