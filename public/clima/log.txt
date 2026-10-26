@@ -1,0 +1,12 @@
+inicio 2026-10-26T15:33:35.067Z
+celdas 35225
+ok 12 atributos
+ok 12 atributos
+ok 8 atributos
+ok 12 atributos
+ok 12 atributos
+ok 8 atributos
+ok 12 atributos
+ok 12 atributos
+ok 8 atributos
+bandas 39
