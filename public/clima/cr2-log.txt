@@ -1,56 +1,104 @@
-+ B=https://ftp.cr2.cl/download/cr2met
-+ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/
++ B=https://ftp.cr2.cl
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/
++ grep -o 'href="[^"]*"'
++ head -80
+href="/static/css/main.css"
+href="/login"
+href="/"
+href="/browse/cr2met/"
+href="/browse/cr2met/Monitoring/"
+href="/browse/cr2met/v2.5/"
+href="/browse/cr2met/v2.5_NRT/"
+href="/browse/cr2met/v2.5_R1/"
+href="/browse/cr2met/v2.5_best/"
+href="/preview/cr2met/readme.pdf"
++ for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025
++ echo '== v2.5_best'
+== v2.5_best
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/v2.5_best/
++ grep -o 'href="[^"]*"'
 + head -60
-<!doctype html>
-<html lang=en>
-<title>404 Not Found</title>
-<h1>Not Found</h1>
-<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
-+ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/
+href="/static/css/main.css"
+href="/login"
+href="/"
+href="/browse/cr2met/"
+href="/browse/cr2met/v2.5_best/"
+href="/browse/cr2met/v2.5_best/et0/"
+href="/browse/cr2met/v2.5_best/pr/"
+href="/browse/cr2met/v2.5_best/spei/"
+href="/browse/cr2met/v2.5_best/spi/"
+href="/browse/cr2met/v2.5_best/tmean/"
+href="/browse/cr2met/v2.5_best/txn/"
++ for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025
++ echo '== v2.5_R1'
+== v2.5_R1
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/v2.5_R1/
++ grep -o 'href="[^"]*"'
 + head -60
-<!doctype html>
-<html lang=en>
-<title>404 Not Found</title>
-<h1>Not Found</h1>
-<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
-+ for v in txn pr et0 tmean
-+ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/txn/
-+ head -40
-<!doctype html>
-<html lang=en>
-<title>404 Not Found</title>
-<h1>Not Found</h1>
-<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
-+ for v in txn pr et0 tmean
-+ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/pr/
-+ head -40
-<!doctype html>
-<html lang=en>
-<title>404 Not Found</title>
-<h1>Not Found</h1>
-<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
-+ for v in txn pr et0 tmean
-+ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/et0/
-+ head -40
-<!doctype html>
-<html lang=en>
-<title>404 Not Found</title>
-<h1>Not Found</h1>
-<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
-+ for v in txn pr et0 tmean
-+ curl -sS -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/tmean/
-+ head -40
-<!doctype html>
-<html lang=en>
-<title>404 Not Found</title>
-<h1>Not Found</h1>
-<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
-+ curl -sSI -m 30 https://ftp.cr2.cl/download/cr2met/v2.5_best/txn/CR2MET_txn_v2.5_best_day_2025_01_005deg.nc
-HTTP/2 404 
-server: nginx
-date: Mon, 26 Oct 2026 16:06:17 GMT
-content-type: text/html; charset=utf-8
-content-length: 207
-vary: Cookie
-content-security-policy: default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; frame-src 'self' https://www.google.com https://*.cr2.cl
-
+href="/static/css/main.css"
+href="/login"
+href="/"
+href="/browse/cr2met/"
+href="/browse/cr2met/v2.5_R1/"
+href="/browse/cr2met/v2.5_R1/et0/"
+href="/browse/cr2met/v2.5_R1/pr/"
+href="/browse/cr2met/v2.5_R1/tmean/"
+href="/browse/cr2met/v2.5_R1/txn/"
++ for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025
++ echo '== v2.5_best/txn'
+== v2.5_best/txn
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/v2.5_best/txn/
++ grep -o 'href="[^"]*"'
++ head -60
+href="/static/css/main.css"
+href="/login"
+href="/"
+href="/browse/cr2met/"
+href="/browse/cr2met/v2.5_best/"
+href="/browse/cr2met/v2.5_best/txn/"
+href="/browse/cr2met/v2.5_best/txn/v2.5_best_day/"
++ for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025
++ echo '== v2.5_best/tmean'
+== v2.5_best/tmean
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/v2.5_best/tmean/
++ grep -o 'href="[^"]*"'
++ head -60
+href="/static/css/main.css"
+href="/login"
+href="/"
+href="/browse/cr2met/"
+href="/browse/cr2met/v2.5_best/"
+href="/browse/cr2met/v2.5_best/tmean/"
+href="/browse/cr2met/v2.5_best/tmean/v2.5_best_day/"
++ for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025
++ echo '== v2.5_best/pr'
+== v2.5_best/pr
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/v2.5_best/pr/
++ grep -o 'href="[^"]*"'
++ head -60
+href="/static/css/main.css"
+href="/login"
+href="/"
+href="/browse/cr2met/"
+href="/browse/cr2met/v2.5_best/"
+href="/browse/cr2met/v2.5_best/pr/"
+href="/browse/cr2met/v2.5_best/pr/v2.5_best_day/"
++ for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025
++ echo '== v2.5_best/et0'
+== v2.5_best/et0
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/v2.5_best/et0/
++ grep -o 'href="[^"]*"'
++ head -60
+href="/static/css/main.css"
+href="/login"
+href="/"
+href="/browse/cr2met/"
+href="/browse/cr2met/v2.5_best/"
+href="/browse/cr2met/v2.5_best/et0/"
+href="/browse/cr2met/v2.5_best/et0/v2.5_best_day/"
++ for d in v2.5_best v2.5_R1 v2.5_best/txn v2.5_best/tmean v2.5_best/pr v2.5_best/et0 v2.5_best/txn/2025
++ echo '== v2.5_best/txn/2025'
+== v2.5_best/txn/2025
++ curl -sS -m 30 https://ftp.cr2.cl/browse/cr2met/v2.5_best/txn/2025/
++ grep -o 'href="[^"]*"'
++ head -60
