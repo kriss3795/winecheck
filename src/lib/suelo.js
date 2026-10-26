@@ -134,6 +134,7 @@ export async function pedirSoilGrids([lat, lon]) {
     };
   };
   const superficial = hacer(sup);
-  if (!superficial) throw new Error("SoilGrids sin datos para este punto (por ejemplo, zona urbana, roca o agua)");
+  // Sin estimación (zona urbana, roca o agua): no es una falla del servicio
+  if (!superficial) return { sinDatos: true, superficial: null, subsuelo: null };
   return { superficial, subsuelo: hacer(sub) };
 }

@@ -845,7 +845,7 @@ function TarjetaAgroclima({ a }) {
         </tbody>
       </table>
       <p className="tenue">
-        Fuente: {a.estudio}. Es el estudio oficial de CIREN para la zona y sirve para contrastar los datos de ARClim. Los horizontes
+        Fuente: {a.estudio}. Es el estudio oficial de CIREN para la zona y sirve para contrastar los datos de CR2MET y ARClim. Los horizontes
         "futuro cercano" y "futuro medio" son los del estudio de CIREN (el servicio de mapas no indica sus años exactos).
         CIREN tiene esta zonificación solo para algunas regiones.
       </p>
@@ -1024,12 +1024,18 @@ function TarjetaPropSuelo({ soil, erosion }) {
           </tbody>
         </table>
       )}
-      {soil && (
+      {s && (
         <p className="tenue">
           Estimaciones del mapa mundial de suelos ISRIC SoilGrids 2.0 (resolución 250 m, Poggio et al., 2021) en el centro
           del terreno. Orientan sobre textura, pH y piedras, pero tienen error: no reemplazan un análisis de suelo de
           laboratorio. No se muestran materia orgánica ni capacidad de intercambio catiónico: en las pruebas dieron valores
           atípicamente altos para suelos agrícolas y no pudimos validarlos.
+        </p>
+      )}
+      {soil && soil.sinDatos && (
+        <p className="tenue">
+          El mapa mundial de suelos SoilGrids no tiene estimación para el centro del terreno (ocurre en zonas urbanas, roca o
+          agua).
         </p>
       )}
       {!soil && <p className="falla">No se pudo consultar SoilGrids (el servicio permite pocas consultas por minuto).</p>}
@@ -1290,6 +1296,7 @@ const FUENTES = [
     ],
   },
   {
+    clave: "clima",
     n: "Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2",
     por: "Producto científico chileno (Universidad de Chile y otras, financiado por ANID) que reconstruye temperatura máxima, mínima, lluvia y evapotranspiración diarias en una grilla de ~5 km a partir de las estaciones de la Dirección Meteorológica de Chile y la DGA. Es la misma base a la que está referenciado ARClim, y se actualiza todos los meses.",
     leer: "La columna \"Actual\" es el promedio de las últimas 10 temporadas completas (octubre a abril) observadas, y es la que se usa para clasificar el clima y sugerir cepas. Heladas = días con mínima de 0 °C o menos (misma definición que CIREN). La evapotranspiración de CR2MET (fórmula de Hargreaves-Samani modificada) no se usa: en Paine y Pudahuel daba bastante más que la del estudio agroclimático de CIREN, así que el riego se calcula con ARClim y CIREN.",
@@ -1363,7 +1370,7 @@ const FUENTES = [
   },
   {
     clave: "uso",
-    n: "Uso actual del suelo — Catastro de CONAF (síntesis MMA)",
+    n: "Uso actual del suelo — Catastro de Uso de la Tierra de CONAF",
     por: "Catastro de Uso de la Tierra de CONAF, la institución oficial a cargo del bosque nativo. Se usa la actualización regional más reciente publicada por CIREN en la IDE del Ministerio de Agricultura (2016–2021 según región); en Antofagasta y Aysén, la síntesis nacional publicada por el MMA.",
     leer: "Muestra si el terreno es agrícola, pradera, matorral, plantación, bosque nativo, urbano, etc. Si hay bosque nativo, aplica la Ley 20.283 (plan de manejo de CONAF antes de cortar).",
     links: [

@@ -18,6 +18,8 @@ SITIOS = {
     "osorno": (-40.57, -73.13),
     "coyhaique": (-45.60, -72.10),
     "pichilemu_mar": (-34.39, -72.03),
+    "pichilemu_costa": (-34.392, -72.012),
+    "mendoza_argentina": (-32.89, -68.84),
 }
 LADO = 0.003  # ~300 m
 

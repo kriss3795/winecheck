@@ -97,17 +97,7 @@ export function calcularVeredicto(r) {
   const { R, clima, suelo, pendiente, agua, escasez, fuentes, areaHa, ubic, uso, hidro, limUrb, riesgoIPT, agot, erosion } = r;
   const haLibres = (areaHa * (100 - R.pctExcluido)) / 100;
 
-  // 0) Fuera de Chile: las fuentes oficiales no aplican
-  if (ubic && ubic.enChile === false) {
-    return {
-      estado: "nd",
-      titulo: "Fuera de Chile",
-      vetoTotal: true,
-      frases: ["El terreno marcado no está dentro de Chile según la División Político-Administrativa oficial. WineCheck solo evalúa terrenos en Chile."],
-    };
-  }
-
-  // 1) Todo el terreno restringido: veto absoluto
+  // 0) Todo el terreno restringido (mar, agua, áreas protegidas): veto absoluto
   if (R.n && R.pctExcluido >= 100) {
     const motivos = motivosRestriccion(R);
     return {
@@ -118,6 +108,16 @@ export function calcularVeredicto(r) {
         `No se puede plantar en este terreno: ${motivos.join("; ")}.`,
         "Por eso no se muestran clima, suelo ni agua: no aplican en este lugar.",
       ],
+    };
+  }
+
+  // 1b) Fuera de Chile: las fuentes oficiales no aplican
+  if (ubic && ubic.enChile === false) {
+    return {
+      estado: "nd",
+      titulo: "Fuera de Chile",
+      vetoTotal: true,
+      frases: ["El terreno marcado no está dentro de Chile según la División Político-Administrativa oficial. WineCheck solo evalúa terrenos en Chile."],
     };
   }
 
@@ -223,9 +223,9 @@ export function calcularVeredicto(r) {
   if (riego) {
     const q = riego.principal;
     f.push(
-      `Riego: la viña consumiría unos ${fmt(q.etc)} mm por temporada (método FAO-56) y llueven ${fmt(q.lluvia)} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(
+      `Riego (${q === riego.ciren ? "estudio agroclimático de CIREN" : "ARClim, 1980–2010"}): la viña consumiría unos ${fmt(q.etc)} mm por temporada (método FAO-56) y llueven ${fmt(q.lluvia)} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(
         q.deficit
-      )} mm (≈ ${fmt(q.deficit * 10)} m³/ha)${riego.ciren && riego.principal !== riego.ciren ? `; el estudio local de CIREN estima ${fmt(riego.ciren.deficit)} mm` : ""}.`
+      )} mm (≈ ${fmt(q.deficit * 10)} m³/ha)${riego.ciren && riego.principal !== riego.ciren ? `; el estudio local de CIREN estima ${fmt(riego.ciren.deficit)} mm` : ""}.${clima && clima.actual ? ` En las últimas 10 temporadas llovieron en promedio ${fmt(clima.actual.lluviaTemp)} mm entre octubre y abril (CR2MET).` : ""}`
     );
   }
   if (agot && agot.fuentes.length) f.push(`Agua superficial: ${agot.fuentes.map((x) => x.nombre).join("; ")} tiene declaración de agotamiento de la DGA (no se otorgan nuevos derechos permanentes).`);
