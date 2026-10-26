@@ -19,6 +19,11 @@
 
 import React, { useState, useMemo } from "react";
 import { MapContainer, TileLayer, Polygon, CircleMarker, useMapEvents, useMap } from "react-leaflet";
+// En celular: un dedo desplaza la página y dos dedos mueven el mapa.
+// En PC: la rueda del mouse no hace zoom salvo con Ctrl (evita "atrapar" el scroll).
+import "leaflet";
+import "leaflet-gesture-handling";
+import "leaflet-gesture-handling/dist/leaflet-gesture-handling.css";
 import { areaM2, centroide, grillaInterna, seAutoIntersecta } from "./lib/geometria.js";
 import {
   URLS,
@@ -173,7 +178,7 @@ export default function App() {
         marca("humedales", pedirHumedales(poly, lls)),
         marca("agua", pedirAgua(poly)),
         marca("escasez", pedirEscasez(poly)),
-        marca("uso", pedirUsoSuelo(poly, lls)),
+        marca("uso", pedirUsoSuelo(poly, lls, c0)),
         marca("hidro", pedirHidrografia(poly)),
         marca("limUrb", pedirLimiteUrbano(poly, lls)),
         marca("riesgo", pedirRiesgoIPT(poly)),
@@ -322,7 +327,20 @@ export default function App() {
         </div>
 
         <div className="mapa">
-          <MapContainer center={[-33.85, -70.75]} zoom={9} style={{ height: "100%", width: "100%" }}>
+          <MapContainer
+            center={[-33.85, -70.75]}
+            zoom={9}
+            style={{ height: "100%", width: "100%" }}
+            gestureHandling={true}
+            gestureHandlingOptions={{
+              text: {
+                touch: "Usa dos dedos para mover el mapa",
+                scroll: "Usa Ctrl + rueda del mouse para acercar o alejar",
+                scrollMac: "Usa \u2318 + rueda para acercar o alejar",
+              },
+              duration: 1200,
+            }}
+          >
             {capa === "calle" && (
               <TileLayer key="calle" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
             )}
@@ -631,17 +649,30 @@ function TarjetaUso({ uso }) {
   return (
     <Tarjeta titulo="Uso actual del suelo (catastro CONAF)" estado={uso.hayBosqueNativo ? "riesgo" : undefined}>
       {uso.clases.map((c) => (
-        <Fila key={c.nombre} k={c.nombre} v={`${fmt(c.pct)}% del terreno`} />
+        <Fila key={c.nombre} k={c.nombre + (c.tipoForestal ? ` — tipo forestal ${c.tipoForestal}` : "")} v={`${fmt(c.pct)}% del terreno`} />
       ))}
       {uso.hayBosqueNativo && (
         <p>
-          <strong>Hay bosque nativo en el terreno según el catastro.</strong> Toda corta de bosque nativo requiere
-          un plan de manejo aprobado por CONAF (Ley 20.283, art. 5), y la corta sin plan se multa.
+          <strong>
+            {uso.nativoSoloBorde
+              ? "El catastro registra bosque nativo dentro del polígono, aunque en una franja pequeña que no tocó ningún punto de muestreo"
+              : uso.pctBosqueNativo != null
+              ? `Bosque nativo o mixto en ~${fmt(uso.pctBosqueNativo)}% del terreno según el catastro`
+              : "Hay bosque nativo en el terreno según el catastro"}
+            {uso.tiposBosque.length ? ` (${uso.tiposBosque.join("; ")})` : ""}.
+          </strong>{" "}
+          Toda corta de bosque nativo requiere un plan de manejo aprobado por CONAF (Ley 20.283, art. 5), y la corta sin
+          plan se multa.
         </p>
       )}
       <p className="tenue">
-        Catastro de Uso de Suelo y Vegetación de CONAF, síntesis nacional del MMA. Fecha de la fuente según región:{" "}
-        {uso.anios.join(", ") || "—"}; el uso real puede haber cambiado desde entonces (revisar con la imagen satelital).
+        {uso.fuente === "conaf"
+          ? `Catastro de Uso de la Tierra de CONAF, actualización regional al año ${uso.anios.join(", ")} (publicado por CIREN en la IDE del Ministerio de Agricultura). `
+          : `Catastro de Uso de Suelo y Vegetación de CONAF, síntesis nacional del MMA (esta región no tiene actualización publicada por CIREN); fecha de la fuente: ${
+              uso.anios.join(", ") || "—"
+            }. `}
+        Porcentajes según los puntos de muestreo del terreno. El uso real puede haber cambiado desde esa fecha: revísalo con la
+        imagen satelital.
       </p>
     </Tarjeta>
   );
@@ -649,8 +680,10 @@ function TarjetaUso({ uso }) {
 
 // ---- Clima (ARClim)
 function TarjetaClima({ clima }) {
-  if (!clima) return <SinDato id="s-clima" titulo="Clima (ARClim)" />;
-  const p = clima.presente;
+  if (!clima) return <SinDato id="s-clima" titulo="Clima del terreno" />;
+  const p = clima.base;
+  const a = clima.actual;
+  const per = clima.periodo;
   const f2 = clima.f245;
   const f5 = clima.f585;
   const filas = [
@@ -667,7 +700,12 @@ function TarjetaClima({ clima }) {
   ];
   const val = (o, k, u, d) => (o && o[k] != null ? fmt(o[k], d) + u : "—");
   return (
-    <Tarjeta id="s-clima" titulo="Clima del terreno (ARClim)" estado={clima.estado}>
+    <Tarjeta id="s-clima" titulo="Clima del terreno" estado={clima.estado}>
+      <p className="tenue">
+        {a
+          ? `Clasificación con el clima actual: promedio observado de las temporadas ${per.desde}–${per.hasta} (oct–abr).`
+          : "No se pudo cargar el clima reciente; la clasificación usa el promedio 1980–2010."}
+      </p>
       <Fila k="Región de Winkler" v={`Región ${clima.region.n} (${clima.region.desc})`} />
       <Fila k="Categoría según temperatura de temporada (Jones)" v={clima.gstClase} />
       <Fila k="Índice de Huglin (Tonietto & Carbonneau)" v={clima.huglinClase} />
@@ -682,7 +720,14 @@ function TarjetaClima({ clima }) {
           <thead>
             <tr>
               <th>Variable</th>
-              <th>1980–2010</th>
+              {a && (
+                <th>
+                  Actual
+                  <br />
+                  {per.desde}–{per.hasta}
+                </th>
+              )}
+              <th>Histórico 1980–2010</th>
               {f2 && <th>2035–2065 (SSP2-4.5)</th>}
               {f5 && <th>2035–2065 (SSP5-8.5)</th>}
             </tr>
@@ -691,6 +736,7 @@ function TarjetaClima({ clima }) {
             {filas.map(([t, k, u, d]) => (
               <tr key={k}>
                 <td>{t}</td>
+                {a && <td className="destacar">{val(a, k, u, d)}</td>}
                 <td>{val(p, k, u, d)}</td>
                 {f2 && <td>{val(f2, k, u, d)}</td>}
                 {f5 && <td>{val(f5, k, u, d)}</td>}
@@ -735,9 +781,11 @@ function TarjetaClima({ clima }) {
         encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
       </p>
       <p className="tenue">
-        Fuente: ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente: grilla de ~5 km referenciada a CR2MET
-        (producto basado en estaciones chilenas); futuro según el promedio de modelos climáticos CMIP6 corregidos. Índices
-        calculados con promedios mensuales. Elevación media de la celda: {fmt(clima.elevCelda)} m
+        Fuentes: columna "Actual" = CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, datos diarios
+        observados (construidos con estaciones de la DMC y la DGA) de las últimas 10 temporadas completas; en esa columna las
+        heladas son los días con mínima bajo 0 °C y "—" indica que el dato no se calculó para ese período. Columnas 1980–2010 y
+        2035–2065 = ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente (grilla de ~5 km referenciada a
+        CR2MET; futuro según el promedio de modelos climáticos CMIP6 corregidos). Índices calculados con promedios mensuales. Elevación media de la celda: {fmt(clima.elevCelda)} m
         {clima.vecina ? " (se usó la celda vecina más cercana)" : ""}. Una celda de 5 km no capta el microclima de un cuartel:
         en fondos de valle las heladas pueden ser más frecuentes y en laderas o quebradas la temperatura puede diferir.
       </p>
@@ -807,6 +855,7 @@ function TarjetaRiego({ clima, agroclima, pron }) {
   const proxEt0 = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.et0 || 0), 0) : null;
   const proxLluvia = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.lluvia || 0), 0) : null;
   const col = [
+    riego.actual && [`Actual ${clima.periodo.desde}–${clima.periodo.hasta} (CR2MET)`, riego.actual],
     riego.arclim && ["ARClim 1980–2010", riego.arclim],
     riego.futuro && ["ARClim 2035–2065 (SSP2-4.5)", riego.futuro],
     riego.ciren && ["Estudio CIREN", riego.ciren],
@@ -1065,7 +1114,7 @@ function TarjetaEscasez({ e }) {
           <p>
             <strong>Historial:</strong> {e.decretos.length} decreto{e.decretos.length > 1 ? "s" : ""} de escasez han
             cubierto este terreno
-            {e.recurrente ? `, en ${e.aniosRecientes} de los últimos 10 años (zona con escasez recurrente)` : ""}.
+            {e.recurrente ? `, en ${e.aniosRecientes} años distintos entre ${e.desdeRecientes} y ${e.hastaRecientes || "hoy"} (zona con escasez recurrente${e.hastaRecientes ? `; la capa de la DGA llega hasta ${e.hastaRecientes}` : ""})` : ""}.
           </p>
           <table className="tabla">
             <thead>
@@ -1234,10 +1283,20 @@ const FUENTES = [
     ],
   },
   {
+    n: "Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2",
+    por: "Producto científico chileno (Universidad de Chile y otras, financiado por ANID) que reconstruye temperatura máxima, mínima, lluvia y evapotranspiración diarias en una grilla de ~5 km a partir de las estaciones de la Dirección Meteorológica de Chile y la DGA. Es la misma base a la que está referenciado ARClim, y se actualiza todos los meses.",
+    leer: "La columna \"Actual\" es el promedio de las últimas 10 temporadas completas (octubre a abril) observadas, y es la que se usa para clasificar el clima, sugerir cepas y estimar el riego. La evapotranspiración de CR2MET usa una fórmula de Hargreaves-Samani modificada (basada en temperatura), por eso puede diferir de la de ARClim.",
+    links: [
+      ["Servidor de datos CR2MET", "https://ftp.cr2.cl/browse/cr2met/"],
+      ["Documentación de versiones (PDF)", "https://ftp.cr2.cl/download/cr2met/readme.pdf"],
+      ["CR2MET v2.5 en Zenodo (CC BY 4.0)", "https://doi.org/10.5281/zenodo.7529682"],
+    ],
+  },
+  {
     clave: "clima",
     n: "Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)",
     por: "Plataforma oficial del MMA. Su clima histórico (1980–2010) está referenciado a CR2MET, la grilla de temperatura y lluvia de ~5 km del Centro de Ciencia del Clima y la Resiliencia (CR)2 construida con estaciones chilenas; el futuro (2035–2065) es el promedio de modelos CMIP6 corregidos, en escenarios SSP2-4.5 y SSP5-8.5.",
-    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Clases: Jones et al. (2010) y Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). Se eligió ARClim porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C y ARClim no.",
+    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Clases: Jones et al. (2010) y Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). En la app se muestra como referencia histórica (1980–2010) y para el futuro (2035–2065). Se prefirió esta familia de datos (CR2MET/ARClim) porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C.",
     links: [
       ["ARClim (MMA)", "https://arclim.mma.gob.cl/"],
       ["Metodología ARClim", "https://arclim.mma.gob.cl/media/learning/Metodologia_ARCLIM.pdf"],
@@ -1298,10 +1357,11 @@ const FUENTES = [
   {
     clave: "uso",
     n: "Uso actual del suelo — Catastro de CONAF (síntesis MMA)",
-    por: "Catastro de Uso de Suelo y Vegetación de CONAF, publicado por el Ministerio del Medio Ambiente en SIMBIO.",
-    leer: "Muestra si el terreno es agrícola, pradera, matorral, bosque, urbano, etc. Si hay bosque nativo, aplica la Ley 20.283.",
+    por: "Catastro de Uso de la Tierra de CONAF, la institución oficial a cargo del bosque nativo. Se usa la actualización regional más reciente publicada por CIREN en la IDE del Ministerio de Agricultura (2016–2021 según región); en Antofagasta y Aysén, la síntesis nacional publicada por el MMA.",
+    leer: "Muestra si el terreno es agrícola, pradera, matorral, plantación, bosque nativo, urbano, etc. Si hay bosque nativo, aplica la Ley 20.283 (plan de manejo de CONAF antes de cortar).",
     links: [
-      ["Capa del MMA", URLS.mmaUsoSuelo],
+      ["Capa CONAF por región (CIREN / IDE Minagri)", URLS.conafUso],
+      ["Síntesis nacional (MMA)", URLS.mmaUsoSuelo],
       ["Ley 20.283 (texto, MMA)", "https://mma.gob.cl/transparencia/mma/doc/LEY20283.pdf"],
     ],
   },

@@ -4,7 +4,7 @@
 //  Todas las capas fueron verificadas en vivo (octubre 2026).
 // =====================================================================
 import { fetchJSON, enParalelo } from "./red.js";
-import { URLS, CONCURRENCIA, urlQueryPoligono, urlQueryPunto, fecha, normal } from "./capas.js";
+import { URLS, CONCURRENCIA, urlQueryPoligono, urlQueryPunto, urlIdentifyPunto, fecha, normal } from "./capas.js";
 import { denominacionDeOrigen } from "./denominaciones.js";
 
 // ---------------------------------------------------------------------
@@ -53,7 +53,120 @@ const limpiarUso = (s) =>
     .toLowerCase()
     .replace(/^\w/, (x) => x.toUpperCase());
 
-export async function pedirUsoSuelo(pts, lls) {
+// Fuente principal: Catastro de Uso de la Tierra de CONAF, actualización
+// por región (capas de "cambio de uso de la tierra" publicadas por CIREN
+// en IDE Minagri). Se usa el año más reciente de cada región (2016–2021).
+// Verificado (26-10-2026): campos des_uso_AA ("Bosques, Bosque Nativo,
+// Renoval") y t_f_AA (tipo forestal, "No Aplica" si no es bosque nativo).
+// Antofagasta y Aysén no tienen capa: ahí se usa la síntesis del MMA.
+const cacheAnio = new Map();
+async function anioCapaConaf(id) {
+  if (!cacheAnio.has(id)) {
+    cacheAnio.set(
+      id,
+      fetchJSON(`${URLS.conafUso}/${id}?f=json`, 15000).then((d) => {
+        const anios = (d.fields || []).map((f) => /^des_uso_(\d\d)$/.exec(f.name)).filter(Boolean).map((m) => m[1]);
+        if (!anios.length) throw new Error("capa CONAF sin años");
+        return anios.sort().pop();
+      })
+    );
+  }
+  try {
+    return await cacheAnio.get(id);
+  } catch (e) {
+    cacheAnio.delete(id);
+    throw e;
+  }
+}
+
+const esNativo = (des) => /Bosque Nativo|Bosque Mixto/i.test(des || "");
+const nombreUso = (des) =>
+  String(des || "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter((x) => x && !/^No Aplica$/i.test(x) && !/^Sin Informaci/i.test(x))
+    .join(" · ");
+
+export async function pedirUsoSuelo(pts, lls, centro) {
+  // 1) ¿Qué capa regional cubre el terreno?
+  let capa = null;
+  for (const ll of [centro, ...lls.slice(0, 4)].filter(Boolean)) {
+    try {
+      const j = await fetchJSON(urlIdentifyPunto(URLS.conafUso, ll, "all", 0.002), 15000);
+      const r = (j.results || [])[0];
+      if (r) {
+        capa = r.layerId;
+        break;
+      }
+    } catch (e) {
+      break;
+    }
+  }
+  if (capa == null) return pedirUsoSueloMMA(pts, lls);
+
+  const aa = await anioCapaConaf(capa);
+  const base = `${URLS.conafUso}/${capa}`;
+  const campos = `des_uso_${aa},t_f_${aa}`;
+  const j = await fetchJSON(urlQueryPoligono(base, pts, campos, "&returnDistinctValues=true"), 20000);
+  const distintos = (j.features || []).map((f) => f.attributes);
+  if (!distintos.length) return { clases: [], anios: [], fuente: "conaf" };
+
+  let total = lls.length;
+  const conteo = {};
+  const tipoF = {};
+  if (distintos.length === 1) {
+    const d = distintos[0];
+    conteo[d[`des_uso_${aa}`]] = lls.length;
+    tipoF[d[`des_uso_${aa}`]] = d[`t_f_${aa}`];
+  } else {
+    const res = await enParalelo(lls, CONCURRENCIA, (ll) => fetchJSON(urlQueryPunto(base, ll, campos), 12000));
+    total = 0;
+    for (const r of res) {
+      if (!r.ok) continue;
+      const a = r.v.features?.[0]?.attributes;
+      if (!a) continue;
+      total++;
+      const k = a[`des_uso_${aa}`];
+      conteo[k] = (conteo[k] || 0) + 1;
+      tipoF[k] = a[`t_f_${aa}`];
+    }
+  }
+  const clases = Object.entries(conteo)
+    .map(([d, c]) => ({
+      nombre: nombreUso(d) || "Sin información",
+      pct: total ? (100 * c) / total : 0,
+      bosque: /^Bosques/i.test(d),
+      nativo: esNativo(d),
+      tipoForestal: tipoF[d] && !/No Aplica/i.test(tipoF[d]) ? tipoF[d] : null,
+      agricola: /^Terrenos Agr/i.test(d),
+      urbano: /^Áreas Urbanas/i.test(d),
+    }))
+    .sort((a, b) => b.pct - a.pct);
+  // Bosque nativo presente en el polígono aunque ningún punto de muestreo haya caído en él
+  const nativoEnPoligono = distintos.some((d) => esNativo(d[`des_uso_${aa}`]));
+  const pctNativo = clases.filter((c) => c.nativo).reduce((s, c) => s + c.pct, 0);
+  const tiposBosque = [
+    ...new Set(
+      distintos
+        .filter((d) => esNativo(d[`des_uso_${aa}`]))
+        .map((d) => (d[`t_f_${aa}`] && !/No Aplica/i.test(d[`t_f_${aa}`]) ? `${nombreUso(d[`des_uso_${aa}`])} (${d[`t_f_${aa}`]})` : nombreUso(d[`des_uso_${aa}`])))
+    ),
+  ];
+  return {
+    fuente: "conaf",
+    capaNombre: null,
+    anios: [`20${aa}`],
+    clases,
+    tiposBosque,
+    hayBosqueNativo: nativoEnPoligono,
+    pctBosqueNativo: pctNativo,
+    nativoSoloBorde: nativoEnPoligono && pctNativo === 0,
+    total,
+  };
+}
+
+// Respaldo: síntesis nacional del catastro publicada por el MMA (SIMBIO).
+async function pedirUsoSueloMMA(pts, lls) {
   const j = await fetchJSON(
     urlQueryPoligono(URLS.mmaUsoSuelo, pts, "NIVEL_1,NIVEL_2,ANIO_FUENTE", "&returnDistinctValues=true"),
     20000
@@ -92,7 +205,7 @@ export async function pedirUsoSuelo(pts, lls) {
   const tiposBosque = [
     ...new Set(distintos.filter((d) => /BOSQUE/i.test(d.NIVEL_1) && /NATIVO|MIXTO/i.test(d.NIVEL_2)).map((d) => limpiarUso(d.NIVEL_2))),
   ];
-  return { clases, anios, tiposBosque, hayBosqueNativo: tiposBosque.length > 0 };
+  return { fuente: "mma", clases, anios, tiposBosque, hayBosqueNativo: tiposBosque.length > 0, pctBosqueNativo: null };
 }
 
 // ---------------------------------------------------------------------

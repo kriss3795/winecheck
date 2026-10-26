@@ -51,10 +51,21 @@ export function calcularRestricciones(n, { elev, osm, hum, sma }) {
   const humedalesNat = hum ? hum.encontrados.filter((h) => !h.artificial) : [];
   const humedalesArt = hum ? hum.encontrados.filter((h) => h.artificial) : [];
 
+  // Cuáles de ellas tocan algún punto de muestreo y cuáles solo rozan el polígono
+  const protTocadas = new Set(puntos.flatMap((p) => p.protegida.map((x) => x.etiqueta)));
+  const humTocados = new Set(puntos.flatMap((p) => p.humedal.map((x) => x.nombre)));
+  const borde = unicos([
+    ...protegidasVeto.filter((p) => !protTocadas.has(p.etiqueta)).map((p) => p.etiqueta),
+    ...humedalesNat.filter((h) => !humTocados.has(h.nombre)).map((h) => `humedal ${h.nombre}`),
+  ]);
+
   return {
     n,
     puntos,
     libres,
+    borde,
+    protegidasEnPuntos: protegidasVeto.filter((p) => protTocadas.has(p.etiqueta)),
+    humedalesEnPuntos: humedalesNat.filter((h) => humTocados.has(h.nombre)),
     pctExcluido: pct((p) => p.excluido),
     pctMar: pct((p) => p.mar),
     pctAguaNatural: pct((p) => p.agua && !p.agua.artificial),
@@ -144,12 +155,9 @@ export function calcularVeredicto(r) {
       : `Superficie marcada: ${fmt(areaHa, 1)} ha, sin superficie restringida por agua, humedales ni áreas protegidas.`
   );
 
-  const borde = [
-    ...(R.pctProtegida === 0 ? R.protegidasVeto.map((p) => p.etiqueta) : []),
-    ...(R.pctHumedal === 0 ? R.humedalesNat.map((h) => `humedal ${h.nombre}`) : []),
-  ];
+  const borde = R.borde || [];
   if (borde.length) {
-    f.push(`Ojo: el terreno toca el borde de ${unicos(borde).join("; ")}. Verifica el límite exacto en terreno antes de plantar en ese sector.`);
+    f.push(`Ojo: el terreno toca el borde de ${borde.join("; ")}. Verifica el límite exacto en terreno antes de plantar en ese sector.`);
     if (!incompleto && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
   }
   // Otras restricciones territoriales (advertencias)
@@ -161,7 +169,7 @@ export function calcularVeredicto(r) {
   }
   if (uso && uso.hayBosqueNativo) {
     f.push(
-      `Uso actual: hay bosque nativo en el terreno según el catastro de CONAF. Cortar bosque nativo exige un plan de manejo aprobado por CONAF (Ley 20.283, art. 5).`
+      `Uso actual: ${uso.pctBosqueNativo ? `bosque nativo o mixto en ~${fmt(uso.pctBosqueNativo)}% del terreno` : "hay bosque nativo dentro del polígono"} según el catastro de CONAF. Cortar bosque nativo exige un plan de manejo aprobado por CONAF (Ley 20.283, art. 5).`
     );
     if (!incompleto && ORDEN[estado] < ORDEN.riesgo) estado = "riesgo";
   }
@@ -179,12 +187,13 @@ export function calcularVeredicto(r) {
 
   if (clima) {
     f.push(
-      `Clima (ARClim, promedio 1980–2010): ${fmt(clima.gdd)} grados-día, Región ${clima.region.n} de Winkler; temperatura media de temporada ${fmt(
-        clima.gst,
-        1
-      )} °C (categoría ${clima.gstClase} según Jones).${clima.f245 ? ` Hacia 2035–2065 (escenario SSP2-4.5) subiría a ${fmt(clima.f245.gst, 1)} °C.` : ""}${
-        clima.presente.heladasPrimavera >= 1 ? " Hay riesgo de heladas primaverales." : ""
-      }`
+      `Clima (${clima.actual ? `promedio observado de las temporadas ${clima.periodo.desde}–${clima.periodo.hasta}, CR2MET` : "ARClim, promedio 1980–2010"}): ${fmt(
+        clima.gdd
+      )} grados-día, Región ${clima.region.n} de Winkler; temperatura media de temporada ${fmt(clima.gst, 1)} °C (categoría ${
+        clima.gstClase
+      } según Jones)${clima.actual ? `, frente a ${fmt(clima.base.gst, 1)} °C en 1980–2010` : ""}.${
+        clima.f245 ? ` Hacia 2035–2065 (escenario SSP2-4.5, ARClim) se proyectan ${fmt(clima.f245.gst, 1)} °C.` : ""
+      }${(clima.actual?.heladasPrimavera ?? clima.base.heladasPrimavera) >= 1 ? " Hay riesgo de heladas primaverales." : ""}`
     );
   } else f.push("Clima: no se pudo obtener; sin clima no es posible un veredicto.");
 
@@ -216,7 +225,7 @@ export function calcularVeredicto(r) {
     f.push(
       `Riego: la viña consumiría unos ${fmt(q.etc)} mm por temporada (método FAO-56) y llueven ${fmt(q.lluvia)} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(
         q.deficit
-      )} mm (≈ ${fmt(q.deficit * 10)} m³/ha)${riego.ciren && riego.arclim ? `; el estudio local de CIREN estima ${fmt(riego.ciren.deficit)} mm` : ""}.`
+      )} mm (≈ ${fmt(q.deficit * 10)} m³/ha)${riego.ciren && riego.principal !== riego.ciren ? `; el estudio local de CIREN estima ${fmt(riego.ciren.deficit)} mm` : ""}.`
     );
   }
   if (agot && agot.fuentes.length) f.push(`Agua superficial: ${agot.fuentes.map((x) => x.nombre).join("; ")} tiene declaración de agotamiento de la DGA (no se otorgan nuevos derechos permanentes).`);
@@ -226,7 +235,7 @@ export function calcularVeredicto(r) {
   if (escasez) {
     if (escasez.vigentes.length) f.push("Escasez hídrica: hay decreto vigente.");
     else if (escasez.recurrente)
-      f.push(`Escasez hídrica: sin decreto vigente registrado, pero hubo decretos en ${escasez.aniosRecientes} de los últimos 10 años (zona con escasez recurrente).`);
+      f.push(`Escasez hídrica: sin decreto vigente registrado, pero hubo decretos en ${escasez.aniosRecientes} años distintos entre ${escasez.desdeRecientes} y ${escasez.hastaRecientes || "hoy"} (zona con escasez recurrente${escasez.hastaRecientes ? `; la capa de la DGA llega hasta ${escasez.hastaRecientes}` : ""}).`);
     else if (escasez.estado === "nd") f.push("Escasez hídrica: la capa de la DGA no está actualizada; verificar decretos recientes.");
   }
 
@@ -272,6 +281,7 @@ function problemas(r, soloVeto) {
   if (!soloVeto && r.uso && r.uso.hayBosqueNativo) out.push("bosque nativo");
   if (!soloVeto && r.riesgoIPT && r.riesgoIPT.zonas.length) out.push("áreas de riesgo");
   if (!soloVeto && r.R.pctExcluido >= 50) out.push("superficie restringida");
+  if (!soloVeto && r.R.borde && r.R.borde.length) out.push("borde de área protegida o humedal");
   return out;
 }
 
@@ -280,7 +290,7 @@ export function motivosRestriccion(R) {
   if (R.pctMar > 0) m.push(`mar (${fmt(R.pctMar)}%)`);
   if (R.pctAguaNatural > 0) m.push(`cuerpo de agua (${fmt(R.pctAguaNatural)}%)`);
   if (R.pctAguaArtificial > 0) m.push(`embalse o tranque (${fmt(R.pctAguaArtificial)}%)`);
-  if (R.pctHumedal > 0) m.push(`humedal ${unicos(R.humedalesNat.map((h) => h.nombre)).join(", ")} (${fmt(R.pctHumedal)}%)`);
-  if (R.pctProtegida > 0) m.push(`${unicos(R.protegidasVeto.map((p) => p.etiqueta)).join(", ")} (${fmt(R.pctProtegida)}%)`);
+  if (R.pctHumedal > 0) m.push(`humedal ${unicos((R.humedalesEnPuntos || R.humedalesNat).map((h) => h.nombre)).join(", ")} (${fmt(R.pctHumedal)}%)`);
+  if (R.pctProtegida > 0) m.push(`${unicos((R.protegidasEnPuntos || R.protegidasVeto).map((p) => p.etiqueta)).join(", ")} (${fmt(R.pctProtegida)}%)`);
   return m.length ? m : ["restricción territorial"];
 }

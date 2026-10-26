@@ -20,6 +20,7 @@ export const URLS = {
   mmaComunas: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_DIVISION_ADMINISTRATIVA/MapServer/2",
   mmaCuencas: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_DIVISION_CUENCA/MapServer",
   mmaHidrografia: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_HIDROGRAFIA/MapServer/0",
+  conafUso: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/USO_DE_LA_TIERRA_CUT_CONAF/MapServer",
   mmaUsoSuelo: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_CATASTRO_BN/MapServer/0",
   minvuLimUrbano: "https://geoide.minvu.cl/server/rest/services/IPT/Limites_Urbanos/MapServer",
   minvuRiesgo: "https://geoide.minvu.cl/server/rest/services/IPT/IPT_AREA_RIESGO/MapServer",
@@ -190,9 +191,11 @@ export const KC_VID = { 10: 0.3, 11: 0.43, 12: 0.57, 1: 0.7, 2: 0.7, 3: 0.58, 4:
 // entrega también como comparación (fuente oficial local).
 export function calcularRiego(clima, agroclima) {
   const out = {};
-  if (clima && clima.presente && clima.presente.etcTemp != null) {
-    const p = clima.presente;
-    out.arclim = { et0: p.et0Temp, etc: p.etcTemp, lluvia: p.lluviaTemp, deficit: Math.max(0, p.etcTemp - p.lluviaTemp) };
+  const fila = (p) => ({ et0: p.et0Temp, etc: p.etcTemp, lluvia: p.lluviaTemp, deficit: Math.max(0, p.etcTemp - p.lluviaTemp) });
+  if (clima && clima.actual && clima.actual.etcTemp != null) out.actual = fila(clima.actual);
+  if (clima && clima.base && clima.base.etcTemp != null) {
+    const p = clima.base;
+    out.arclim = fila(p);
     const f = clima.f245;
     if (f && f.etcTemp != null) out.futuro = { etc: f.etcTemp, lluvia: f.lluviaTemp, deficit: Math.max(0, f.etcTemp - f.lluviaTemp) };
   }
@@ -208,8 +211,8 @@ export function calcularRiego(clima, agroclima) {
     }
     out.ciren = { et0, etc, lluvia, deficit: Math.max(0, etc - lluvia), estudio: agroclima.estudio };
   }
-  if (!out.arclim && !out.ciren) return null;
-  out.principal = out.arclim || out.ciren;
+  if (!out.actual && !out.arclim && !out.ciren) return null;
+  out.principal = out.actual || out.arclim || out.ciren;
   return out;
 }
 
@@ -448,7 +451,7 @@ export async function pedirEscasez(pts) {
       ultimoCapa
     )}: podría no incluir decretos posteriores. Verifica en el sitio de la DGA antes de concluir.`;
   }
-  return { estado, nota, decretos, vigentes, recurrente, aniosRecientes: aniosRecientes.size, ultimoCapa, capaActualizada };
+  return { estado, nota, decretos, vigentes, recurrente, aniosRecientes: aniosRecientes.size, desdeRecientes: hace10, hastaRecientes: ultimoCapa ? new Date(ultimoCapa).getFullYear() : null, ultimoCapa, capaActualizada };
 }
 
 // =====================================================================
@@ -528,7 +531,9 @@ function nombreSMA(r) {
 }
 function aProteccion(r) {
   const veto = SMA_VETO[r.layerId] != null;
-  const categoria = SMA_VETO[r.layerId] || SMA_ADVERTENCIA[r.layerId] || r.layerName;
+  // Capas 5–29: zonas de protección de planes reguladores; se usa el nombre real de la capa
+  const nombreCapa = r.layerId >= 5 && r.layerId <= 29 && r.layerName && !/por definir/i.test(r.layerName) ? String(r.layerName).trim() : null;
+  const categoria = SMA_VETO[r.layerId] || nombreCapa || SMA_ADVERTENCIA[r.layerId] || r.layerName;
   const nombre = nombreSMA(r);
   return {
     capa: r.layerId,

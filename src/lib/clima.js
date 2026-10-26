@@ -1,29 +1,37 @@
 // =====================================================================
-//  clima.js — clima del terreno desde ARClim (Ministerio del Medio Ambiente)
+//  clima.js — clima del terreno
 //
-//  POR QUÉ ARClim Y NO ERA5 (verificado el 26-10-2026):
-//  Se comparó el reanálisis ERA5/ERA5-Land con la estación DMC de
-//  Pudahuel y con los estudios agroclimáticos de CIREN. En el valle
-//  central ERA5 sobreestima la temperatura mínima de verano en ~4 °C
-//  (enero: 16,1 °C en ERA5-Land contra 12,2 °C en la estación), lo que
-//  inflaba la temperatura media de temporada en ~2 °C. ARClim, que está
-//  referenciado a CR2MET (producto grillado basado en estaciones chilenas),
-//  dio 12,5 °C, prácticamente igual a la estación.
+//  1) BASE CONFIABLE: ARClim (Ministerio del Medio Ambiente), grilla de
+//     0,05° (~5 km) referenciada a CR2MET, período 1980–2010.
+//     Verificado el 26-10-2026: frente a la estación DMC de Pudahuel,
+//     ARClim acierta en la mínima de enero (12,5 vs 12,2 °C), mientras
+//     el reanálisis ERA5 la sobreestima en ~4 °C.
 //
-//  Los datos se preprocesan con scripts/arclim.mjs (GitHub Actions) y se
-//  publican en /clima/b{banda}.json: una celda de 0,05° (~5 km) con los
-//  índices de presente (1980–2010) y futuro (2035–2065, SSP2-4.5 y SSP5-8.5).
+//  2) CLIMA ACTUAL (últimas 10 temporadas completas): CR2MET v2.5_best,
+//     del Centro de Ciencia del Clima y la Resiliencia (CR)2. Es la grilla
+//     OBSERVADA (estaciones DMC/DGA) en que se basa ARClim, actualizada
+//     hasta el mes pasado. Se preprocesa con scripts/cr2met.py.
+//
+//  3) FUTURO: ARClim 2035–2065, escenarios SSP2-4.5 y SSP5-8.5.
+//
+//  ARClim se preprocesa con scripts/arclim.mjs → /clima/b{banda}.json;
+//  CR2MET con scripts/cr2met.py → /clima/a{banda}.json (GitHub Actions).
 // =====================================================================
 
 import { fetchTimeout } from "./red.js";
 
-const cacheBandas = new Map();
+const MESES = ["oct", "nov", "dec", "jan", "feb", "mar", "apr"];
+const NUM_MES = [10, 11, 12, 1, 2, 3, 4];
+const DIAS = [31, 30, 31, 31, 28.25, 31, 30];
+// Kc de vid vinífera FAO-56 (Allen et al., 1998): 0,30 · 0,70 · 0,45, repartido por mes
+const KC = [0.3, 0.43, 0.57, 0.7, 0.7, 0.58, 0.45];
 
+const cacheBandas = new Map();
 async function banda(b) {
   if (!cacheBandas.has(b)) {
     cacheBandas.set(
       b,
-      fetchTimeout(`/clima/b${b}.json`, 15000).then((r) => {
+      fetchTimeout(`/clima/b${b}.json`, 20000).then((r) => {
         if (!r.ok) throw new Error("sin datos climáticos para esta latitud");
         return r.json();
       })
@@ -43,7 +51,8 @@ async function celda(lat, lon) {
   // Celda propia y, si no existe (borde costero), la vecina más cercana
   const orden = [[0, 0]];
   for (let r = 1; r <= 2; r++)
-    for (let di = -r; di <= r; di++) for (let dj = -r; dj <= r; dj++) if (Math.max(Math.abs(di), Math.abs(dj)) === r) orden.push([di, dj]);
+    for (let di = -r; di <= r; di++)
+      for (let dj = -r; dj <= r; dj++) if (Math.max(Math.abs(di), Math.abs(dj)) === r) orden.push([di, dj]);
   for (const [di, dj] of orden) {
     const i = i0 + di;
     const j = j0 + dj;
@@ -55,12 +64,92 @@ async function celda(lat, lon) {
       continue;
     }
     const c = d.celdas[`${i},${j}`];
-    if (c) {
+    if (c && c.m) {
       const obj = (arr) => (arr ? Object.fromEntries(d.campos.map((k, n) => [k, arr[n]])) : null);
-      return { elev: c.e, vecina: di !== 0 || dj !== 0, presente: obj(c.p), f245: obj(c.f245), f585: obj(c.f585) };
+      const [tm, tx, tnMar, et0, pr, heladasPrimavera, heladasAnio, diasCalurosos, lluviaAnual] = c.m;
+      return {
+        elev: c.e,
+        vecina: di !== 0 || dj !== 0,
+        clave: `${i},${j}`,
+        base: { tm, tx, tnMar, et0, pr, heladasPrimavera, heladasAnio, diasCalurosos, lluviaAnual },
+        f245: obj(c.f245),
+        f585: obj(c.f585),
+      };
     }
   }
   return null;
+}
+
+// Coeficiente de largo del día del índice de Huglin (Tonietto & Carbonneau, 2004)
+function coefHuglin(lat) {
+  const a = Math.abs(lat);
+  if (a <= 40) return 1.0;
+  if (a <= 42) return 1.02;
+  if (a <= 44) return 1.03;
+  if (a <= 46) return 1.04;
+  if (a <= 48) return 1.05;
+  return 1.06;
+}
+
+// Índices a partir de valores mensuales oct–abr (mismo cálculo que el script)
+export function indicesMensuales(m, lat) {
+  let gst = 0, dias = 0, gdd = 0, hi = 0, et0 = 0, etc = 0, pr = 0;
+  for (let k = 0; k < 7; k++) {
+    gst += m.tm[k] * DIAS[k];
+    dias += DIAS[k];
+    gdd += Math.max(0, m.tm[k] - 10) * DIAS[k];
+    if (k < 6) hi += Math.max(0, (m.tm[k] - 10 + (m.tx[k] - 10)) / 2) * DIAS[k];
+    et0 += m.et0[k] * DIAS[k];
+    etc += m.et0[k] * DIAS[k] * KC[k];
+    pr += m.pr[k];
+  }
+  return {
+    gst: gst / dias,
+    gdd,
+    huglin: hi * coefHuglin(lat),
+    tminMar: m.tnMar,
+    tmaxEnero: m.tx[3],
+    tmedEnero: m.tm[3],
+    et0Temp: et0,
+    etcTemp: etc,
+    lluviaTemp: pr,
+  };
+}
+
+// ---- Clima actual observado: CR2MET (últimas 10 temporadas) ---------
+// Archivo /clima/a{banda}.json generado por scripts/cr2met.py con los
+// datos diarios de CR2MET v2.5_best, la misma grilla en que se basa ARClim.
+const cacheActual = new Map();
+async function bandaActual(b) {
+  if (!cacheActual.has(b)) {
+    cacheActual.set(
+      b,
+      fetchTimeout(`/clima/a${b}.json`, 20000).then((r) => {
+        if (!r.ok) throw new Error("sin clima actual");
+        return r.json();
+      })
+    );
+  }
+  try {
+    return await cacheActual.get(b);
+  } catch (e) {
+    cacheActual.delete(b);
+    throw e;
+  }
+}
+
+async function climaActual(clave) {
+  const [, j] = clave.split(",").map(Number);
+  const d = await bandaActual(Math.floor(j * 0.05 + 0.025));
+  const c = d.celdas[clave];
+  if (!c) return null;
+  return {
+    desde: d.desde,
+    hasta: d.hasta,
+    m: { tm: c.tm, tx: c.tx, tnMar: c.tn[5], et0: c.et, pr: c.pr },
+    tmin: c.tn,
+    heladasPrimavera: c.hp,
+  };
 }
 
 // ---- Clasificaciones con fuente -------------------------------------
@@ -115,56 +204,96 @@ export const CEPAS_JONES = [
 // Margen de incertidumbre: frente a la estación de Pudahuel, ARClim
 // difirió en torno a 1 °C en las máximas de enero.
 export const MARGEN_CEPAS = 1.0;
+export function calzaCepa(gst, c) {
+  if (gst == null) return null;
+  if (gst >= c.min && gst <= c.max) return "si";
+  if (gst >= c.min - MARGEN_CEPAS && gst <= c.max + MARGEN_CEPAS) return "limite";
+  return "no";
+}
+
+const r1 = (x) => Math.round(x * 10) / 10;
+function redondear(o) {
+  return {
+    gst: r1(o.gst),
+    gdd: Math.round(o.gdd),
+    huglin: Math.round(o.huglin),
+    tminMar: o.tminMar != null ? r1(o.tminMar) : null,
+    tmaxEnero: o.tmaxEnero != null ? r1(o.tmaxEnero) : null,
+    tmedEnero: o.tmedEnero != null ? r1(o.tmedEnero) : null,
+    et0Temp: Math.round(o.et0Temp),
+    etcTemp: Math.round(o.etcTemp),
+    lluviaTemp: Math.round(o.lluviaTemp),
+  };
+}
 
 export async function pedirClima(lat, lon) {
   const c = await celda(lat, lon);
-  if (!c || !c.presente || c.presente.gst == null) throw new Error("ARClim no tiene datos para este punto");
-  const p = c.presente;
+  if (!c) throw new Error("ARClim no tiene datos para este punto");
+  const b = c.base;
+  const base = {
+    ...redondear(indicesMensuales(b, lat)),
+    heladasPrimavera: b.heladasPrimavera,
+    heladasAnio: b.heladasAnio,
+    diasCalurosos: b.diasCalurosos,
+    lluviaAnual: b.lluviaAnual,
+  };
+
+  // Clima actual observado (CR2MET). Si no está disponible, se usa 1980–2010.
+  let actual = null;
+  let periodo = null;
+  try {
+    const a = await climaActual(c.clave);
+    if (a) {
+      actual = { ...redondear(indicesMensuales(a.m, lat)), heladasPrimavera: a.heladasPrimavera };
+      periodo = { desde: a.desde, hasta: a.hasta };
+    }
+  } catch (e) {
+    console.warn("[WineCheck] clima actual", e);
+  }
+  const ref = actual || base;
 
   let estado = "apto";
   const notas = [];
-  if (p.gst < 13) {
+  if (ref.gst < 13) {
     estado = "veto";
     notas.push("Temperatura media de temporada bajo 13 °C: según Jones, en ese rango solo prosperan híbridos o cepas de maduración muy temprana.");
-  } else if (p.gst > 24) {
+  } else if (ref.gst > 24) {
     estado = "veto";
     notas.push("Temperatura media de temporada sobre 24 °C: sobre el límite que Jones indica incluso para uva de mesa y pasas.");
-  } else if (p.gst > 21) {
+  } else if (ref.gst > 21) {
     estado = "riesgo";
     notas.push("Temperatura media de temporada sobre 21 °C: Jones asocia este rango principalmente a vinos fortificados, uva de mesa y pasas.");
   } else {
     notas.push("Temperatura media de temporada dentro del rango que Jones asocia a vinos de calidad (13–21 °C).");
   }
-  if (p.heladasPrimavera >= 1) {
+  const hel = actual ? actual.heladasPrimavera : b.heladasPrimavera;
+  if (hel != null && hel >= 1) {
     if (estado === "apto") estado = "riesgo";
-    notas.push(`En promedio ${p.heladasPrimavera.toLocaleString("es-CL")} días con helada entre septiembre y noviembre (brotación y floración).`);
+    notas.push(
+      actual
+        ? `En las temporadas ${periodo.desde}–${periodo.hasta} hubo en promedio ${hel.toLocaleString("es-CL")} días por año con mínima bajo 0 °C entre septiembre y noviembre (brotación y floración).`
+        : `En 1980–2010 hubo en promedio ${hel.toLocaleString("es-CL")} días con helada entre septiembre y noviembre (brotación y floración).`
+    );
   }
-
-  const cepas = CEPAS_JONES.map((x) => ({
-    ...x,
-    encaja:
-      p.gst >= x.min && p.gst <= x.max
-        ? "si"
-        : p.gst >= x.min - MARGEN_CEPAS && p.gst <= x.max + MARGEN_CEPAS
-        ? "limite"
-        : "no",
-  }));
 
   return {
     estado,
     notas,
     elevCelda: c.elev,
     vecina: c.vecina,
-    presente: p,
+    base,
+    actual,
+    periodo,
     f245: c.f245,
     f585: c.f585,
-    gst: p.gst,
-    gdd: p.gdd,
-    huglin: p.huglin,
-    region: regionWinkler(p.gdd),
-    gstClase: claseGST(p.gst),
-    huglinClase: claseHuglin(p.huglin),
-    nochesClase: p.tminMar != null ? claseNoches(p.tminMar) : null,
-    cepas,
+    ref,
+    gst: ref.gst,
+    gdd: ref.gdd,
+    huglin: ref.huglin,
+    region: regionWinkler(ref.gdd),
+    gstClase: claseGST(ref.gst),
+    huglinClase: claseHuglin(ref.huglin),
+    nochesClase: ref.tminMar != null ? claseNoches(ref.tminMar) : null,
+    cepas: CEPAS_JONES.map((x) => ({ ...x, encaja: calzaCepa(ref.gst, x) })),
   };
 }
