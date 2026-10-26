@@ -17,6 +17,7 @@ export const URLS = {
   cirenAgroclima: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/AGROCLIMA_IDEMINAGRI/MapServer",
   dgaAgotamiento: "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Declaracion_de_Agotamiento/MapServer/0",
   dpaComunas: "https://rest-sit.mop.gob.cl/arcgis/rest/services/INTEROP/SERVICIO_DPA/MapServer/1",
+  mmaComunas: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_DIVISION_ADMINISTRATIVA/MapServer/2",
   mmaCuencas: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_DIVISION_CUENCA/MapServer",
   mmaHidrografia: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_HIDROGRAFIA/MapServer/0",
   mmaUsoSuelo: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_CATASTRO_BN/MapServer/0",
@@ -91,7 +92,7 @@ const RUMBOS = ["Norte", "Noreste", "Este", "Sureste", "Sur", "Suroeste", "Oeste
 
 export function calcularPendiente(grid, elev, indices) {
   const s = grid.espaciado;
-  if (!s || indices.length < 3) return { estado: "nd", nota: "Terreno demasiado pequeño para estimar pendiente." };
+  if (!s || indices.length < 3) return { estado: "nd", nota: "Muy poca superficie disponible para estimar la pendiente." };
   const mapa = new Map();
   grid.puntos.forEach((p, k) => mapa.set(p.i + "," + p.j, k));
 

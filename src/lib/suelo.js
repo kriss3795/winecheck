@@ -88,7 +88,8 @@ export async function pedirSoilGrids([lat, lon]) {
     j = await fetchJSON(url, 25000);
   } catch (e) {
     // El servicio limita a 5 consultas por minuto: se reintenta una vez
-    await new Promise((r) => setTimeout(r, 15000));
+    // (solo ante errores de red o del servicio, no por falta de datos)
+    await new Promise((r) => setTimeout(r, 12000));
     j = await fetchJSON(url, 25000);
   }
   const capas = j?.properties?.layers || [];
@@ -126,8 +127,8 @@ export async function pedirSoilGrids([lat, lon]) {
       limo: li,
       arcilla: ac,
       textura: texturaUSDA(ar, li, ac),
-      ph,
-      phClase: ph != null ? clasePH(ph) : null,
+      ph: ph != null ? Math.round(ph * 10) / 10 : null,
+      phClase: ph != null ? clasePH(Math.round(ph * 10) / 10) : null,
       // Unidades tras aplicar d_factor (verificado): cfvo en cm³/100 cm³ (= % de volumen).
       pedregosidad: valor("cfvo", rango),
     };

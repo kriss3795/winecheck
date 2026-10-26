@@ -167,13 +167,12 @@ export default function App() {
       const c0 = centroide(poly);
 
       setPaso("Revisando ubicación, restricciones territoriales y agua…");
-      const [elev, sma, hum, agua, escasez, ubic, uso, hidro, limUrb, riesgoIPT, agot] = await Promise.all([
+      const [elev, sma, hum, agua, escasez, uso, hidro, limUrb, riesgoIPT, agot] = await Promise.all([
         marca("elevacion", pedirElevaciones(lls)),
         marca("sma", pedirProtegidas(poly, lls)),
         marca("humedales", pedirHumedales(poly, lls)),
         marca("agua", pedirAgua(poly)),
         marca("escasez", pedirEscasez(poly)),
-        marca("ubicacion", pedirUbicacion(c0)),
         marca("uso", pedirUsoSuelo(poly, lls)),
         marca("hidro", pedirHidrografia(poly)),
         marca("limUrb", pedirLimiteUrbano(poly, lls)),
@@ -203,9 +202,13 @@ export default function App() {
       let erosion = null;
       let agroclima = null;
       let pronostico = null;
+      // La ubicación se consulta en el centro de la superficie disponible
+      // (si el centro del polígono cae en el mar, no habría comuna).
+      const cUbic = R.libres.length ? centroide(R.libres.map((k) => lls[k])) : c0;
+      const ubic = await marca("ubicacion", pedirUbicacion(cUbic));
       const fueraDeChile = ubic && ubic.enChile === false;
       if (R.libres.length && !fueraDeChile) {
-        setPaso("Calculando clima de 10 temporadas, suelo, riego y pronóstico…");
+        setPaso("Calculando clima, suelo, riego y pronóstico…");
         const libres = R.libres.map((k) => lls[k]);
         const c = centroide(libres);
         [clima, suelo, soil, erosion, agroclima, pronostico] = await Promise.all([
@@ -895,7 +898,7 @@ function TarjetaSuelo({ suelo }) {
         La capacidad de uso (clases I a VIII, Pauta del SAG) mide la aptitud del suelo para cultivos en general, no
         específicamente para vid: las clases I–IV son arables y las V–VIII no arables. El color de cada clase es criterio de
         WineCheck. Confirmar siempre con calicatas. Estudio: {suelo.estudios.join(", ") || "CIREN"}. Basado en {suelo.muestras}{" "}
-        puntos{suelo.fallos ? ` (${suelo.fallos} sin respuesta de CIREN)` : ""}
+        {suelo.muestras === 1 ? "punto" : "puntos"}{suelo.fallos ? ` (${suelo.fallos} sin respuesta de CIREN)` : ""}
         {suelo.sinCobertura ? `; ${suelo.sinCobertura} fuera de la cobertura del estudio` : ""}.
       </p>
     </Tarjeta>

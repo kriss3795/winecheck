@@ -35,8 +35,10 @@ export async function pedirUbicacion(centro) {
 }
 
 // ¿Cada punto está dentro de alguna comuna? (para distinguir mar de tierra)
+// Usa la capa de comunas del MMA (otro servidor que la DPA del MOP, para
+// repartir la carga) y pocas consultas simultáneas.
 export async function puntosEnTierra(lls) {
-  const res = await enParalelo(lls, CONCURRENCIA, (ll) => fetchJSON(urlQueryPunto(URLS.dpaComunas, ll, "OBJECTID"), 12000));
+  const res = await enParalelo(lls, 3, (ll) => fetchJSON(urlQueryPunto(URLS.mmaComunas, ll, "OBJECTID"), 12000));
   return res.map((r) => (r.ok ? (r.v.features || []).length > 0 : null));
 }
 
