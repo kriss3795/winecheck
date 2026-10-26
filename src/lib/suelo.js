@@ -77,7 +77,7 @@ export function clasePH(ph) {
 }
 
 export async function pedirSoilGrids([lat, lon]) {
-  const props = ["phh2o", "clay", "sand", "silt", "soc", "cfvo", "cec"];
+  const props = ["phh2o", "clay", "sand", "silt", "cfvo"];
   const url =
     `${URLS.soilgrids}?lon=${lon.toFixed(5)}&lat=${lat.toFixed(5)}` +
     props.map((p) => `&property=${p}`).join("") +
@@ -128,12 +128,8 @@ export async function pedirSoilGrids([lat, lon]) {
       textura: texturaUSDA(ar, li, ac),
       ph,
       phClase: ph != null ? clasePH(ph) : null,
-      // Unidades tras aplicar d_factor (verificado): soc en g/kg, cfvo en
-      // cm³/100 cm³ (= % de volumen), cec en cmol(c)/kg.
-      // Materia orgánica = carbono orgánico (%) × 1,724 (factor de Van Bemmelen).
-      materiaOrganica: valor("soc", rango) != null ? (valor("soc", rango) / 10) * 1.724 : null,
+      // Unidades tras aplicar d_factor (verificado): cfvo en cm³/100 cm³ (= % de volumen).
       pedregosidad: valor("cfvo", rango),
-      cic: valor("cec", rango),
     };
   };
   const superficial = hacer(sup);

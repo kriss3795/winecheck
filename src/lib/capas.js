@@ -11,7 +11,6 @@ import { fetchJSON, fetchTimeout, viaProxy, enParalelo } from "./red.js";
 import { anilloArcGIS, caja, dentro, lineaTocaPoligono } from "./geometria.js";
 
 export const URLS = {
-  clima: "https://archive-api.open-meteo.com/v1/archive",
   elevacion: "https://api.open-meteo.com/v1/elevation",
   cirenSuelos: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer",
   cirenErosion: "https://esri.ciren.cl/server/rest/services/IDEMINAGRI/EROSION/MapServer",
@@ -181,79 +180,22 @@ export function calcularPendiente(grid, elev, indices) {
 }
 
 // =====================================================================
-//  2) CLIMA — ERA5-Land (Copernicus/ECMWF) vía Open-Meteo, 10 temporadas
+//  2) RIEGO — FAO-56 con datos de ARClim (y CIREN donde existe)
 // =====================================================================
-// Última temporada completa (oct–abr). ERA5 se publica con ~5 días de
-// retraso, así que una temporada se considera cerrada desde el 10 de mayo.
-function temporadaFinal(hoy = new Date()) {
-  const y = hoy.getFullYear();
-  return hoy >= new Date(y, 4, 10) ? y : y - 1;
-}
-
-// Coeficiente de largo del día del índice de Huglin (Tonietto & Carbonneau, 2004)
-function coefHuglin(lat) {
-  const a = Math.abs(lat);
-  if (a <= 40) return 1.0;
-  if (a <= 42) return 1.02;
-  if (a <= 44) return 1.03;
-  if (a <= 46) return 1.04;
-  if (a <= 48) return 1.05;
-  return 1.06;
-}
-
-// Clases de Winkler en °C-día (Amerine & Winkler 1944; tabla de Jones et al.)
-export function regionWinkler(gdd) {
-  if (gdd < 1111) return { n: "<I", desc: "más fría que la Región I" };
-  if (gdd < 1389) return { n: "I", desc: "fría" };
-  if (gdd < 1667) return { n: "II", desc: "templada-fría" };
-  if (gdd < 1944) return { n: "III", desc: "templada" };
-  if (gdd < 2222) return { n: "IV", desc: "templada-cálida" };
-  if (gdd < 2500) return { n: "V", desc: "cálida" };
-  if (gdd <= 2778) return { n: "VI", desc: "muy cálida" };
-  return { n: ">VI", desc: "más cálida que la Región VI" };
-}
-// Temperatura media de temporada (GST), clases de Jones (2006)
-export function claseGST(t) {
-  if (t < 13) return "demasiado fría";
-  if (t < 15) return "fría";
-  if (t < 17) return "intermedia";
-  if (t < 19) return "cálida";
-  if (t < 21) return "calurosa";
-  if (t <= 24) return "muy calurosa";
-  return "demasiado calurosa";
-}
-// Índice de Huglin, clases de Tonietto & Carbonneau (2004)
-export function claseHuglin(h) {
-  if (h <= 1500) return "muy fresco";
-  if (h <= 1800) return "fresco";
-  if (h <= 2100) return "templado";
-  if (h <= 2400) return "templado cálido";
-  if (h <= 3000) return "cálido";
-  return "muy cálido";
-}
-// Índice de frío nocturno (mínima media de marzo), Tonietto & Carbonneau (2004)
-export function claseNoches(t) {
-  if (t <= 12) return "noches muy frías";
-  if (t <= 14) return "noches frías";
-  if (t <= 18) return "noches templadas";
-  return "noches cálidas";
-}
-
-// Cepas con rango térmico publicado en texto por G. V. Jones.
-// Solo se incluyen cepas cuyo rango numérico está escrito en la fuente;
-// el resto del gráfico de Jones no se transcribe para no inventar cifras.
-// Coeficiente de cultivo de vid vinífera, FAO-56 (Allen et al., 1998),
-// Tabla 12: Kc ini 0,30 · Kc med 0,70 · Kc fin 0,45. Se reparte por mes
-// para el hemisferio sur: brotación (oct), desarrollo (nov–dic, lineal),
-// mediados de temporada (ene–feb) y final (mar–abr).
+// Kc de vid vinífera, FAO-56 (Allen et al., 1998), Tabla 12:
+// 0,30 (inicial) · 0,70 (mediados) · 0,45 (final).
 export const KC_VID = { 10: 0.3, 11: 0.43, 12: 0.57, 1: 0.7, 2: 0.7, 3: 0.58, 4: 0.45 };
 
-// Necesidad de riego: usa el estudio oficial de CIREN (ETP y lluvia
-// mensuales) cuando existe; si no, el reanálisis ERA5.
-// Verificado en Paine: el ET0 de ERA5 (oct–abr) fue 1.132 mm y el de
-// CIREN 834 mm (≈36% más en el reanálisis), por eso ERA5 se presenta
-// como cota superior.
+// Usa ARClim (todo Chile). Si hay estudio agroclimático de CIREN, se
+// entrega también como comparación (fuente oficial local).
 export function calcularRiego(clima, agroclima) {
+  const out = {};
+  if (clima && clima.presente && clima.presente.etcTemp != null) {
+    const p = clima.presente;
+    out.arclim = { et0: p.et0Temp, etc: p.etcTemp, lluvia: p.lluviaTemp, deficit: Math.max(0, p.etcTemp - p.lluviaTemp) };
+    const f = clima.f245;
+    if (f && f.etcTemp != null) out.futuro = { etc: f.etcTemp, lluvia: f.lluviaTemp, deficit: Math.max(0, f.etcTemp - f.lluviaTemp) };
+  }
   const m = agroclima?.disponible ? agroclima.actual?.mensual : null;
   if (m) {
     let et0 = 0;
@@ -264,221 +206,34 @@ export function calcularRiego(clima, agroclima) {
       etc += v.etp * KC_VID[mes];
       lluvia += v.ppa;
     }
-    return { fuente: "ciren", et0, etc, lluvia, deficit: Math.max(0, etc - lluvia), estudio: agroclima.estudio };
+    out.ciren = { et0, etc, lluvia, deficit: Math.max(0, etc - lluvia), estudio: agroclima.estudio };
   }
-  if (clima && clima.etcTemp != null) {
-    return { fuente: "era5", et0: clima.et0Temp, etc: clima.etcTemp, lluvia: clima.lluviaTemp, deficit: clima.deficit };
-  }
-  return null;
-}
-
-export const CEPAS_JONES = [
-  { cepa: "Pinot Noir", min: 14.0, max: 16.0, ref: "jones2006" },
-  { cepa: "Chardonnay", min: 14.0, max: 18.0, ref: "jones2015" },
-  { cepa: "Cabernet Franc", min: 15.4, max: 19.8, ref: "jones2006" },
-  { cepa: "Cabernet Sauvignon", min: 16.8, max: 20.2, ref: "jones2006" },
-];
-
-export async function pedirClima(lat, lon) {
-  const fin = temporadaFinal();
-  const ini = fin - 10;
-  const comun =
-    `${URLS.clima}?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}` +
-    `&start_date=${ini}-05-01&end_date=${fin}-04-30&timezone=America%2FSantiago`;
-  const urlT = comun + "&daily=temperature_2m_max,temperature_2m_min";
-  // Verificado: ERA5-Land vía Open-Meteo no entrega precipitación diaria,
-  // así que la lluvia se toma de ERA5 (misma fuente Copernicus, ~28 km).
-  // También de ERA5: evapotranspiración de referencia FAO-56 (ET0) y
-  // radiación solar (verificado: ERA5-Land no las entrega vía Open-Meteo).
-  const urlP = comun + "&daily=precipitation_sum,et0_fao_evapotranspiration,shortwave_radiation_sum&models=era5";
-
-  const nulos = (j) => {
-    const t = j?.daily?.temperature_2m_max || [];
-    return t.length ? t.filter((v) => v == null).length / t.length : 1;
-  };
-  const pedirTemperaturas = async () => {
-    try {
-      const j = await fetchJSON(urlT + "&models=era5_land", 25000);
-      if (nulos(j) > 0.2) throw new Error("ERA5-Land sin datos en este punto");
-      return { j, modelo: "ERA5-Land" };
-    } catch (e) {
-      // En la costa ERA5-Land puede no tener dato: se usa ERA5 (más gruesa)
-      const j = await fetchJSON(urlT + "&models=era5", 25000);
-      if (nulos(j) > 0.2) throw new Error("sin datos climáticos para este punto");
-      return { j, modelo: "ERA5" };
-    }
-  };
-  const [{ j, modelo }, jp] = await Promise.all([pedirTemperaturas(), fetchJSON(urlP, 25000).catch(() => null)]);
-  const lluviaPorDia = new Map();
-  const et0PorDia = new Map();
-  const radPorDia = new Map();
-  if (jp?.daily?.time)
-    jp.daily.time.forEach((t, i) => {
-      lluviaPorDia.set(t, jp.daily.precipitation_sum[i]);
-      et0PorDia.set(t, jp.daily.et0_fao_evapotranspiration?.[i]);
-      radPorDia.set(t, jp.daily.shortwave_radiation_sum?.[i]);
-    });
-
-  const d = j.daily;
-  const T = {}; // acumuladores por temporada (año de inicio, octubre)
-  const get = (y) =>
-    (T[y] = T[y] || { gdd: 0, sumMed: 0, nMed: 0, hug: 0, nMin3: 0, sMin3: 0, heladas: 0, lluviaTemp: 0, nLluTemp: 0, lluviaVend: 0, lluviaAnual: 0, nAnual: 0, et0: 0, etc: 0, nEt: 0, rad: 0, nRad: 0, dias35: 0, heladasInv: 0 });
-
-  for (let i = 0; i < d.time.length; i++) {
-    const [yy, mm, dd] = d.time[i].split("-").map(Number);
-    const tx = d.temperature_2m_max[i];
-    const tn = d.temperature_2m_min[i];
-    const pp = lluviaPorDia.has(d.time[i]) ? lluviaPorDia.get(d.time[i]) : null;
-    const anioAgri = mm >= 5 ? yy : yy - 1; // año agrícola mayo–abril
-    if (pp != null) {
-      get(anioAgri).lluviaAnual += pp;
-      get(anioAgri).nAnual++;
-    }
-    if (tx == null || tn == null) continue;
-    const tm = (tx + tn) / 2;
-
-    if (mm >= 10 || mm <= 4) {
-      const t = get(mm >= 10 ? yy : yy - 1);
-      t.gdd += Math.max(0, tm - 10);
-      t.sumMed += tm;
-      t.nMed++;
-      if (pp != null) {
-        t.lluviaTemp += pp;
-        t.nLluTemp++;
-      }
-      if (mm >= 3 && mm <= 4 && pp != null) t.lluviaVend += pp;
-      const e0 = et0PorDia.get(d.time[i]);
-      if (e0 != null) {
-        t.et0 += e0;
-        t.etc += e0 * KC_VID[mm];
-        t.nEt++;
-      }
-      const rd = radPorDia.get(d.time[i]);
-      if (rd != null) {
-        t.rad += rd;
-        t.nRad++;
-      }
-      if (tx >= 35) t.dias35++;
-      if (mm !== 4) t.hug += Math.max(0, (tm - 10 + (tx - 10)) / 2);
-      if (mm === 3) {
-        t.sMin3 += tn;
-        t.nMin3++;
-      }
-    }
-    // Heladas primaverales: 15 sep – 30 nov (brotación y floración)
-    if ((mm === 9 && dd >= 15) || mm === 10 || mm === 11) {
-      if (tn <= 0) get(yy).heladas++;
-    }
-  }
-
-  const k = coefHuglin(lat);
-  const validas = [];
-  for (let y = ini; y < fin; y++) {
-    const t = T[y];
-    if (t && t.nMed >= 0.95 * 212) validas.push({ anio: y, ...t });
-  }
-  if (!validas.length) throw new Error("datos climáticos incompletos");
-
-  const prom = (f) => validas.reduce((a, t) => a + f(t), 0) / validas.length;
-  const gddLista = validas.map((t) => t.gdd);
-  const gdd = prom((t) => t.gdd);
-  const gst = prom((t) => t.sumMed / t.nMed);
-  const huglin = prom((t) => t.hug) * k;
-  const noches = prom((t) => (t.nMin3 ? t.sMin3 / t.nMin3 : NaN));
-  const heladas = prom((t) => t.heladas);
-  const aniosConHelada = validas.filter((t) => t.heladas > 0).length;
-  const anuales = validas.filter((t) => t.nAnual >= 360);
-  const lluviaAnual = anuales.length ? anuales.reduce((a, t) => a + t.lluviaAnual, 0) / anuales.length : null;
-  const conLluvia = validas.filter((t) => t.nLluTemp >= 0.95 * 212);
-  const promLluvia = (f) => (conLluvia.length ? conLluvia.reduce((a, t) => a + f(t), 0) / conLluvia.length : null);
-  const conEt = validas.filter((t) => t.nEt >= 0.95 * 212 && t.nLluTemp >= 0.95 * 212);
-  const promEt = (f) => (conEt.length ? conEt.reduce((a, t) => a + f(t), 0) / conEt.length : null);
-  const et0Temp = promEt((t) => t.et0);
-  const etcTemp = promEt((t) => t.etc);
-  const lluviaParaRiego = promEt((t) => t.lluviaTemp);
-  const deficit = etcTemp != null ? Math.max(0, etcTemp - lluviaParaRiego) : null;
-  const conRad = validas.filter((t) => t.nRad >= 0.95 * 212);
-  const radMedia = conRad.length ? conRad.reduce((a, t) => a + t.rad / t.nRad, 0) / conRad.length : null;
-
-  // Estado (criterios con fuente)
-  let estado = "apto";
-  const notas = [];
-  if (gst < 13) {
-    estado = "veto";
-    notas.push("Temperatura media de temporada bajo 13 °C: según Jones (2006), en ese rango solo prosperan híbridos o cepas de maduración muy temprana.");
-  } else if (gst > 24) {
-    estado = "veto";
-    notas.push("Temperatura media de temporada sobre 24 °C: fuera del rango de producción de uva para vino (Jones, 2006).");
-  } else if (gst > 21) {
-    estado = "riesgo";
-    notas.push("Temperatura media de temporada sobre 21 °C: Jones (2006) asocia este rango a vinos fortificados, uva de mesa y pasas.");
-  } else {
-    notas.push(`Temperatura media de temporada dentro del rango de vinos de calidad (13–21 °C, Jones 2006).`);
-  }
-  if (estado === "apto" && (gdd < 1111 || gdd > 2778)) {
-    estado = "riesgo";
-    notas.push("Grados-día fuera de las regiones de Winkler I a VI.");
-  }
-  if (heladas >= 1) {
-    if (estado === "apto") estado = "riesgo";
-    notas.push(
-      `Riesgo de heladas primaverales: en promedio ${fmt(heladas, 1)} días con mínima ≤ 0 °C entre el 15 de septiembre y el 30 de noviembre (brotación-floración), con heladas en ${aniosConHelada} de ${validas.length} temporadas.`
-    );
-  }
-
-  return {
-    estado,
-    notas,
-    modelo,
-    temporadas: validas.length,
-    desde: validas[0].anio,
-    hasta: validas[validas.length - 1].anio + 1,
-    gdd,
-    gddMin: Math.min(...gddLista),
-    gddMax: Math.max(...gddLista),
-    region: regionWinkler(gdd),
-    gst,
-    gstClase: claseGST(gst),
-    huglin,
-    huglinClase: claseHuglin(huglin),
-    noches,
-    nochesClase: isFinite(noches) ? claseNoches(noches) : null,
-    heladas,
-    aniosConHelada,
-    lluviaTemp: promLluvia((t) => t.lluviaTemp),
-    lluviaVend: promLluvia((t) => t.lluviaVend),
-    lluviaAnual,
-    et0Temp,
-    etcTemp,
-    deficit,
-    radMedia,
-    dias35: prom((t) => t.dias35),
-    // "límite": a menos de 0,5 °C del rango (incertidumbre típica del reanálisis)
-    cepas: CEPAS_JONES.map((c) => ({
-      ...c,
-      encaja: gst >= c.min && gst <= c.max ? "si" : gst >= c.min - 0.5 && gst <= c.max + 0.5 ? "limite" : "no",
-    })),
-  };
+  if (!out.arclim && !out.ciren) return null;
+  out.principal = out.arclim || out.ciren;
+  return out;
 }
 
 // =====================================================================
 //  3) SUELO — CIREN, capacidad de uso (clases I–VIII)
 // =====================================================================
+// Descripciones resumidas de la "Pauta para Estudio de Suelos" del SAG
+// (versión modificada 2016). El semáforo de cada clase es criterio de
+// WineCheck para viña, no una norma oficial.
 export const CLASES_SUELO = {
-  I: { estado: "apto", titulo: "Clase I", desc: "Suelo arable prácticamente sin limitaciones de uso." },
-  II: { estado: "apto", titulo: "Clase II", desc: "Suelo arable con limitaciones ligeras; requiere prácticas de manejo sencillas." },
-  III: { estado: "apto", titulo: "Clase III", desc: "Suelo arable con limitaciones moderadas que restringen la elección de cultivos o exigen prácticas de conservación." },
-  IV: { estado: "riesgo", titulo: "Clase IV", desc: "Suelo arable con limitaciones severas; uso ocasional o muy restringido de cultivos y manejo cuidadoso." },
-  V: { estado: "riesgo", titulo: "Clase V", desc: "Suelo no arable, generalmente plano, con limitaciones difíciles de corregir (drenaje, inundación, pedregosidad); apto para praderas." },
-  VI: { estado: "riesgo", titulo: "Clase VI", desc: "Suelo no arable con limitaciones severas; apto para pastoreo o uso forestal." },
-  VII: { estado: "veto", titulo: "Clase VII", desc: "Suelo no arable con limitaciones muy severas; uso forestal o de protección." },
-  VIII: { estado: "veto", titulo: "Clase VIII", desc: "Sin valor agrícola, ganadero ni forestal; destinado a vida silvestre, recreación o protección." },
+  I: { estado: "apto", titulo: "Clase I", desc: "Arable, con pocas limitaciones. Suelos planos o casi planos, profundos, bien drenados, sin pedregosidad ni erosión; aptos para uso agrícola intensivo." },
+  II: { estado: "apto", titulo: "Clase II", desc: "Arable, con ligeras limitaciones (por ejemplo, pendiente de hasta 5%, profundidad no menor a 70 cm o drenaje moderado); pueden requerir prácticas de conservación." },
+  III: { estado: "apto", titulo: "Clase III", desc: "Arable, con limitaciones al laboreo (pendientes cercanas al 8% o hasta 15% de pedregosidad superficial); pueden limitar especies de raíces profundas y exigen prácticas de conservación." },
+  IV: { estado: "riesgo", titulo: "Clase IV", desc: "Última clase arable: riesgo de erosión por pendiente (hasta 15%) o profundidad no mayor a 40 cm, pedregosidad o drenaje imperfecto; requiere prácticas de conservación." },
+  V: { estado: "veto", titulo: "Clase V", desc: "No arable: suelos depresionales inundados, con drenaje muy pobre e inundación permanente y vegetación de suelos saturados." },
+  VI: { estado: "riesgo", titulo: "Clase VI", desc: "No arable para laboreo (principalmente por pendiente, pedregosidad o erosión severa); su uso normal es ganadero y forestal." },
+  VII: { estado: "veto", titulo: "Clase VII", desc: "No arable, con limitaciones muy severas que lo hacen inadecuado para cultivos (escarpado, muy delgado o muy pedregoso); uso de pastoreo y forestal." },
+  VIII: { estado: "veto", titulo: "Clase VIII", desc: "Sin valor agrícola, ganadero ni forestal; uso limitado a vida silvestre, recreación o protección de cuencas." },
 };
 export const SUBCLASES = {
-  e: "erosión o riesgo de erosión",
-  w: "exceso de humedad o drenaje deficiente",
-  s: "limitaciones del suelo en la zona de raíces (profundidad, pedregosidad, salinidad u otras)",
-  c: "limitaciones de clima",
+  e: "riesgo o efectos de erosión",
+  w: "humedad (drenaje)",
+  s: "limitaciones del suelo",
+  c: "clima",
 };
 export const ORDEN_CLASES = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
@@ -570,7 +325,7 @@ export async function pedirSuelo(lls) {
   }));
   const pctNC = (100 * noClasif) / conDato;
   const pctDe = (lista) => clases.filter((c) => lista.includes(c.clase)).reduce((a, c) => a + c.pct, 0);
-  const pctVIIVIII = pctDe(["VII", "VIII"]);
+  const pctVIIVIII = pctDe(["V", "VII", "VIII"]);
   const pctIVmas = pctDe(["IV", "V", "VI", "VII", "VIII"]);
   let estado = "apto";
   if (pctVIIVIII >= 50) estado = "veto";

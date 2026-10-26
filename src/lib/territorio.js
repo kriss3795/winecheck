@@ -34,6 +34,12 @@ export async function pedirUbicacion(centro) {
   };
 }
 
+// ¿Cada punto está dentro de alguna comuna? (para distinguir mar de tierra)
+export async function puntosEnTierra(lls) {
+  const res = await enParalelo(lls, CONCURRENCIA, (ll) => fetchJSON(urlQueryPunto(URLS.dpaComunas, ll, "OBJECTID"), 12000));
+  return res.map((r) => (r.ok ? (r.v.features || []).length > 0 : null));
+}
+
 // ---------------------------------------------------------------------
 //  2) USO ACTUAL DEL SUELO — Catastro de Uso de Suelo y Vegetación
 //     (CONAF), síntesis nacional publicada por el MMA (SIMBIO).

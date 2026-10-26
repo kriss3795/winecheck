@@ -114,7 +114,7 @@ export async function pedirPronostico([lat, lon]) {
     rafaga: d.wind_gusts_10m_max?.[i],
     et0: d.et0_fao_evapotranspiration?.[i],
     helada: d.temperature_2m_min[i] != null && d.temperature_2m_min[i] <= 0,
-    riesgoHelada: d.temperature_2m_min[i] != null && d.temperature_2m_min[i] > 0 && d.temperature_2m_min[i] <= 2,
+    riesgoHelada: d.temperature_2m_min[i] != null && d.temperature_2m_min[i] > 0 && d.temperature_2m_min[i] <= 3,
   }));
   return {
     actual: j.current

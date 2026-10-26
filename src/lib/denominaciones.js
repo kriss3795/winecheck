@@ -6,9 +6,10 @@
 //  Se asigna por comuna y provincia (obtenidas de la capa oficial de
 //  División Político-Administrativa). Si una comuna no aparece en el
 //  decreto, se informa que no pertenece a una DO de vinos.
-//  Ojo: el decreto tiene modificaciones posteriores (por ejemplo, las
-//  menciones "Costa", "Entre Cordilleras" y "Andes", agregadas en 2011),
-//  que aquí no se aplican: la app muestra región, valle y zona.
+//  Incluye la modificación del Decreto N° 27 de 2024 (Chiloé y Área Rapa
+//  Nui). No se muestran las áreas menores dentro de comunas (por ejemplo
+//  Apalta, Los Lingues, Lo Abarca) ni las menciones "Costa", "Entre
+//  Cordilleras" y "Andes": la app muestra región, valle y zona.
 // =====================================================================
 
 const norm = (s) =>
@@ -28,7 +29,9 @@ const DO = [
   ["Región Vitícola de Coquimbo", "Valle del Elqui", ["Elqui"], [], null],
   ["Región Vitícola de Coquimbo", "Valle del Limarí", ["Limarí"], [], null],
   ["Región Vitícola de Coquimbo", "Valle del Choapa", ["Choapa"], [], null],
-  ["Región Vitícola de Aconcagua", "Valle del Aconcagua", ["San Felipe de Aconcagua", "Los Andes", "Quillota"], [], null],
+  // En 1994 Limache y Olmué pertenecían a la provincia de Quillota (la
+  // provincia de Marga Marga se creó en 2010), por eso se incluyen aquí.
+  ["Región Vitícola de Aconcagua", "Valle del Aconcagua", ["San Felipe de Aconcagua", "Los Andes", "Quillota"], ["Limache", "Olmué"], null],
   ["Región Vitícola de Aconcagua", "Valle de Casablanca", [], ["Casablanca"], null],
   ["Región Vitícola de Aconcagua", "Valle de San Antonio", ["San Antonio"], [], { "Zona Valle de Leyda": ["San Antonio", "Santo Domingo"] }],
   ["Región Vitícola de Aconcagua", "Área del Valle del Marga-Marga", [], ["Quilpué"], null],
@@ -42,6 +45,9 @@ const DO = [
   ["Región Vitícola del Sur", "Valle del Malleco", [], ["Angol", "Collipulli", "Ercilla", "Los Sauces", "Lumaco", "Purén", "Renaico", "Traiguén", "Victoria"], null],
   ["Región Vitícola Austral", "Valle del Cautín", [], ["Perquenco", "Galvarino"], null],
   ["Región Vitícola Austral", "Valle de Osorno", [], ["Osorno", "San Pablo", "Purranque", "La Unión", "Futrono"], null],
+  // Agregados por el Decreto N° 27 de 2024 (Diario Oficial, 14-05-2025)
+  ["Región Vitícola Austral", "Chiloé", ["Chiloé"], [], null],
+  ["Área Rapa Nui - Isla de Pascua", "Área Rapa Nui - Isla de Pascua", [], ["Isla de Pascua"], null],
 ];
 
 export function denominacionDeOrigen({ comuna, provincia, cutReg }) {

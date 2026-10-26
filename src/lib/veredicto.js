@@ -179,10 +179,12 @@ export function calcularVeredicto(r) {
 
   if (clima) {
     f.push(
-      `Clima (promedio de ${clima.temporadas} temporadas): ${fmt(clima.gdd)} grados-día, Región ${clima.region.n} de Winkler (${clima.region.desc}); temperatura media de temporada ${fmt(
+      `Clima (ARClim, promedio 1980–2010): ${fmt(clima.gdd)} grados-día, Región ${clima.region.n} de Winkler; temperatura media de temporada ${fmt(
         clima.gst,
         1
-      )} °C (categoría ${clima.gstClase} según Jones).${clima.heladas >= 1 ? " Hay riesgo de heladas primaverales." : ""}`
+      )} °C (categoría ${clima.gstClase} según Jones).${clima.f245 ? ` Hacia 2035–2065 (escenario SSP2-4.5) subiría a ${fmt(clima.f245.gst, 1)} °C.` : ""}${
+        clima.presente.heladasPrimavera >= 1 ? " Hay riesgo de heladas primaverales." : ""
+      }`
     );
   } else f.push("Clima: no se pudo obtener; sin clima no es posible un veredicto.");
 
@@ -196,7 +198,7 @@ export function calcularVeredicto(r) {
     f.push(
       `Propiedades estimadas del suelo (SoilGrids, 0–30 cm): textura ${s0.textura}, pH ${fmt(s0.ph, 1)} (${s0.phClase}), ${fmt(
         s0.pedregosidad
-      )}% de fragmentos gruesos.`
+      )}% de fragmentos gruesos (estimación de un mapa mundial; confirmar con análisis).`
     );
   }
   if (erosion && erosion.actual) f.push(`Erosión actual (CIREN): ${erosion.actual}${erosion.riesgoPotencial ? `; riesgo potencial ${erosion.riesgoPotencial}` : ""}.`);
@@ -210,12 +212,11 @@ export function calcularVeredicto(r) {
   }
   const riego = calcularRiego(clima, r.agroclima);
   if (riego) {
+    const q = riego.principal;
     f.push(
-      `Riego: la viña consumiría unos ${fmt(riego.etc)} mm por temporada (método FAO-56) y llueven ${fmt(
-        riego.lluvia
-      )} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(riego.deficit)} mm (≈ ${fmt(
-        riego.deficit * 10
-      )} m³/ha) con riego${riego.fuente === "ciren" ? " (según el estudio agroclimático de CIREN)" : " (según el reanálisis ERA5, que tiende a sobreestimar)"}.`
+      `Riego: la viña consumiría unos ${fmt(q.etc)} mm por temporada (método FAO-56) y llueven ${fmt(q.lluvia)} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(
+        q.deficit
+      )} mm (≈ ${fmt(q.deficit * 10)} m³/ha)${riego.ciren && riego.arclim ? `; el estudio local de CIREN estima ${fmt(riego.ciren.deficit)} mm` : ""}.`
     );
   }
   if (agot && agot.fuentes.length) f.push(`Agua superficial: ${agot.fuentes.map((x) => x.nombre).join("; ")} tiene declaración de agotamiento de la DGA (no se otorgan nuevos derechos permanentes).`);
@@ -238,7 +239,7 @@ export function calcularVeredicto(r) {
     let txt = encajan.length
       ? `Cepas cuyo rango térmico publicado incluye esta zona: ${encajan.join(", ")}.`
       : "Ninguna de las cepas con rango térmico publicado por Jones calza dentro de su rango.";
-    if (limite.length) txt += ` En el límite de su rango (±0,5 °C): ${limite.join(", ")}.`;
+    if (limite.length) txt += ` En el límite de su rango (±1 °C): ${limite.join(", ")}.`;
     f.push(txt);
   }
 

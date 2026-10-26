@@ -27,7 +27,6 @@ import {
   fecha,
   pedirElevaciones,
   calcularPendiente,
-  pedirClima,
   pedirSuelo,
   pedirAgua,
   pedirEscasez,
@@ -43,8 +42,10 @@ import {
   pedirLimiteUrbano,
   pedirRiesgoIPT,
   pedirAgotamiento,
+  puntosEnTierra,
 } from "./lib/territorio.js";
 import { pedirErosion, pedirSoilGrids } from "./lib/suelo.js";
+import { pedirClima, MARGEN_CEPAS } from "./lib/clima.js";
 import { pedirAgroclimaCIREN, pedirPronostico, urlWindy, urlWindyCompleto } from "./lib/tiempo.js";
 import { calcularRestricciones, calcularVeredicto } from "./lib/veredicto.js";
 
@@ -182,7 +183,20 @@ export default function App() {
         marca("agotamiento", pedirAgotamiento(poly)),
       ]);
 
-      const R = calcularRestricciones(lls.length, { elev, osm, hum, sma });
+      // Un punto con elevación ≤ 0 m se considera mar solo si además está
+      // fuera de toda comuna (evita marcar como mar humedales costeros a nivel del mar).
+      let elevMar = elev;
+      if (elev) {
+        const bajos = elev.map((e, k) => (e != null && e <= 0 ? k : -1)).filter((k) => k >= 0);
+        if (bajos.length) {
+          const tierra = await puntosEnTierra(bajos.map((k) => lls[k])).catch(() => null);
+          elevMar = elev.slice();
+          bajos.forEach((k, n) => {
+            if (!tierra || tierra[n] !== false) elevMar[k] = 1;
+          });
+        }
+      }
+      const R = calcularRestricciones(lls.length, { elev: elevMar, osm, hum, sma });
 
       let clima = null;
       let suelo = null;
@@ -622,71 +636,99 @@ function TarjetaUso({ uso }) {
   );
 }
 
-// ---- Clima
+// ---- Clima (ARClim)
 function TarjetaClima({ clima }) {
-  if (!clima) return <SinDato id="s-clima" titulo="Clima (ERA5-Land)" />;
+  if (!clima) return <SinDato id="s-clima" titulo="Clima (ARClim)" />;
+  const p = clima.presente;
+  const f2 = clima.f245;
+  const f5 = clima.f585;
+  const filas = [
+    ["Grados-día de Winkler (base 10 °C, oct–abr)", "gdd", " °C·día", 0],
+    ["Temperatura media de temporada (oct–abr)", "gst", " °C", 1],
+    ["Índice heliotérmico de Huglin", "huglin", "", 0],
+    ["Mínima media de marzo (frío nocturno)", "tminMar", " °C", 1],
+    ["Máxima media de enero", "tmaxEnero", " °C", 1],
+    ["Días con helada en primavera (sep–nov)", "heladasPrimavera", " días", 1],
+    ["Días con helada al año", "heladasAnio", " días", 1],
+    ["Días sobre 30 °C al año", "diasCalurosos", " días", 0],
+    ["Lluvia anual", "lluviaAnual", " mm", 0],
+    ["Lluvia de temporada (oct–abr)", "lluviaTemp", " mm", 0],
+  ];
+  const val = (o, k, u, d) => (o && o[k] != null ? fmt(o[k], d) + u : "—");
   return (
-    <Tarjeta id="s-clima" titulo={`Clima — promedio ${clima.desde}–${clima.hasta}`} estado={clima.estado}>
-      <Fila
-        k="Grados-día (Winkler, base 10 °C, oct–abr)"
-        v={`${fmt(clima.gdd)} °C·día — Región ${clima.region.n} (${clima.region.desc})`}
-        sub={`Entre temporadas varió de ${fmt(clima.gddMin)} a ${fmt(clima.gddMax)}.`}
-      />
-      <Fila k="Temperatura media de temporada (oct–abr)" v={`${fmt(clima.gst, 1)} °C — categoría ${clima.gstClase} (Jones)`} />
-      <Fila k="Índice heliotérmico de Huglin" v={`${fmt(clima.huglin)} — ${clima.huglinClase}`} />
-      {clima.nochesClase && <Fila k="Índice de frío nocturno (mínima media de marzo)" v={`${fmt(clima.noches, 1)} °C — ${clima.nochesClase}`} />}
-      <Fila
-        k="Heladas primaverales (15 sep–30 nov)"
-        v={`${fmt(clima.heladas, 1)} días por temporada en promedio`}
-        sub={`Hubo heladas en ${clima.aniosConHelada} de ${clima.temporadas} temporadas.`}
-      />
-      <Fila k="Días con máxima ≥ 35 °C (oct–abr)" v={`${fmt(clima.dias35, 1)} por temporada`} />
-      {clima.radMedia != null && <Fila k="Radiación solar media (oct–abr)" v={`${fmt(clima.radMedia, 1)} MJ/m² por día`} />}
-      <Fila
-        k="Precipitación"
-        v={
-          clima.lluviaTemp == null
-            ? "sin dato (la fuente no respondió)"
-            : `${fmt(clima.lluviaTemp)} mm en temporada (oct–abr) · ${fmt(clima.lluviaVend)} mm en vendimia (mar–abr)`
-        }
-        sub={clima.lluviaAnual != null ? `Promedio anual (mayo–abril): ${fmt(clima.lluviaAnual)} mm. Fuente: ERA5 (~28 km).` : null}
-      />
+    <Tarjeta id="s-clima" titulo="Clima del terreno (ARClim)" estado={clima.estado}>
+      <Fila k="Región de Winkler" v={`Región ${clima.region.n} (${clima.region.desc})`} />
+      <Fila k="Categoría según temperatura de temporada (Jones)" v={`clima ${clima.gstClase}`} />
+      <Fila k="Índice de Huglin (Tonietto & Carbonneau)" v={clima.huglinClase} />
+      {clima.nochesClase && <Fila k="Índice de frío nocturno (Tonietto & Carbonneau)" v={clima.nochesClase} />}
       <ul className="notas">
         {clima.notas.map((n, i) => (
           <li key={i}>{n}</li>
         ))}
       </ul>
+      <div className="tabla-scroll">
+        <table className="tabla">
+          <thead>
+            <tr>
+              <th>Variable</th>
+              <th>1980–2010</th>
+              {f2 && <th>2035–2065 (SSP2-4.5)</th>}
+              {f5 && <th>2035–2065 (SSP5-8.5)</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map(([t, k, u, d]) => (
+              <tr key={k}>
+                <td>{t}</td>
+                <td>{val(p, k, u, d)}</td>
+                {f2 && <td>{val(f2, k, u, d)}</td>}
+                {f5 && <td>{val(f5, k, u, d)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <h4>Cepas según su rango térmico publicado</h4>
-      <table className="tabla">
-        <thead>
-          <tr>
-            <th>Cepa</th>
-            <th>Rango óptimo (temp. media de temporada)</th>
-            <th>¿Calza?</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clima.cepas.map((c) => (
-            <tr key={c.cepa}>
-              <td>{c.cepa}</td>
-              <td>
-                {fmt(c.min, 1)}–{fmt(c.max, 1)} °C
-              </td>
-              <td className={c.encaja}>{{ si: "Sí", limite: "En el límite", no: "No" }[c.encaja]}</td>
+      <div className="tabla-scroll">
+        <table className="tabla">
+          <thead>
+            <tr>
+              <th>Cepa</th>
+              <th>Rango óptimo (temp. media de temporada)</th>
+              <th>¿Calza hoy?</th>
+              {f2 && <th>¿Calza 2035–2065?</th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {clima.cepas.map((c) => {
+              const fut = f2 ? (f2.gst >= c.min && f2.gst <= c.max ? "si" : f2.gst >= c.min - MARGEN_CEPAS && f2.gst <= c.max + MARGEN_CEPAS ? "limite" : "no") : null;
+              const tx = { si: "Sí", limite: "En el límite", no: "No" };
+              return (
+                <tr key={c.cepa}>
+                  <td>{c.cepa}</td>
+                  <td>
+                    {fmt(c.min, 1)}–{fmt(c.max, 1)} °C
+                  </td>
+                  <td className={c.encaja}>{tx[c.encaja]}</td>
+                  {f2 && <td className={fut}>{tx[fut]}</td>}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <p className="tenue">
-        Rangos publicados por G. V. Jones (ver Fuentes). Otras cepas (Carmenère, Syrah, Merlot, Sauvignon Blanc…) no se
-        listan porque no encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
+        Rangos publicados en texto por G. V. Jones (ver Fuentes). "En el límite" = a menos de 1 °C del rango, por la
+        incertidumbre de los datos. Otras cepas (Carmenère, Syrah, Merlot, Sauvignon Blanc…) no se listan porque no
+        encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
       </p>
       <p className="tenue">
-        Temperaturas {clima.modelo} (Copernicus/ECMWF), resolución de ~{clima.modelo === "ERA5-Land" ? "9" : "28"} km:
-        describen el clima de la zona, no el microclima de un cuartel. Los reanálisis pueden diferir en torno a ±1 °C de una
-        estación local, por eso "en el límite" considera ±0,5 °C. Las heladas en fondos de valle pueden ser más frecuentes que
-        lo indicado; conviene validar con una estación agrometeorológica cercana.
+        Fuente: ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente: grilla de ~5 km referenciada a CR2MET
+        (producto basado en estaciones chilenas); futuro según el promedio de modelos climáticos CMIP6 corregidos. Índices
+        calculados con promedios mensuales. Elevación media de la celda: {fmt(clima.elevCelda)} m
+        {clima.vecina ? " (se usó la celda vecina más cercana)" : ""}. Una celda de 5 km no capta el microclima de un cuartel:
+        en fondos de valle las heladas pueden ser más frecuentes y en laderas o quebradas la temperatura puede diferir.
       </p>
     </Tarjeta>
   );
@@ -754,37 +796,63 @@ function TarjetaRiego({ clima, agroclima, pron }) {
   if (!riego) return <SinDato id="s-riego" titulo="Necesidad de riego (FAO-56)" />;
   const proxEt0 = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.et0 || 0), 0) : null;
   const proxLluvia = pron ? pron.dias.slice(0, 7).reduce((a, d) => a + (d.lluvia || 0), 0) : null;
+  const col = [
+    riego.arclim && ["ARClim 1980–2010", riego.arclim],
+    riego.futuro && ["ARClim 2035–2065 (SSP2-4.5)", riego.futuro],
+    riego.ciren && ["Estudio CIREN", riego.ciren],
+  ].filter(Boolean);
   return (
     <Tarjeta id="s-riego" titulo="Necesidad de riego estimada (FAO-56)">
-      <Fila
-        k="Evapotranspiración de referencia (oct–abr)"
-        v={`${fmt(riego.et0)} mm por temporada`}
-        sub={riego.fuente === "ciren" ? `Fuente: ${riego.estudio}.` : "Fuente: reanálisis ERA5 (sin estudio agroclimático de CIREN en esta región)."}
-      />
-      <Fila
-        k="Consumo de la viña ETc = Kc × ET0"
-        v={`${fmt(riego.etc)} mm por temporada`}
-        sub="Kc de vid vinífera FAO-56: 0,30 (brotación) → 0,70 (enero–febrero) → 0,45 (cosecha)."
-      />
-      <Fila k="Lluvia de la temporada (oct–abr)" v={`${fmt(riego.lluvia)} mm`} />
-      <Fila
-        k="Riego necesario (aprox.)"
-        v={`${fmt(riego.deficit)} mm ≈ ${fmt(riego.deficit * 10)} m³ por hectárea y temporada`}
-        sub="Estimación de referencia para una viña adulta sin estrés hídrico. No descuenta lluvia inefectiva ni eficiencia del sistema de riego (por goteo, típicamente 85–90%)."
-      />
-      {riego.fuente === "ciren" && clima && clima.etcTemp != null && (
-        <Fila
-          k="Comparación con el reanálisis ERA5"
-          v={`ET0 ${fmt(clima.et0Temp)} mm · riego ${fmt(clima.deficit)} mm`}
-          sub="El reanálisis global suele dar una evapotranspiración mayor que el estudio local de CIREN; se usa el de CIREN por ser la fuente oficial local."
-        />
-      )}
-      {riego.fuente === "era5" && (
-        <p className="aviso">
-          Sin estudio local de CIREN en esta región, el cálculo usa el reanálisis ERA5. En Paine, donde sí hay estudio, el
-          ET0 de ERA5 resultó un 36% mayor que el oficial: toma esta cifra como un máximo.
-        </p>
-      )}
+      <div className="tabla-scroll">
+        <table className="tabla">
+          <thead>
+            <tr>
+              <th>Temporada oct–abr</th>
+              {col.map(([t]) => (
+                <th key={t}>{t}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Evapotranspiración de referencia (ET0)</td>
+              {col.map(([t, v]) => (
+                <td key={t}>{v.et0 != null ? `${fmt(v.et0)} mm` : "—"}</td>
+              ))}
+            </tr>
+            <tr>
+              <td>Consumo de la viña (ETc = Kc × ET0)</td>
+              {col.map(([t, v]) => (
+                <td key={t}>{fmt(v.etc)} mm</td>
+              ))}
+            </tr>
+            <tr>
+              <td>Lluvia</td>
+              {col.map(([t, v]) => (
+                <td key={t}>{fmt(v.lluvia)} mm</td>
+              ))}
+            </tr>
+            <tr>
+              <td>
+                <strong>Riego necesario (aprox.)</strong>
+              </td>
+              {col.map(([t, v]) => (
+                <td key={t}>
+                  <strong>
+                    {fmt(v.deficit)} mm ≈ {fmt(v.deficit * 10)} m³/ha
+                  </strong>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="tenue">
+        Kc de vid vinífera FAO-56: 0,30 (brotación) → 0,70 (enero–febrero) → 0,45 (cosecha). Estimación de referencia para
+        una viña adulta sin estrés hídrico: no descuenta la lluvia que no aprovecha el cultivo ni la eficiencia del sistema
+        de riego. Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998).
+        {riego.ciren && " Las dos fuentes oficiales difieren porque usan datos y métodos distintos; tómalas como un rango."}
+      </p>
       {proxEt0 != null && (
         <Fila
           k="Próximos 7 días (pronóstico)"
@@ -792,7 +860,6 @@ function TarjetaRiego({ clima, agroclima, pron }) {
           sub={`Consumo esperado de una viña en plena temporada (Kc 0,70): ${fmt(proxEt0 * 0.7)} mm ≈ ${fmt(proxEt0 * 7)} m³/ha.`}
         />
       )}
-      <p className="tenue">Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998).</p>
     </Tarjeta>
   );
 }
@@ -837,9 +904,9 @@ function TarjetaSuelo({ suelo }) {
         </div>
       )}
       <p className="tenue">
-        La capacidad de uso (clases I a VIII) mide la aptitud del suelo para cultivos en general, no específicamente para
-        vid: las clases I–IV son arables y las V–VIII no arables. Muchas viñas de ladera se establecen en clases IV a VI con
-        manejo. Confirmar siempre con calicatas. Estudio: {suelo.estudios.join(", ") || "CIREN"}. Basado en {suelo.muestras}{" "}
+        La capacidad de uso (clases I a VIII, Pauta del SAG) mide la aptitud del suelo para cultivos en general, no
+        específicamente para vid: las clases I–IV son arables y las V–VIII no arables. El color de cada clase es criterio de
+        WineCheck. Confirmar siempre con calicatas. Estudio: {suelo.estudios.join(", ") || "CIREN"}. Basado en {suelo.muestras}{" "}
         puntos{suelo.fallos ? ` (${suelo.fallos} sin respuesta de CIREN)` : ""}
         {suelo.sinCobertura ? `; ${suelo.sinCobertura} fuera de la cobertura del estudio` : ""}.
       </p>
@@ -888,23 +955,15 @@ function TarjetaPropSuelo({ soil, erosion }) {
               <td>{fmt(s.pedregosidad)} % del volumen</td>
               <td>{b?.pedregosidad != null ? `${fmt(b.pedregosidad)} %` : "—"}</td>
             </tr>
-            <tr>
-              <td>Materia orgánica</td>
-              <td>{s.materiaOrganica != null ? `${fmt(s.materiaOrganica, 1)} %` : "—"}</td>
-              <td>{b?.materiaOrganica != null ? `${fmt(b.materiaOrganica, 1)} %` : "—"}</td>
-            </tr>
-            <tr>
-              <td>Capacidad de intercambio catiónico</td>
-              <td>{s.cic != null ? `${fmt(s.cic, 1)} cmol(+)/kg` : "—"}</td>
-              <td>{b?.cic != null ? `${fmt(b.cic, 1)} cmol(+)/kg` : "—"}</td>
-            </tr>
           </tbody>
         </table>
       )}
       {soil && (
         <p className="tenue">
           Estimaciones del mapa mundial de suelos ISRIC SoilGrids 2.0 (resolución 250 m, Poggio et al., 2021) en el centro
-          del terreno. Orientan sobre textura y pH, pero tienen error: no reemplazan un análisis de suelo de laboratorio.
+          del terreno. Orientan sobre textura, pH y piedras, pero tienen error: no reemplazan un análisis de suelo de
+          laboratorio. No se muestran materia orgánica ni capacidad de intercambio catiónico: en las pruebas dieron valores
+          atípicamente altos para suelos agrícolas y no pudimos validarlos.
         </p>
       )}
       {!soil && <p className="falla">No se pudo consultar SoilGrids (el servicio permite pocas consultas por minuto).</p>}
@@ -1049,11 +1108,15 @@ function TarjetaPronostico({ p, centro }) {
               {fmt(p.actual.viento)} km/h
             </p>
           )}
+          <p className="tenue">
+            Ojo: los modelos de pronóstico tienden a subestimar el frío de la madrugada en los valles; una mínima pronosticada
+            de 2–3 °C puede ser helada en el predio.
+          </p>
           {(p.heladas > 0 || p.riesgoHeladas > 0) && (
             <div className="aviso">
               Alerta: el pronóstico muestra {p.heladas > 0 ? `${p.heladas} día(s) con helada (mínima ≤ 0 °C)` : ""}
               {p.heladas > 0 && p.riesgoHeladas > 0 ? " y " : ""}
-              {p.riesgoHeladas > 0 ? `${p.riesgoHeladas} día(s) con mínima entre 0 y 2 °C` : ""} en los próximos 16 días.
+              {p.riesgoHeladas > 0 ? `${p.riesgoHeladas} día(s) con mínima entre 0 y 3 °C` : ""} en los próximos 16 días.
             </div>
           )}
           <div className="tabla-scroll">
@@ -1154,16 +1217,20 @@ const FUENTES = [
     clave: "ubicacion",
     n: "Denominaciones de origen — Decreto N° 464 de 1994 (Ministerio de Agricultura)",
     por: "Decreto que establece la zonificación vitícola de Chile (regiones, valles, zonas y áreas) para rotular vinos con denominación de origen; lo fiscaliza el SAG.",
-    leer: "Se asigna según la comuna. No incluye las menciones Costa, Entre Cordilleras y Andes agregadas en 2011.",
-    links: [["Texto del Decreto 464 (SAG)", "https://sag.cl/sites/default/files/decreto_ndeg_464.pdf"]],
+    leer: "Se asigna según la comuna. Incluye Chiloé y el Área Rapa Nui (Decreto N° 27 de 2024). No muestra áreas menores dentro de una comuna (Apalta, Los Lingues, Lo Abarca) ni las menciones Costa, Entre Cordilleras y Andes.",
+    links: [
+      ["Texto del Decreto 464 (SAG)", "https://sag.cl/sites/default/files/decreto_ndeg_464.pdf"],
+      ["Decreto N° 27 de 2024 (Diario Oficial)", "https://www.diariooficial.interior.gob.cl/publicaciones/2025/05/14/44148/01/2643653.pdf"],
+    ],
   },
   {
     clave: "clima",
-    n: "Clima — ERA5-Land y ERA5 (Copernicus / ECMWF), vía Open-Meteo",
-    por: "Reanálisis climático del Centro Europeo de Previsiones Meteorológicas a Plazo Medio (ECMWF) para el programa Copernicus de la Unión Europea; es la referencia científica estándar para series climáticas largas. Se usan datos diarios de las últimas 10 temporadas completas.",
-    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Huglin pondera además las máximas. Las clases vienen de Amerine & Winkler (1944), Jones (2006) y Tonietto & Carbonneau (2004).",
+    n: "Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)",
+    por: "Plataforma oficial del MMA. Su clima histórico (1980–2010) está referenciado a CR2MET, la grilla de temperatura y lluvia de ~5 km del Centro de Ciencia del Clima y la Resiliencia (CR)2 construida con estaciones chilenas; el futuro (2035–2065) es el promedio de modelos CMIP6 corregidos, en escenarios SSP2-4.5 y SSP5-8.5.",
+    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Clases: Jones et al. (2010) y Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). Se eligió ARClim porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C y ARClim no.",
     links: [
-      ["API de datos históricos (Open-Meteo)", "https://open-meteo.com/en/docs/historical-weather-api"],
+      ["ARClim (MMA)", "https://arclim.mma.gob.cl/"],
+      ["Metodología ARClim", "https://arclim.mma.gob.cl/media/learning/Metodologia_ARCLIM.pdf"],
       ["Tonietto & Carbonneau (2004), Agricultural and Forest Meteorology", "https://doi.org/10.1016/j.agrformet.2003.06.001"],
     ],
   },
@@ -1187,7 +1254,7 @@ const FUENTES = [
   {
     clave: "clima",
     n: "Riego — FAO, Estudio Riego y Drenaje N° 56",
-    por: "Método internacional de la FAO (Allen et al., 1998) para calcular la evapotranspiración y el consumo de agua de los cultivos. Kc de vid vinífera: 0,30 / 0,70 / 0,45.",
+    por: "Método internacional de la FAO (Allen et al., 1998) para calcular la evapotranspiración y el consumo de agua de los cultivos. Kc de vid vinífera: 0,30 / 0,70 / 0,45. La evapotranspiración y la lluvia vienen de ARClim y, donde existe, del estudio agroclimático de CIREN.",
     leer: "Consumo de la viña = Kc × ET0. Riego necesario ≈ consumo − lluvia de la temporada.",
     links: [["Coeficientes de cultivo FAO-56 (resumen UC Davis)", "https://wineserver.ucdavis.edu/sites/g/files/dgvnsk2676/files/inline-files/1%20LEW%20Irrigation%20Shortcourse%20Napa%202019.pdf"]],
   },
@@ -1195,14 +1262,17 @@ const FUENTES = [
     clave: "suelo",
     n: "Suelo — CIREN, Estudios Agrológicos (capacidad de uso)",
     por: "El Centro de Información de Recursos Naturales (Ministerio de Agricultura) elabora la cartografía oficial de suelos de Chile y su clasificación por capacidad de uso (clases I a VIII), con un estudio por región.",
-    leer: "Clases I–IV: arables, con limitaciones crecientes. V–VIII: no arables.",
-    links: [["Capa oficial de CIREN (servicio de mapas)", URLS.cirenSuelos]],
+    leer: "Clases I–IV: arables, con limitaciones crecientes. V–VIII: no arables. Definiciones según la Pauta para Estudio de Suelos del SAG.",
+    links: [
+      ["Capa oficial de CIREN (servicio de mapas)", URLS.cirenSuelos],
+      ["Pauta para Estudio de Suelos (SAG, 2016)", "https://www.sag.gob.cl/sites/default/files/pauta-para-estudio-de-suelos--mod-2016.pdf"],
+    ],
   },
   {
     clave: "soilgrids",
     n: "Propiedades del suelo — ISRIC SoilGrids 2.0",
     por: "Mapa mundial de propiedades del suelo del ISRIC (World Soil Information, centro de datos de suelos del Consejo Internacional de la Ciencia), publicado por Poggio et al. (2021) en la revista SOIL.",
-    leer: "Estimación modelada de textura, pH, piedras y materia orgánica a 250 m. Orienta; no reemplaza el análisis de laboratorio.",
+    leer: "Estimación modelada de textura, pH y piedras a 250 m. Orienta; no reemplaza el análisis de laboratorio. Las clases de pH siguen el Soil Survey Manual del USDA.",
     links: [
       ["SoilGrids (ISRIC)", "https://www.isric.org/explore/soilgrids"],
       ["Poggio et al. (2021), SOIL", "https://doi.org/10.5194/soil-7-217-2021"],
