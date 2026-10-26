@@ -32,7 +32,6 @@ import {
   pedirEscasez,
   pedirHumedales,
   pedirProtegidas,
-  pedirOSM,
   buscarLugar,
 } from "./lib/capas.js";
 import {
@@ -168,9 +167,8 @@ export default function App() {
       const c0 = centroide(poly);
 
       setPaso("Revisando ubicación, restricciones territoriales y agua…");
-      const [elev, osm, sma, hum, agua, escasez, ubic, uso, hidro, limUrb, riesgoIPT, agot] = await Promise.all([
+      const [elev, sma, hum, agua, escasez, ubic, uso, hidro, limUrb, riesgoIPT, agot] = await Promise.all([
         marca("elevacion", pedirElevaciones(lls)),
-        marca("osm", pedirOSM(poly, lls)),
         marca("sma", pedirProtegidas(poly, lls)),
         marca("humedales", pedirHumedales(poly, lls)),
         marca("agua", pedirAgua(poly)),
@@ -196,7 +194,7 @@ export default function App() {
           });
         }
       }
-      const R = calcularRestricciones(lls.length, { elev: elevMar, osm, hum, sma });
+      const R = calcularRestricciones(lls.length, { elev: elevMar, osm: null, hum, sma });
 
       let clima = null;
       let suelo = null;
@@ -229,7 +227,6 @@ export default function App() {
         centro: c0,
         areaHa: areaM2(poly) / 10000,
         R,
-        osm,
         clima,
         suelo,
         soil,
@@ -516,7 +513,7 @@ function TarjetaUbicacion({ u }) {
 
 // ---- Superficie, restricciones y agua superficial
 function TarjetaTerritorio({ r }) {
-  const { R, fuentes, osm, areaHa, limUrb, riesgoIPT, hidro } = r;
+  const { R, fuentes, areaHa, limUrb, riesgoIPT, hidro } = r;
   const disponibles = 100 - R.pctExcluido;
   const hayAvisos = R.pctAviso > 0 || (limUrb && limUrb.pct > 0) || (riesgoIPT && riesgoIPT.zonas.length);
   const estado =
@@ -527,7 +524,6 @@ function TarjetaTerritorio({ r }) {
       : fuentes.sma === "ok" && fuentes.humedales === "ok"
       ? "apto"
       : "nd";
-  const caucesOsm = osm ? osm.cauces : [];
   const caucesMMA = hidro ? hidro.cauces : [];
   return (
     <Tarjeta id="s-territorio" titulo="Superficie y restricciones territoriales" estado={estado}>
@@ -596,13 +592,6 @@ function TarjetaTerritorio({ r }) {
           }
         />
       )}
-      {caucesOsm.filter((c) => !c.natural).length > 0 && (
-        <Fila
-          k="Canales y acequias (OSM)"
-          v={caucesOsm.some((c) => !c.natural && c.dentro) ? "dentro o junto al terreno" : "cerca del terreno"}
-          sub={caucesOsm.filter((c) => !c.natural).map((c) => (c.nombre ? `${c.tipo} ${c.nombre}` : c.tipo)).join(", ") + ". No restringen."}
-        />
-      )}
       {fuentes.sma !== "ok" && <p className="falla">No se pudo consultar la SMA: no se puede descartar que haya áreas protegidas.</p>}
       {fuentes.humedales !== "ok" && <p className="falla">No se pudo consultar el inventario de humedales del MMA.</p>}
       {fuentes.hidro !== "ok" && <p className="falla">No se pudo consultar la red hidrográfica del MMA.</p>}
@@ -658,7 +647,7 @@ function TarjetaClima({ clima }) {
   return (
     <Tarjeta id="s-clima" titulo="Clima del terreno (ARClim)" estado={clima.estado}>
       <Fila k="Región de Winkler" v={`Región ${clima.region.n} (${clima.region.desc})`} />
-      <Fila k="Categoría según temperatura de temporada (Jones)" v={`clima ${clima.gstClase}`} />
+      <Fila k="Categoría según temperatura de temporada (Jones)" v={clima.gstClase} />
       <Fila k="Índice de Huglin (Tonietto & Carbonneau)" v={clima.huglinClase} />
       {clima.nochesClase && <Fila k="Índice de frío nocturno (Tonietto & Carbonneau)" v={clima.nochesClase} />}
       <ul className="notas">
@@ -739,7 +728,6 @@ function TarjetaAgroclima({ a }) {
   if (!a || !a.disponible) return null;
   const filas = [
     ["Suma térmica anual", "sumaTermica", " °C·día", 0],
-    ["Horas frío al año", "horasFrio", " h", 0],
     ["Período libre de heladas", "libreHeladas", " días", 0],
     ["Heladas al año", "nHeladas", "", 0],
     ["Temperatura máxima media de enero", "tmaxEnero", " °C", 1],
@@ -782,7 +770,7 @@ function TarjetaAgroclima({ a }) {
         </tbody>
       </table>
       <p className="tenue">
-        Fuente: {a.estudio}. Es el estudio oficial de CIREN para la zona; complementa al reanálisis ERA5. Los horizontes
+        Fuente: {a.estudio}. Es el estudio oficial de CIREN para la zona y sirve para contrastar los datos de ARClim. Los horizontes
         "futuro cercano" y "futuro medio" son los del estudio de CIREN (el servicio de mapas no indica sus años exactos).
         CIREN tiene esta zonificación solo para algunas regiones.
       </p>
@@ -1248,7 +1236,7 @@ const FUENTES = [
     clave: "agroclima",
     n: "Agroclima — CIREN, zonificación agroclimática regional",
     por: "Estudios oficiales de CIREN (Ministerio de Agricultura) con variables agroclimáticas por zona: suma térmica, horas frío, heladas, evapotranspiración y déficit hídrico, en clima actual y futuro. Disponibles para Atacama, Valparaíso, Metropolitana, O'Higgins y Magallanes.",
-    leer: "Sirve para contrastar el reanálisis ERA5 con el estudio local oficial.",
+    leer: "Sirve para contrastar ARClim con el estudio local oficial. No se muestran las horas frío: los dos estudios oficiales de CIREN (1988 y 2024) dan valores muy distintos para el mismo lugar.",
     links: [["Servicio de CIREN", URLS.cirenAgroclima]],
   },
   {
@@ -1373,13 +1361,6 @@ const FUENTES = [
       ["Windy.com", "https://www.windy.com/"],
     ],
   },
-  {
-    clave: "osm",
-    n: "Cuerpos de agua y canales — OpenStreetMap (control cruzado)",
-    por: "Cartografía colaborativa mundial; NO es una fuente oficial. Se usa solo como control cruzado para lagos, embalses y canales.",
-    leer: "La superficie de agua se excluye de lo plantable. Canales y acequias se informan, pero no restringen.",
-    links: [["OpenStreetMap", "https://www.openstreetmap.org/"]],
-  },
 ];
 
 const ESTADO_FUENTE = { ok: "consultada", error: "no respondió", "no aplica": "no aplica" };
@@ -1389,8 +1370,8 @@ function PanelFuentes({ r }) {
     <div className="tarjeta fuentes" id="s-fuentes">
       <h3>Fuentes y cómo leerlas</h3>
       <p>
-        Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales; OpenStreetMap se
-        usa solo como control cruzado. Cada fuente se puede verificar en su enlace.
+        Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales. Cada fuente se
+        puede verificar en su enlace.
         {r && ` Consulta realizada el ${r.consultado.toLocaleString("es-CL")}.`}
       </p>
       {FUENTES.map((f, i) => {

@@ -20,18 +20,16 @@
 const DOMINIOS_OK = [
   "rest-sit.mop.gob.cl",        // DGA / MOP (agua, restricciones, escasez)
   "esri.ciren.cl",              // CIREN (suelos, erosión, agroclima)
+  "arclim.mma.gob.cl",          // ARClim (MMA)
   "arcgis.mma.gob.cl",          // MMA (humedales, cuencas, hidrografía, uso de suelo)
   "gis.mma.gob.cl",             // MMA (humedales, respaldo)
   "ideserver.sma.gob.cl",       // SMA (áreas protegidas oficiales)
   "archive-api.open-meteo.com", // Open-Meteo ERA5 (clima histórico)
   "api.open-meteo.com",         // Open-Meteo (elevación)
   "customer-archive-api.open-meteo.com", // Open-Meteo plan de pago (futuro)
-  "overpass-api.de",            // OpenStreetMap Overpass (cuerpos de agua)
   "nominatim.openstreetmap.org",// Buscador de lugares
   "geoide.minvu.cl",            // MINVU (límites urbanos, áreas de riesgo)
   "rest.isric.org",             // ISRIC SoilGrids (propiedades del suelo)
-  "overpass.private.coffee",    // Overpass (respaldo)
-  "overpass.kumi.systems",      // Overpass (respaldo)
 ];
 
 export default async function handler(req, res) {
@@ -80,7 +78,7 @@ export default async function handler(req, res) {
 
     const r = await fetch(urlObj.toString(), {
       headers: {
-        // Nominatim y Overpass piden identificar la aplicación
+        // Nominatim pide identificar la aplicación
         "User-Agent": "WineCheck/2.0 (+https://github.com/kriss3795/winecheck)",
         Accept: "application/json, text/plain, */*",
       },

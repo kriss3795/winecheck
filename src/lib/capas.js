@@ -7,8 +7,8 @@
 //  (octubre 2026).
 // =====================================================================
 
-import { fetchJSON, fetchTimeout, viaProxy, enParalelo } from "./red.js";
-import { anilloArcGIS, caja, dentro, lineaTocaPoligono } from "./geometria.js";
+import { fetchJSON, enParalelo } from "./red.js";
+import { anilloArcGIS, caja } from "./geometria.js";
 
 export const URLS = {
   elevacion: "https://api.open-meteo.com/v1/elevation",
@@ -29,7 +29,6 @@ export const URLS = {
   dgaEscasez: "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Decretos_Escasez_Hidrica/MapServer/0",
   mmaHumedales: "https://arcgis.mma.gob.cl/server/rest/services/SIMBIO/SIMBIO_HUMEDALES/MapServer/0",
   smaProteccion: "https://ideserver.sma.gob.cl/arcgis/rest/services/IDE/Areas_proteccion_oficial2/MapServer",
-  overpass: "https://overpass-api.de/api/interpreter",
   nominatim: "https://nominatim.openstreetmap.org/search",
 };
 
@@ -566,146 +565,6 @@ export async function pedirProtegidas(pts, lls) {
   );
   const porPunto = res.map((r) => (r.ok ? (r.v.results || []).map(aProteccion) : null));
   return { encontradas, porPunto, fallosPunto: porPunto.filter((p) => p === null).length };
-}
-
-// =====================================================================
-//  8) CUERPOS DE AGUA Y CAUCES — OpenStreetMap (control cruzado)
-//  - Lagos, ríos (como superficie), embalses y tranques: se marca qué
-//    puntos del terreno caen SOBRE el agua (superficie no plantable).
-//  - Ríos y esteros como línea: advertencia si cruzan el terreno.
-//  - Canales y acequias: NO restringen; se informan (útiles para riego).
-// =====================================================================
-const igual = (a, b) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
-
-function unirAnillos(segmentos) {
-  const pend = segmentos.filter((s) => s.length >= 2).map((s) => s.slice());
-  const anillos = [];
-  while (pend.length) {
-    let a = pend.shift();
-    let cambio = true;
-    while (!igual(a[0], a[a.length - 1]) && cambio) {
-      cambio = false;
-      for (let i = 0; i < pend.length; i++) {
-        const s = pend[i];
-        const fin = a[a.length - 1];
-        if (igual(fin, s[0])) a = a.concat(s.slice(1));
-        else if (igual(fin, s[s.length - 1])) a = a.concat(s.slice(0, -1).reverse());
-        else if (igual(a[0], s[s.length - 1])) a = s.slice(0, -1).concat(a);
-        else if (igual(a[0], s[0])) a = s.slice(1).reverse().concat(a);
-        else continue;
-        pend.splice(i, 1);
-        cambio = true;
-        break;
-      }
-    }
-    if (a.length >= 4 && igual(a[0], a[a.length - 1])) anillos.push(a);
-  }
-  return anillos;
-}
-
-function tipoAgua(tags) {
-  const w = tags.water;
-  if (tags.landuse === "reservoir" || ["reservoir", "pond", "basin", "wastewater", "reflecting_pool"].includes(w))
-    return { tipo: "embalse o tranque", artificial: true };
-  if (w === "river" || w === "stream" || w === "canal") return { tipo: "cauce de río", artificial: w === "canal" };
-  if (w === "lagoon") return { tipo: "laguna", artificial: false };
-  return { tipo: "lago o laguna", artificial: false };
-}
-
-// Overpass es un servicio comunitario que a veces se satura: se prueban
-// varios servidores públicos y, al final, el principal vía nuestro proxy.
-const SERVIDORES_OVERPASS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-];
-async function consultarOverpass(q) {
-  // Se consultan todos a la vez y se usa la primera respuesta válida,
-  // con un máximo de 15 s, para que OSM nunca frene el análisis.
-  const data = "?data=" + encodeURIComponent(q);
-  const urls = [...SERVIDORES_OVERPASS.map((u) => u + data), viaProxy(URLS.overpass + data)];
-  return new Promise((resolve, reject) => {
-    let pendientes = urls.length;
-    let listo = false;
-    const fallo = () => {
-      pendientes--;
-      if (!pendientes && !listo) {
-        listo = true;
-        reject(new Error("ningún servidor de OpenStreetMap respondió"));
-      }
-    };
-    urls.forEach((u) =>
-      fetchTimeout(u, 15000)
-        .then(async (r) => {
-          if (!r.ok) throw new Error("Overpass HTTP " + r.status);
-          const j = await r.json();
-          if (!Array.isArray(j.elements)) throw new Error("respuesta inválida");
-          if (j.remark && /error|timed out/i.test(j.remark)) throw new Error(j.remark);
-          if (!listo) {
-            listo = true;
-            resolve(j);
-          }
-        })
-        .catch(fallo)
-    );
-  });
-}
-
-export async function pedirOSM(pts, lls) {
-  const b = caja(pts, 0.0015);
-  const bb = `${b.s},${b.o},${b.n},${b.e}`;
-  const q =
-    `[out:json][timeout:25];(` +
-    `way["natural"="water"](${bb});relation["natural"="water"](${bb});` +
-    `way["landuse"="reservoir"](${bb});` +
-    `way["waterway"~"^(river|stream|canal|ditch|drain)$"](${bb});` +
-    `);out geom;`;
-  const j = await consultarOverpass(q);
-
-  const superficies = [];
-  const cauces = [];
-  for (const el of j.elements || []) {
-    const tags = el.tags || {};
-    if (el.type === "way" && tags.waterway) {
-      const linea = (el.geometry || []).map((g) => [g.lat, g.lon]);
-      if (linea.length < 2) continue;
-      const natural = tags.waterway === "river" || tags.waterway === "stream";
-      cauces.push({
-        nombre: tags.name || null,
-        tipo: { river: "río", stream: "estero o arroyo", canal: "canal", ditch: "acequia", drain: "dren" }[tags.waterway],
-        natural,
-        dentro: lineaTocaPoligono(linea, pts),
-      });
-    } else if (el.type === "way" && el.geometry) {
-      const ring = el.geometry.map((g) => [g.lat, g.lon]);
-      if (ring.length >= 4 && igual(ring[0], ring[ring.length - 1])) superficies.push({ anillos: [ring], tags });
-    } else if (el.type === "relation") {
-      const segs = (el.members || [])
-        .filter((m) => m.type === "way" && m.role !== "inner" && m.geometry)
-        .map((m) => m.geometry.map((g) => [g.lat, g.lon]));
-      const anillos = unirAnillos(segs);
-      if (anillos.length) superficies.push({ anillos, tags });
-    }
-  }
-
-  const aguaPorPunto = lls.map((ll) => {
-    for (const s of superficies) {
-      if (s.anillos.some((r) => dentro(ll, r))) {
-        return { ...tipoAgua(s.tags), nombre: s.tags.name || null };
-      }
-    }
-    return null;
-  });
-
-  // Resumen de cauces (sin duplicar tramos del mismo nombre/tipo)
-  const resumen = new Map();
-  for (const c of cauces) {
-    const k = (c.nombre || "") + "|" + c.tipo;
-    const prev = resumen.get(k);
-    if (!prev) resumen.set(k, { ...c });
-    else prev.dentro = prev.dentro || c.dentro;
-  }
-  return { aguaPorPunto, cauces: [...resumen.values()] };
 }
 
 // =====================================================================
