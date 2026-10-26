@@ -1,0 +1,21 @@
+name: Sondeo de servicios
+on:
+  push:
+    branches: [mejoras-v2]
+    paths: [scripts/sondeo.sh, .github/workflows/sondeo.yml]
+permissions:
+  contents: write
+jobs:
+  sondear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/sondeo.sh > sondeo.txt 2>&1 || true
+      - run: |
+          mkdir -p public/clima && cp sondeo.txt public/clima/sondeo.txt
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add public/clima/sondeo.txt
+          git commit -m "Sondeo de servicios" || echo "sin cambios"
+          git pull --rebase && git push
