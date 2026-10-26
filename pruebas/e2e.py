@@ -47,6 +47,11 @@ def correr(pg, nombre, lat, lon, ancho):
     pg.wait_for_function("!document.querySelector('.btn-analizar') || !document.querySelector('.btn-analizar').disabled", timeout=240000)
     pg.wait_for_timeout(2000)
     texto = pg.evaluate("document.body.innerText")
+    desborde = pg.evaluate("""() => { const w = innerWidth; const r = [];
+      for (const e of document.querySelectorAll('body *')) { const b = e.getBoundingClientRect();
+        if (b.right > w + 1 && b.width > 0 && !e.closest('.tabla-scroll') && !e.closest('.leaflet-container')) r.push(e.tagName + '.' + e.className + ' ' + Math.round(b.right)); }
+      return [document.documentElement.scrollWidth, r.slice(0, 15)]; }""")
+    print("  desborde", nombre, ancho, desborde, flush=True)
     open(f"{OUT}/{nombre}_{ancho}.txt", "w").write(f"[{time.time()-t0:.0f} s]\n" + texto)
     pg.screenshot(path=f"{OUT}/{nombre}_{ancho}.png", full_page=True)
 

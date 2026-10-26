@@ -814,7 +814,7 @@ function TarjetaAgroclima({ a }) {
   const val = (o, k, u, d) => (o && o[k] != null ? fmt(o[k], d) + u : "—");
   return (
     <Tarjeta titulo={`Agroclima oficial (CIREN) — zona ${a.zona || ""}`}>
-      <table className="tabla">
+      <div className="tabla-scroll"><table className="tabla">
         <thead>
           <tr>
             <th>Variable</th>
@@ -843,7 +843,7 @@ function TarjetaAgroclima({ a }) {
             </tr>
           )}
         </tbody>
-      </table>
+      </table></div>
       <p className="tenue">
         Fuente: {a.estudio}. Es el estudio oficial de CIREN para la zona y sirve para contrastar los datos de CR2MET y ARClim. Los horizontes
         "futuro cercano" y "futuro medio" son los del estudio de CIREN (el servicio de mapas no indica sus años exactos).
@@ -988,7 +988,7 @@ function TarjetaPropSuelo({ soil, erosion }) {
   return (
     <Tarjeta titulo="Propiedades del suelo y erosión" estado={erosion?.estado === "riesgo" ? "riesgo" : undefined}>
       {s && (
-        <table className="tabla">
+        <div className="tabla-scroll"><table className="tabla">
           <thead>
             <tr>
               <th>Propiedad (estimada)</th>
@@ -1022,7 +1022,7 @@ function TarjetaPropSuelo({ soil, erosion }) {
               <td>{b?.pedregosidad != null ? `${fmt(b.pedregosidad)} %` : "—"}</td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
       )}
       {s && (
         <p className="tenue">
@@ -1129,7 +1129,7 @@ function TarjetaEscasez({ e }) {
             cubierto este terreno
             {e.recurrente ? `, en ${e.aniosRecientes} años distintos entre ${e.desdeRecientes} y ${e.hastaRecientes || "hoy"} (zona con escasez recurrente${e.hastaRecientes ? `; la capa de la DGA llega hasta ${e.hastaRecientes}` : ""})` : ""}.
           </p>
-          <table className="tabla">
+          <div className="tabla-scroll"><table className="tabla">
             <thead>
               <tr>
                 <th>Decreto</th>
@@ -1151,7 +1151,7 @@ function TarjetaEscasez({ e }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </>
       ) : (
         <p>No hay decretos de escasez registrados para este terreno en la capa de la DGA.</p>

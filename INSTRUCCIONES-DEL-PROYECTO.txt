@@ -51,17 +51,31 @@ UBICACIÓN
   de la provincia de Quillota). Asignada en src/lib/denominaciones.js.
 
 CLIMA (verificado 26-10-2026)
-- Fuente principal: ARClim (MMA), grilla 0,05° referenciada a CR2MET.
-  Histórico 1980–2010; futuro 2035–2065 SSP2-4.5 y SSP5-8.5.
-  Preprocesado por GitHub Actions (scripts/arclim.mjs) en public/clima/b{banda}.json.
+- Clima ACTUAL (el que clasifica y sugiere cepas): CR2MET v2.5_best del
+  CR2 (https://ftp.cr2.cl/browse/cr2met/, CC BY 4.0), datos diarios
+  OBSERVADOS 0,05°, promedio de las últimas 10 temporadas completas
+  (mayo 2016 – abril 2026). Lo genera scripts/cr2met.py (GitHub Actions,
+  se repite cada 20 de mayo) en public/clima/a{banda}.json. Incluye
+  heladas (mín ≤ 0 °C, igual que CIREN), días > 30 y > 35 °C y lluvia.
+  Validado con CIREN Pudahuel (ene: máx 31,2 / mín 11,5 / media 21,3 °C):
+  CR2MET da 32,7 / 11,9 / 21,3 °C.
+- FUTURO 2035–2065 (SSP2-4.5 y SSP5-8.5) = clima actual + CAMBIO que
+  proyecta ARClim (MMA) entre 1980–2010 y 2035–2065 (método delta).
+  NO se muestra el valor absoluto 1980–2010 de ARClim junto al observado:
+  es el promedio de 20–30 modelos corregidos y en algunas celdas difiere
+  > 1 °C de lo observado (Vicuña −2 °C, Casablanca −1,3 °C), lo que
+  parecería un cambio climático falso. Heladas y días calurosos de ARClim
+  no se proyectan: su metodología no publica la definición.
+  ARClim preprocesado en public/clima/b{banda}.json (scripts/arclim.mjs).
 - NO usar ERA5/ERA5-Land para temperatura: frente a la estación DMC
-  Pudahuel (enero: máx 29,4 / mín 12,2 °C) ERA5-Land dio mín 16,1 °C
-  (+4 °C); ARClim dio 12,5 °C. CIREN Paine coincide con ARClim (±1 °C).
+  Pudahuel (enero: máx 29,4 / mín 12,2 °C) ERA5-Land dio mín 16,1 °C (+4 °C).
+- NO usar la ET0 de CR2MET (Hargreaves-Samani modificada): en Paine daba
+  ~1.436 mm oct–abr, mientras CIREN da 1.044 mm en TODO el año.
 - Índices con promedios mensuales: Winkler (clases Jones et al. 2010),
   GST (Jones 2006), Huglin y frío nocturno (Tonietto & Carbonneau 2004).
 - Cepas: SOLO rangos publicados en texto por Jones: Pinot Noir 14–16,
   Chardonnay 14–18, Cabernet Franc 15,4–19,8, Cabernet Sauvignon
-  16,8–20,2 °C. "En el límite" = ±1 °C (incertidumbre ARClim vs estación).
+  16,8–20,2 °C. "En el límite" = ±1 °C (incertidumbre de los datos).
 - CIREN AGROCLIMA_IDEMINAGRI (Atacama, Valparaíso, RM, O'Higgins,
   Magallanes) como contraste oficial. No mostrar horas frío (CIREN 1988
   y 2024 dan valores muy distintos).
@@ -70,8 +84,9 @@ CLIMA (verificado 26-10-2026)
 
 RIEGO (FAO-56)
 - Kc vid vinífera 0,30 / 0,70 / 0,45 repartido oct–abr.
-- ET0 y lluvia de ARClim (eto_mean en mm/día) y, donde existe, CIREN; se
-  muestran ambas como rango.
+- ET0 y lluvia de ARClim 1980–2010 (eto_mean en mm/día) y, donde existe,
+  CIREN; se muestran ambas como rango. Se informa además la lluvia
+  observada de las últimas 10 temporadas (CR2MET).
 
 SUELO
 - CIREN SUELOS_AGROLOGICOS: UNA CAPA POR REGIÓN (0 Atacama ... 13 Isla de
@@ -99,8 +114,12 @@ TERRITORIO
   VETO: 1 y 40 Santuarios, 30 Humedales urbanos, 34 Monumentos naturales,
   35 Parques nacionales, 39 Reservas nacionales, 41 SNASPE, 42 RAMSAR,
   31/32/36/38 marinas. ADVERTENCIA: 0, 2, 3, 33, 37, 43, 44 y 5–29.
-- Uso actual: MMA SIMBIO_CATASTRO_BN (CONAF; NIVEL_1, NIVEL_2, ANIO_FUENTE).
-  Bosque nativo => Ley 20.283 art. 5 (plan de manejo CONAF).
+- Uso actual: CONAF "Cambio de uso de la tierra" publicado por CIREN
+  (IDEMINAGRI/USO_DE_LA_TIERRA_CUT_CONAF, una capa por región, año más
+  reciente 2016–2021). Campos des_uso_AA y t_f_AA. Bosque nativo o mixto
+  => Ley 20.283 art. 5. Antofagasta y Aysén no tienen capa: respaldo MMA
+  SIMBIO_CATASTRO_BN (NIVEL_1/NIVEL_2 tiene pares inconsistentes).
+- SMA capas 5–29: se muestran con el nombre real de la capa.
 - Red hidrográfica: MMA SIMBIO_HIDROGRAFIA (TIPO_DREN, NOMBRE).
 - Límites urbanos: MINVU geoide IPT/Limites_Urbanos capas 0–4.
 - Áreas de riesgo: MINVU IPT/IPT_AREA_RIESGO capas 0 y 2 (NOM, CAT).
@@ -118,12 +137,18 @@ DESCARTADO (por no cumplir la regla de datos)
 - Proyecciones CMIP6 de Open-Meteo: no documentan el escenario de emisiones.
 - OpenStreetMap; materia orgánica y CIC de SoilGrids; horas frío de CIREN.
 - Rangos de Carmenère, Syrah, Merlot, etc.: no publicados en texto por Jones.
+- ET0 de CR2MET; valores absolutos 1980–2010 de ARClim junto al observado.
 
 CÓDIGO
 - src/lib/: red.js, geometria.js, capas.js, clima.js, territorio.js,
   suelo.js, tiempo.js, denominaciones.js, veredicto.js. Interfaz: src/App.jsx.
 - Datos ARClim: scripts/arclim.mjs + .github/workflows/arclim.yml (se
   ejecuta al cambiar el script y guarda public/clima en la rama).
+- Clima actual: scripts/cr2met.py + .github/workflows/cr2met.yml.
+- Prueba de punta a punta: pruebas/e2e.py + .github/workflows/e2e.yml
+  (Playwright marca terrenos reales; resultados en la rama pruebas-e2e).
+- Mapa en celular: leaflet-gesture-handling (un dedo baja la página, dos
+  dedos mueven el mapa; en PC, Ctrl + rueda para zoom).
 
 ESCALABILIDAD (lo que preguntan los inversionistas):
 - Las capas del Estado (DGA/CIREN/MMA/SMA) no tienen límite práctico.
