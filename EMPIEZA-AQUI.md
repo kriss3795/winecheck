@@ -10,7 +10,7 @@ Son **3 partes**:
 3. Publicar en Vercel (gratis).
 
 Cuando termines, tendrás una página web pública (ej:
-`winecheck.vercel.app`) que se actualiza sola cada vez que cambies algo.
+`wine-check.vercel.app`) que se actualiza sola cada vez que cambies algo.
 
 ---
 
@@ -93,7 +93,7 @@ Ya tienes el código en GitHub. ✅
    > Framework Preset: Vite · Build Command: `npm run build` · Output: `dist`
 5. Pulsa **Deploy**.
 6. Espera 1–2 minutos. Te dará una dirección tipo
-   **`winecheck.vercel.app`**. ¡Esa es tu app pública!
+   **`wine-check.vercel.app`**. ¡Esa es tu app pública!
 
 El proxy (`api/geo.js`) se activa solo en Vercel. No hay que configurar
 nada extra.

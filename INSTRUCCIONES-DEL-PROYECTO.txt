@@ -196,3 +196,7 @@ CAMBIOS 28-10-2026 (revisión de exactitud + simulación de 100 terrenos)
 - Simulación de 100 terrenos (pruebas/sim100.py) con control independiente:
   comuna 100/100, clase de suelo del centro 100%, parques 9/9 vetados,
   elevación 100%, sin textos rotos.
+
+
+DIRECCIÓN WEB (28-10-2026): https://wine-check.vercel.app (dominio principal).
+La antigua winecheck-five.vercel.app sigue funcionando.

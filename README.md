@@ -1,5 +1,7 @@
 # WineCheck 🍷
 
+**Web:** https://wine-check.vercel.app
+
 App web que evalúa si un terreno en Chile es apto para plantar viñas,
 combinando datos oficiales (clima, suelo, agua, humedales, áreas
 protegidas, pendiente/mar) en un veredicto tipo semáforo.
