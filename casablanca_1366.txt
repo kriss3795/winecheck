@@ -1,0 +1,339 @@
+[11 s]
+WineCheck
+
+¿Se puede plantar una viña aquí?
+Prefactibilidad con datos oficiales de Chile.
+
+Buscar
+Mapa
+Satélite
+Relieve
+Tiempo en vivo (Windy)
++
+−
+ Leaflet | © Esri World Imagery
+ disponible
+ con advertencia
+ restringido
+(42 puntos de muestreo)
+
+Toca el mapa para marcar las esquinas del terreno, en orden alrededor del borde (mínimo 3). 4 puntos · 37,0 ha
+
+Analizar terreno
+Deshacer punto
+Reiniciar
+Con manejo (provisorio)
+Ubicación: comuna de Casablanca (Valparaíso), cuenca hidrográfica: Costeras entre Aconcagua y Maipo. Pertenece a la denominación de origen Valle de Casablanca, Región Vitícola de Aconcagua.
+Superficie marcada: 37,0 ha, sin superficie restringida por agua, humedales ni áreas protegidas.
+Ojo: el terreno toca el borde de humedal Estero Casablanca. Verifica el límite exacto en terreno antes de plantar en ese sector.
+Límite urbano: el 100% del terreno está dentro de un límite urbano (Límite urbano de Casablanca — Plan Regulador Comunal de Casablanca; Límite urbano PREMVAL); ahí el uso del suelo lo define el plan regulador y la plantación agrícola puede no estar permitida.
+Áreas de riesgo del plan regulador: Área de Riesgo de Inundación (por proximidad a ríos, esteros y quebradas) (inundación); AR1 (inundación).
+Cauces que cruzan el terreno (red hidrográfica oficial): Estero Casablanca. Considerar riesgo de crecidas y la faja de protección de la ribera.
+Clima (promedio de las temporadas 2016–2026, CR2MET): 1.031 grados-día, Región Ia de Winkler; temperatura media de temporada 14,9 °C (categoría fresca según Jones). Hacia 2035–2065 (escenario moderado SSP2-4.5, cambio proyectado por ARClim) llegaría a 16,2 °C.
+Ojo con el clima: Las dos fuentes oficiales no coinciden: la máxima media de verano es 24,0 °C según CR2MET y 29,6 °C según el estudio de CIREN (diferencia de 5,6 °C). Cuando eso pasa, el clima real del lugar es incierto: conviene revisar datos de estaciones cercanas o medir en el predio antes de decidir.
+Suelo (CIREN): clase III en 12% de la superficie disponible; el 88% restante CIREN no lo clasificó (N.C.), así que el dato de suelo cubre solo una parte del terreno.
+Erosión actual en el centro del terreno (CIREN): sin erosión.
+Relieve: pendiente media 1% (manejable).
+Riego (método FAO-56): la viña consumiría unos 367 mm por temporada (evapotranspiración de ARClim, 1980–2010). Con la lluvia de las últimas 10 temporadas (38 mm entre octubre y abril, CR2MET), habría que aportar del orden de 329 mm (≈ 3.290 m³/ha); con los datos del estudio local de CIREN serían 608 mm. Es una referencia para una viña adulta; no incluye las pérdidas del sistema de riego.
+Agua subterránea (DGA): Zona de Prohibición (SHAC La Vinilla-Casablanca).
+Escasez hídrica: Sin decreto de escasez vigente para este terreno: según el listado oficial de la DGA (revisado el 28-10-2026), hoy hay 5 decretos vigentes en el país y ninguno cubre esta zona. Aun así, hubo decretos en 5 años distintos entre 2016 y 2023 (zona con escasez recurrente).
+Advertencias (no impiden plantar, pero hay que revisarlas): Zona de Interés Turístico (SERNATUR): Casablanca.
+Cepas cuyo rango térmico publicado incluye esta zona: Pinot Noir, Chardonnay. En el límite de su rango (±1 °C): Cabernet Franc.
+Conclusión: es plantable, con manejo técnico en: agua subterránea, límite urbano, áreas de riesgo, borde de área protegida o humedal.
+Ubicación
+Restricciones
+Clima
+Riego
+Suelo
+Relieve
+Agua
+Pronóstico
+Fuentes
+Ubicación y denominación de origen
+Comuna
+Casablanca
+Provincia de Valparaíso · Región de Valparaíso
+Cuenca hidrográfica
+Costeras entre Aconcagua y Maipo
+Subcuenca: E. Casablanca y E. San Jeronimo (Incl.)
+Denominación de origen (vinos)
+Valle de Casablanca
+Región Vitícola de Aconcagua. Según la zonificación vitícola del Decreto 464 (Ministerio de Agricultura).
+Superficie y restricciones territoriales
+Con manejo
+Superficie marcada
+37,0 ha
+Disponible para plantar
+37,0 ha (100%)
+Humedales (inventario MMA)
+toca el borde del terreno
+Estero Casablanca (continental). El humedal queda en el borde del terreno: ninguno de los puntos de muestreo cae dentro, pero conviene verificar el límite en terreno antes de plantar ese sector.
+Advertencias
+100% del terreno
+Zona de Interés Turístico (SERNATUR): Casablanca. No impide plantar, pero conviene revisar sus normas.
+Límite urbano (MINVU)
+100% del terreno
+Límite urbano de Casablanca — Plan Regulador Comunal de Casablanca; Límite urbano PREMVAL. Dentro del límite urbano el uso del suelo lo define el plan regulador; la plantación agrícola puede no estar permitida.
+Áreas de riesgo (plan regulador)
+2 zonas
+Área de Riesgo de Inundación (por proximidad a ríos, esteros y quebradas) (inundación); AR1 (inundación).
+Cauces que cruzan el terreno
+1 curso de agua
+Estero Casablanca (red hidrográfica oficial, MMA). Los cauces naturales implican riesgo de crecidas y una faja de ribera que no conviene plantar; los canales pueden servir para el riego si el predio tiene derechos.
+Uso actual del suelo (catastro CONAF)
+Áreas Urbanas e Industriales · Ciudades · Pueblos · Zonas Industriales
+90% del terreno
+Terrenos Agrícolas · Rotación Cultivo-Pradera
+10% del terreno
+
+Catastro de Uso de la Tierra de CONAF, actualización regional al año 2019 (publicado por CIREN en la IDE del Ministerio de Agricultura). Porcentajes según los puntos de muestreo del terreno. El uso real puede haber cambiado desde esa fecha: revísalo con la imagen satelital.
+
+Clima del terreno
+Buena opción
+
+Clima actual: promedio de las últimas 10 temporadas (2016–2026) según CR2MET, la grilla climática chilena calibrada con estaciones. Debajo de cada número se explica qué significa.
+
+Región de Winkler
+Escala clásica que agrupa las zonas vitícolas del mundo según sus grados-día: de Ia (la más fresca) a V (la más cálida).
+Región Ia (850–1.111 °C·día)
+Categoría según temperatura de temporada (Jones)
+Clasificación de G. V. Jones: fresca 13–15 °C, intermedia 15–17, cálida 17–19, calurosa 19–21, muy calurosa 21–24 °C.
+fresca
+Índice de Huglin (Tonietto & Carbonneau)
+Clases del Sistema de Clasificación Climática Multicriterio (Tonietto & Carbonneau, 2004): muy fresco, fresco, templado, templado cálido, cálido y muy cálido.
+fresco
+Índice de frío nocturno (Tonietto & Carbonneau)
+Según la mínima media de marzo: noches muy frías (≤ 12 °C), frías (12–14), templadas (14–18) o cálidas (> 18 °C).
+noches muy frías
+Temperatura media de temporada dentro del rango que Jones asocia a vinos de calidad (13–21 °C).
+
+⚠ Las dos fuentes oficiales no coinciden: la máxima media de verano es 24,0 °C según CR2MET y 29,6 °C según el estudio de CIREN (diferencia de 5,6 °C). Cuando eso pasa, el clima real del lugar es incierto: conviene revisar datos de estaciones cercanas o medir en el predio antes de decidir.
+
+Variable	Actual (CR2MET)
+2016–2026	2035–2065 escenario moderado (SSP2-4.5)	2035–2065 escenario alto (SSP5-8.5)
+Grados-día de Winkler (base 10 °C, oct–abr)
+Calor útil acumulado para la vid: cada día de octubre a abril se suma cuántos grados la temperatura media superó los 10 °C (bajo 10 °C la vid prácticamente no crece). Más grados-día = más calor para madurar la uva.
+	1.031 °C·día	1.307 °C·día	1.392 °C·día
+Temperatura media de temporada (oct–abr)
+Promedio de la temperatura de octubre a abril, la temporada de crecimiento de la vid en Chile. Es el valor que se compara con el rango de cada cepa.
+	14,9 °C	16,2 °C	16,6 °C
+Índice heliotérmico de Huglin
+Parecido a los grados-día, pero da más peso al calor de la tarde (usa también la temperatura máxima) y ajusta por el largo del día según la latitud. Se calcula de octubre a marzo.
+	1.628	1.874	1.956
+Mínima media de marzo (frío nocturno)
+Promedio de las temperaturas mínimas (de la noche) en marzo, mes de maduración. Noches frescas favorecen el color y los aromas de la uva.
+	8,0 °C	9,2 °C	9,6 °C
+Máxima media de enero
+Promedio de las temperaturas máximas de cada día de enero, normalmente el mes más caluroso.
+	24,0 °C	25,4 °C	25,9 °C
+Temperatura media de enero
+Promedio de la temperatura de enero (día y noche).
+	17,0 °C	18,3 °C	18,7 °C
+Días con helada en primavera (mínima ≤ 0 °C, sep–nov)
+Días al año en que la mínima llegó a 0 °C o menos entre septiembre y noviembre, cuando la vid brota y florece. Una helada en ese momento puede quemar brotes y bajar la cosecha.
+	0,3 días	—	—
+Días con helada al año (mínima ≤ 0 °C)
+Días al año con mínima de 0 °C o menos. En invierno la vid está en reposo y tolera el frío; las peligrosas son las de primavera.
+	5,7 días	—	—
+Días con máxima sobre 30 °C al año
+Días al año con temperatura máxima sobre 30 °C.
+	0,4 días	—	—
+Días con máxima sobre 35 °C al año
+Días al año con máxima sobre 35 °C. Con ese calor la vid se estresa y reduce su actividad.
+	0,0 días	—	—
+Lluvia anual
+Lluvia total en el año (de mayo a abril).
+	312 mm	285 mm	271 mm
+Lluvia de temporada (oct–abr)
+Lluvia de octubre a abril, cuando la vid consume agua. En Chile central es poca: el resto debe venir del riego.
+	38 mm	33 mm	32 mm
+
+Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, Universidad de Chile. Es una grilla diaria de ~5 km que ajusta el reanálisis ERA5 con estaciones meteorológicas chilenas (DGA, DMC, INIA y otras); promedio de mayo 2016 a abril 2026. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de varios modelos climáticos globales ajustados estadísticamente a CR2MET) entre 1980–2010 y 2035–2065. Escenario moderado (SSP2-4.5) = el mundo reduce emisiones a un ritmo intermedio; escenario alto (SSP5-8.5) = las emisiones siguen creciendo. "—" = ARClim no permite proyectar ese dato con la misma definición. Índices calculados con promedios mensuales. Los datos son de una celda de ~5 km (elevación media 296 m): no captan el microclima de un cuartel. En fondos de valle las heladas pueden ser más frecuentes y en laderas la temperatura puede diferir.
+
+Cepas según su rango térmico publicado
+Cepa	Rango óptimo (temp. media de temporada)	¿Calza hoy?	¿Calza 2035–2065?
+Pinot Noir	14,0–16,0 °C	Sí	En el límite
+Chardonnay	14,0–18,0 °C	Sí	Sí
+Cabernet Franc	15,4–19,8 °C	En el límite	Sí
+Cabernet Sauvignon	16,8–20,2 °C	No	En el límite
+
+Cómo leerla: cada cepa madura bien dentro de un rango de temperatura media de temporada. "Sí" = la temperatura del terreno (14,9 °C) cae dentro del rango; "En el límite" = queda a menos de 1 °C del rango (margen por la incertidumbre de los datos). Rangos publicados en texto por G. V. Jones (ver Fuentes). Otras cepas (Carmenère, Syrah, Merlot, Sauvignon Blanc…) no se listan porque no encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
+
+Comparar con el estudio oficial de CIREN (zona LLAILLAY-PETORCA)
+Necesidad de riego estimada (FAO-56)
+Temporada oct–abr	ARClim 1980–2010	ARClim 2035–2065 (SSP2-4.5)	Estudio CIREN
+Evapotranspiración de referencia (ET0)
+Agua que el clima "saca" de un pasto bien regado (por sol, calor, viento y aire seco). Mide la demanda de agua del lugar.
+	672 mm	708 mm	1.159 mm
+Consumo de la viña (ETc = Kc × ET0)
+La viña consume menos que el pasto de referencia: se multiplica ET0 por el coeficiente de cultivo Kc de la vid (FAO-56), que sube a medida que crecen las hojas.
+	367 mm	386 mm	642 mm
+Lluvia
+Lluvia de octubre a abril.
+	52 mm	45 mm	34 mm
+Riego necesario (aprox.)
+Consumo de la viña menos la lluvia. 1 mm de agua sobre 1 hectárea = 10 m³ (10.000 litros).
+	315 mm ≈ 3.150 m³/ha	341 mm ≈ 3.410 m³/ha	608 mm ≈ 6.083 m³/ha
+
+Kc de vid vinífera FAO-56: 0,30 (brotación) → 0,70 (enero–febrero) → 0,45 (cosecha). Estimación de referencia para una viña adulta sin estrés hídrico: no descuenta la lluvia que no aprovecha el cultivo ni la eficiencia del sistema de riego. Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998). Las dos fuentes oficiales difieren porque usan datos y métodos distintos; tómalas como un rango. Ojo: entre octubre y abril de 2016–2026 llovieron en promedio 38 mm (CR2MET): si llueve menos de lo que considera la tabla, el riego necesario aumenta en esa diferencia.
+
+Próximos 7 días (pronóstico)
+ET0 23 mm · lluvia 20 mm
+Consumo esperado de una viña en plena temporada (Kc 0,70): 16 mm ≈ 164 m³/ha.
+Suelo — capacidad de uso (CIREN)
+Dato parcial
+Clase III — 12% de la superficie disponible
+Arable, con limitaciones moderadas: dificultan el laboreo con pendientes cercanas al 8% o hasta 15% de piedras en superficie, y requieren prácticas de conservación de suelos. También puede deberse a menor profundidad, drenaje imperfecto, erosión moderada, inundaciones frecuentes o algo de sales o sodio.
+No clasificado (N.C.) — 88%
+Sectores a los que CIREN no asignó clase en su estudio. En nuestras pruebas aparece en ciudades (Santiago, Rancagua, Paine) y en cerros no estudiados: ahí no hay dato de suelo.
+
+Cómo leerlo: la capacidad de uso (clases I a VIII, Pauta para Estudio de Suelos del SAG) ordena los suelos según cuántas limitaciones tienen para cultivar: I = casi sin limitaciones; VIII = sin valor agrícola. Las clases I–IV son "arables" (se pueden arar y cultivar) y las V–VIII no arables. Mide la aptitud para cultivos en general, no específicamente para vid. Los porcentajes indican qué parte de los puntos de muestreo del terreno cayó en cada clase. El color de cada clase es criterio de WineCheck. Confirmar siempre con calicatas. Estudio: REGIÓN DE VALPARAÍSO (CIREN 2025). Basado en 42 puntos.
+
+Propiedades del suelo y erosión
+
+El mapa mundial de suelos SoilGrids no tiene estimación para el centro del terreno (ocurre en zonas urbanas, roca o agua).
+
+Erosión en el centro del terreno (CIREN)
+Erosión actual
+Pérdida de suelo que ya ocurrió (por agua o viento), según CIREN.
+sin erosión
+Riesgo de erosión actual
+Probabilidad de que el suelo se erosione con su cobertura vegetal actual.
+no evaluada por CIREN (categoría «otros usos»)
+Riesgo de erosión potencial
+Riesgo si el suelo quedara sin vegetación (por ejemplo, al preparar el terreno para plantar).
+no evaluada por CIREN (categoría «otros usos»)
+Pendiente y relieve
+Buena opción
+Pendiente media
+Cuántos metros sube el terreno por cada 100 m horizontales. 10% = sube 10 m cada 100 m.
+1%
+Pendiente media 1% (plano a casi plano, clases FAO).
+Superficie con pendiente > 15% / > 30%
+Parte del terreno con laderas fuertes: sobre 15% se complica la mecanización y sobre 30% suele requerir terrazas o trabajo manual.
+0% / 0%
+Altitud
+Altura mínima y máxima del terreno sobre el nivel del mar.
+258–262 m s.n.m.
+Exposición general
+Hacia dónde mira la ladera. En el hemisferio sur, las laderas que miran al norte reciben más sol y calor; las que miran al sur, menos.
+terreno prácticamente plano
+Agua para riego (DGA)
+Con manejo
+Agua subterránea
+Zona de Prohibición
+SHAC La Vinilla-Casablanca
+Acuífero Estero Casablanca
+
+Zona de Prohibición: la DGA no otorga nuevos derechos de aprovechamiento de agua subterránea en este sector. Para regar se necesitan derechos de agua ya existentes (comprados o propios del predio).
+
+Agua superficial
+
+El terreno no está en una fuente superficial declarada agotada por la DGA.
+
+Cómo leerlo: la DGA divide cada acuífero en sectores llamados SHAC (Sector Hidrogeológico de Aprovechamiento Común) y define si se pueden pedir nuevos derechos de agua subterránea: Abierto = se pueden pedir; Área de Restricción = solo derechos provisionales; Zona de Prohibición = no se otorgan nuevos derechos. En agua superficial, una declaración de agotamiento significa que ese río o estero no admite nuevos derechos permanentes. Es la situación administrativa de la fuente; no reemplaza revisar los derechos de agua que ya tenga el predio (Catastro Público de Aguas de la DGA).
+
+Escasez hídrica (DGA)
+Buena opción
+
+Un decreto de escasez es una declaración del Ministerio de Obras Públicas para zonas con sequía extraordinaria; durante su vigencia la DGA puede tomar medidas especiales para redistribuir el agua (Código de Aguas, art. 314). Que una zona tenga decretos repetidos indica que la falta de agua es frecuente.
+
+Sin decreto de escasez vigente para este terreno: según el listado oficial de la DGA (revisado el 28-10-2026), hoy hay 5 decretos vigentes en el país y ninguno cubre esta zona.
+
+Historial: 9 decretos de escasez han cubierto este terreno, en 5 años distintos entre 2016 y 2023 (zona con escasez recurrente; la capa de la DGA llega hasta 2023).
+
+Decreto	Vigencia	Territorio
+N° 149/2022	09 sept 2022 – 11 sept 2023	Valparaíso
+N° 43/2022	04 mar 2022 – 01 sept 2022	Valparaíso
+N° 176/2021	25 ago 2021 – 28 feb 2022	Valparaíso
+N° 41/2021	26 feb 2021 – 28 ago 2021	Valparaíso
+N° 92/2020	27 ago 2020 – 27 feb 2021	Valparaíso
+N° 14/2020	21 feb 2020 – 21 ago 2020	Valparaíso
+N° 91/2019	20 ago 2019 – 20 feb 2020	Valparaíso
+N° 22/2017	22 feb 2017 – 22 ago 2017	Comuna de Casablanca
+
+Estado de hoy: listado oficial de decretos vigentes de la DGA (revisado el 28-10-2026). Historial: capa de mapas de la DGA, que llega hasta el 21 abr 2023.
+
+Tiempo actual y pronóstico
+
+Ahora: 18,7 °C · humedad 80% · viento 5 km/h
+
+Cómo leerlo: "Lluvia" muestra los milímetros esperados y, entre paréntesis, la probabilidad de que llueva algo ese día. ET0 = agua que el clima evapora ese día (ver Riego). Ojo: los modelos de pronóstico pueden subestimar el frío de la madrugada en fondos de valle; una mínima pronosticada de 2–3 °C puede ser helada en el predio.
+
+Día	Mín / máx	Lluvia	Ráfagas	ET0
+mié, 28 oct	12° / 23°	0,0 mm (0%)	26 km/h	4,6 mm
+jue, 29 oct	14° / 21°	0,4 mm (2%)	31 km/h	2,9 mm
+vie, 30 oct	13° / 21°	0,2 mm (0%)	33 km/h	2,9 mm
+sáb, 31 oct	14° / 18°	3,9 mm (82%)	30 km/h	1,6 mm
+dom, 1 nov	13° / 19°	5,7 mm (64%)	30 km/h	3,8 mm
+lun, 2 nov	12° / 21°	0,6 mm (14%)	33 km/h	4,1 mm
+mar, 3 nov	12° / 19°	9,3 mm (16%)	64 km/h	3,5 mm
+mié, 4 nov	10° / 18°	4,8 mm (18%)	50 km/h	3,9 mm
+jue, 5 nov	9° / 16°	10,0 mm (2%)	44 km/h	3,0 mm
+vie, 6 nov	9° / 17°	4,4 mm (8%)	31 km/h	3,6 mm
+sáb, 7 nov	10° / 21°	0,0 mm (1%)	34 km/h	4,5 mm
+dom, 8 nov	10° / 21°	0,0 mm (2%)	38 km/h	4,3 mm
+lun, 9 nov	11° / 22°	0,0 mm (4%)	34 km/h	4,7 mm
+mar, 10 nov	12° / 23°	0,0 mm (2%)	31 km/h	4,6 mm
+mié, 11 nov	12° / 23°	0,0 mm (1%)	34 km/h	4,8 mm
+jue, 12 nov	13° / 28°	0,0 mm (0%)	20 km/h	6,1 mm
+
+Pronóstico Open-Meteo (combina modelos de servicios meteorológicos nacionales, ECMWF, GFS y otros).
+
+Temperatura
+Lluvia
+Viento
+Ráfagas
+Nubes
+Humedad
+Abrir en Windy ↗
+
+Mapa interactivo de Windy.com (modelo ECMWF). Usa la línea de tiempo inferior para ver el pronóstico de los próximos días hora a hora.
+
+WineCheck es una herramienta de prefactibilidad. No reemplaza el estudio de suelo en terreno (calicatas), la verificación de derechos de agua del predio ni la revisión legal y ambiental del proyecto.
+Fuentes y cómo leerlas
+
+Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales. Cada fuente se puede verificar en su enlace. Consulta realizada el 28-10-2026 a las 22:38 h.
+
+Ubicación — División Político-Administrativa (MOP) y cuencas (MMA)
+consultada
+Denominaciones de origen — Decreto N° 464 de 1994 (Ministerio de Agricultura)
+consultada
+Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2
+consultada
+Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)
+consultada
+Cepas — rangos térmicos de G. V. Jones
+consultada
+Agroclima — CIREN, zonificación agroclimática regional
+consultada
+Riego — FAO, Estudio Riego y Drenaje N° 56
+consultada
+Suelo — CIREN, Estudios Agrológicos (capacidad de uso)
+consultada
+Propiedades del suelo — ISRIC SoilGrids 2.0
+consultada
+Erosión — CIREN, Determinación de la Erosión Actual y Potencial
+consultada
+Uso actual del suelo — Catastro de Uso de la Tierra de CONAF
+consultada
+Agua subterránea — DGA (Ministerio de Obras Públicas)
+consultada
+Agua superficial — DGA, declaraciones de agotamiento
+consultada
+Escasez hídrica — DGA, decretos de escasez
+consultada
+Humedales — MMA, Inventario Nacional de Humedales
+consultada
+Ríos, esteros y canales — MMA, red hidrográfica
+consultada
+Áreas protegidas — SMA, Áreas de protección oficial
+consultada
+Límites urbanos y áreas de riesgo — MINVU (planes reguladores)
+consultada
+Pendiente y elevación — Copernicus DEM GLO-90, vía Open-Meteo
+consultada
+Pronóstico y tiempo en vivo — Open-Meteo y Windy
+consultada
+
+Búsqueda de lugares: Nominatim (OpenStreetMap). Mapas base: OpenStreetMap y Esri.

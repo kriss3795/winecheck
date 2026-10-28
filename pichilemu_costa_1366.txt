@@ -1,0 +1,320 @@
+[10 s]
+WineCheck
+
+¿Se puede plantar una viña aquí?
+Prefactibilidad con datos oficiales de Chile.
+
+Buscar
+Mapa
+Satélite
+Relieve
+Tiempo en vivo (Windy)
++
+−
+ Leaflet | © Esri World Imagery
+ disponible
+ con advertencia
+ restringido
+(42 puntos de muestreo)
+
+Toca el mapa para marcar las esquinas del terreno, en orden alrededor del borde (mínimo 3). 4 puntos · 36,6 ha
+
+Analizar terreno
+Deshacer punto
+Reiniciar
+Con manejo (provisorio)
+Ubicación: comuna de Pichilemu (Libertador General Bernardo O'Higgins), cuenca hidrográfica: Costeras Rapel-E.Nilahue. Pertenece a la denominación de origen Valle del Rapel (Zona Valle de Colchagua), Región Vitícola del Valle Central.
+Superficie marcada: 36,6 ha, sin superficie restringida por agua, humedales ni áreas protegidas.
+Límite urbano: el 100% del terreno está dentro de un límite urbano (Límite urbano de Pichilemu — Plan Regulador Comunal de Pichilemu; Límite urbano); ahí el uso del suelo lo define el plan regulador y la plantación agrícola puede no estar permitida.
+Clima (promedio de las temporadas 2016–2026, CR2MET): 1.040 grados-día, Región Ia de Winkler; temperatura media de temporada 14,9 °C (categoría fresca según Jones). Hacia 2035–2065 (escenario moderado SSP2-4.5, cambio proyectado por ARClim) llegaría a 16,0 °C.
+Ojo con el clima: Las dos fuentes oficiales no coinciden: la máxima media de verano es 23,7 °C según CR2MET y 26,2 °C según el estudio de CIREN (diferencia de 2,5 °C). Cuando eso pasa, el clima real del lugar es incierto: conviene revisar datos de estaciones cercanas o medir en el predio antes de decidir.
+Suelo: sin clase de capacidad de uso de CIREN en este lugar; el veredicto es provisorio hasta tener un estudio de suelo.
+Erosión: CIREN no la evaluó en el centro del terreno (lo marca como «otros usos»).
+Relieve: pendiente media 7% (manejable), exposición Noroeste.
+Riego (método FAO-56): la viña consumiría unos 362 mm por temporada (evapotranspiración de ARClim, 1980–2010). Con la lluvia de las últimas 10 temporadas (53 mm entre octubre y abril, CR2MET), habría que aportar del orden de 309 mm (≈ 3.090 m³/ha); con los datos del estudio local de CIREN serían 472 mm. Es una referencia para una viña adulta; no incluye las pérdidas del sistema de riego.
+Agua subterránea (DGA): Zona de Prohibición (SHAC Laguna de Cahuil), Abierto (SHAC Pichilemu).
+Escasez hídrica: Sin decreto de escasez vigente para este terreno: según el listado oficial de la DGA (revisado el 28-10-2026), hoy hay 5 decretos vigentes en el país y ninguno cubre esta zona. Aun así, hubo decretos en 4 años distintos entre 2016 y 2023 (zona con escasez recurrente).
+Cepas cuyo rango térmico publicado incluye esta zona: Pinot Noir, Chardonnay. En el límite de su rango (±1 °C): Cabernet Franc.
+Conclusión: es plantable, con manejo técnico en: agua subterránea, límite urbano.
+Ubicación
+Restricciones
+Clima
+Riego
+Suelo
+Relieve
+Agua
+Pronóstico
+Fuentes
+Ubicación y denominación de origen
+Comuna
+Pichilemu
+Provincia de Cardenal Caro · Región del Libertador General Bernardo O'Higgins
+Cuenca hidrográfica
+Costeras Rapel-E.Nilahue
+Subcuenca: Costeras entre E. Topocalma y E. Nilahue
+Denominación de origen (vinos)
+Valle del Rapel — Zona Valle de Colchagua
+Región Vitícola del Valle Central. Según la zonificación vitícola del Decreto 464 (Ministerio de Agricultura).
+Superficie y restricciones territoriales
+Con manejo
+Superficie marcada
+36,6 ha
+Disponible para plantar
+36,6 ha (100%)
+Límite urbano (MINVU)
+100% del terreno
+Límite urbano de Pichilemu — Plan Regulador Comunal de Pichilemu; Límite urbano. Dentro del límite urbano el uso del suelo lo define el plan regulador; la plantación agrícola puede no estar permitida.
+Uso actual del suelo (catastro CONAF)
+Áreas Urbanas e Industriales · Ciudades · Pueblos · Zonas Industriales
+98% del terreno
+Bosques · Plantación
+2% del terreno
+
+Catastro de Uso de la Tierra de CONAF, actualización regional al año 2019 (publicado por CIREN en la IDE del Ministerio de Agricultura). Porcentajes según los puntos de muestreo del terreno. El uso real puede haber cambiado desde esa fecha: revísalo con la imagen satelital.
+
+Clima del terreno
+Buena opción
+
+Clima actual: promedio de las últimas 10 temporadas (2016–2026) según CR2MET, la grilla climática chilena calibrada con estaciones. Debajo de cada número se explica qué significa.
+
+Región de Winkler
+Escala clásica que agrupa las zonas vitícolas del mundo según sus grados-día: de Ia (la más fresca) a V (la más cálida).
+Región Ia (850–1.111 °C·día)
+Categoría según temperatura de temporada (Jones)
+Clasificación de G. V. Jones: fresca 13–15 °C, intermedia 15–17, cálida 17–19, calurosa 19–21, muy calurosa 21–24 °C.
+fresca
+Índice de Huglin (Tonietto & Carbonneau)
+Clases del Sistema de Clasificación Climática Multicriterio (Tonietto & Carbonneau, 2004): muy fresco, fresco, templado, templado cálido, cálido y muy cálido.
+fresco
+Índice de frío nocturno (Tonietto & Carbonneau)
+Según la mínima media de marzo: noches muy frías (≤ 12 °C), frías (12–14), templadas (14–18) o cálidas (> 18 °C).
+noches muy frías
+Temperatura media de temporada dentro del rango que Jones asocia a vinos de calidad (13–21 °C).
+
+⚠ Las dos fuentes oficiales no coinciden: la máxima media de verano es 23,7 °C según CR2MET y 26,2 °C según el estudio de CIREN (diferencia de 2,5 °C). Cuando eso pasa, el clima real del lugar es incierto: conviene revisar datos de estaciones cercanas o medir en el predio antes de decidir.
+
+Variable	Actual (CR2MET)
+2016–2026	2035–2065 escenario moderado (SSP2-4.5)	2035–2065 escenario alto (SSP5-8.5)
+Grados-día de Winkler (base 10 °C, oct–abr)
+Calor útil acumulado para la vid: cada día de octubre a abril se suma cuántos grados la temperatura media superó los 10 °C (bajo 10 °C la vid prácticamente no crece). Más grados-día = más calor para madurar la uva.
+	1.040 °C·día	1.274 °C·día	1.359 °C·día
+Temperatura media de temporada (oct–abr)
+Promedio de la temperatura de octubre a abril, la temporada de crecimiento de la vid en Chile. Es el valor que se compara con el rango de cada cepa.
+	14,9 °C	16,0 °C	16,4 °C
+Índice heliotérmico de Huglin
+Parecido a los grados-día, pero da más peso al calor de la tarde (usa también la temperatura máxima) y ajusta por el largo del día según la latitud. Se calcula de octubre a marzo.
+	1.581	1.799	1.863
+Mínima media de marzo (frío nocturno)
+Promedio de las temperaturas mínimas (de la noche) en marzo, mes de maduración. Noches frescas favorecen el color y los aromas de la uva.
+	9,8 °C	10,9 °C	11,3 °C
+Máxima media de enero
+Promedio de las temperaturas máximas de cada día de enero, normalmente el mes más caluroso.
+	23,7 °C	25,0 °C	25,3 °C
+Temperatura media de enero
+Promedio de la temperatura de enero (día y noche).
+	16,8 °C	17,9 °C	18,3 °C
+Días con helada en primavera (mínima ≤ 0 °C, sep–nov)
+Días al año en que la mínima llegó a 0 °C o menos entre septiembre y noviembre, cuando la vid brota y florece. Una helada en ese momento puede quemar brotes y bajar la cosecha.
+	0,0 días	—	—
+Días con helada al año (mínima ≤ 0 °C)
+Días al año con mínima de 0 °C o menos. En invierno la vid está en reposo y tolera el frío; las peligrosas son las de primavera.
+	1,0 días	—	—
+Días con máxima sobre 30 °C al año
+Días al año con temperatura máxima sobre 30 °C.
+	0,1 días	—	—
+Días con máxima sobre 35 °C al año
+Días al año con máxima sobre 35 °C. Con ese calor la vid se estresa y reduce su actividad.
+	0,0 días	—	—
+Lluvia anual
+Lluvia total en el año (de mayo a abril).
+	412 mm	379 mm	360 mm
+Lluvia de temporada (oct–abr)
+Lluvia de octubre a abril, cuando la vid consume agua. En Chile central es poca: el resto debe venir del riego.
+	53 mm	44 mm	43 mm
+
+Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, Universidad de Chile. Es una grilla diaria de ~5 km que ajusta el reanálisis ERA5 con estaciones meteorológicas chilenas (DGA, DMC, INIA y otras); promedio de mayo 2016 a abril 2026. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de varios modelos climáticos globales ajustados estadísticamente a CR2MET) entre 1980–2010 y 2035–2065. Escenario moderado (SSP2-4.5) = el mundo reduce emisiones a un ritmo intermedio; escenario alto (SSP5-8.5) = las emisiones siguen creciendo. "—" = ARClim no permite proyectar ese dato con la misma definición. Índices calculados con promedios mensuales. Los datos son de una celda de ~5 km (elevación media 5 m): no captan el microclima de un cuartel. En fondos de valle las heladas pueden ser más frecuentes y en laderas la temperatura puede diferir.
+
+Cepas según su rango térmico publicado
+Cepa	Rango óptimo (temp. media de temporada)	¿Calza hoy?	¿Calza 2035–2065?
+Pinot Noir	14,0–16,0 °C	Sí	Sí
+Chardonnay	14,0–18,0 °C	Sí	Sí
+Cabernet Franc	15,4–19,8 °C	En el límite	Sí
+Cabernet Sauvignon	16,8–20,2 °C	No	En el límite
+
+Cómo leerla: cada cepa madura bien dentro de un rango de temperatura media de temporada. "Sí" = la temperatura del terreno (14,9 °C) cae dentro del rango; "En el límite" = queda a menos de 1 °C del rango (margen por la incertidumbre de los datos). Rangos publicados en texto por G. V. Jones (ver Fuentes). Otras cepas (Carmenère, Syrah, Merlot, Sauvignon Blanc…) no se listan porque no encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
+
+Comparar con el estudio oficial de CIREN (zona COSTA PICHILEMU-LOS MAQUIS-MATANZAS)
+Necesidad de riego estimada (FAO-56)
+Temporada oct–abr	ARClim 1980–2010	ARClim 2035–2065 (SSP2-4.5)	Estudio CIREN
+Evapotranspiración de referencia (ET0)
+Agua que el clima "saca" de un pasto bien regado (por sol, calor, viento y aire seco). Mide la demanda de agua del lugar.
+	676 mm	704 mm	951 mm
+Consumo de la viña (ETc = Kc × ET0)
+La viña consume menos que el pasto de referencia: se multiplica ET0 por el coeficiente de cultivo Kc de la vid (FAO-56), que sube a medida que crecen las hojas.
+	362 mm	377 mm	531 mm
+Lluvia
+Lluvia de octubre a abril.
+	75 mm	63 mm	59 mm
+Riego necesario (aprox.)
+Consumo de la viña menos la lluvia. 1 mm de agua sobre 1 hectárea = 10 m³ (10.000 litros).
+	287 mm ≈ 2.870 m³/ha	314 mm ≈ 3.140 m³/ha	472 mm ≈ 4.718 m³/ha
+
+Kc de vid vinífera FAO-56: 0,30 (brotación) → 0,70 (enero–febrero) → 0,45 (cosecha). Estimación de referencia para una viña adulta sin estrés hídrico: no descuenta la lluvia que no aprovecha el cultivo ni la eficiencia del sistema de riego. Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998). Las dos fuentes oficiales difieren porque usan datos y métodos distintos; tómalas como un rango. Ojo: entre octubre y abril de 2016–2026 llovieron en promedio 53 mm (CR2MET): si llueve menos de lo que considera la tabla, el riego necesario aumenta en esa diferencia.
+
+Próximos 7 días (pronóstico)
+ET0 24 mm · lluvia 19 mm
+Consumo esperado de una viña en plena temporada (Kc 0,70): 17 mm ≈ 168 m³/ha.
+Suelo — capacidad de uso (CIREN)
+Sin dato
+
+CIREN marca estos puntos como "N.C." (no clasificados en el estudio agrológico).
+
+Propiedades del suelo y erosión
+
+El mapa mundial de suelos SoilGrids no tiene estimación para el centro del terreno (ocurre en zonas urbanas, roca o agua).
+
+Erosión en el centro del terreno (CIREN)
+Erosión actual
+Pérdida de suelo que ya ocurrió (por agua o viento), según CIREN.
+no evaluada por CIREN (categoría «otros usos»)
+Riesgo de erosión actual
+Probabilidad de que el suelo se erosione con su cobertura vegetal actual.
+no evaluada por CIREN (categoría «otros usos»)
+Riesgo de erosión potencial
+Riesgo si el suelo quedara sin vegetación (por ejemplo, al preparar el terreno para plantar).
+no evaluada por CIREN (categoría «otros usos»)
+Pendiente y relieve
+Buena opción
+Pendiente media
+Cuántos metros sube el terreno por cada 100 m horizontales. 10% = sube 10 m cada 100 m.
+7%
+Pendiente media 7% (inclinado, clases FAO).
+Superficie con pendiente > 15% / > 30%
+Parte del terreno con laderas fuertes: sobre 15% se complica la mecanización y sobre 30% suele requerir terrazas o trabajo manual.
+2% / 0%
+Altitud
+Altura mínima y máxima del terreno sobre el nivel del mar.
+16–48 m s.n.m.
+Exposición general
+Hacia dónde mira la ladera. En el hemisferio sur, las laderas que miran al norte reciben más sol y calor; las que miran al sur, menos.
+Noroeste
+En el hemisferio sur, las laderas con exposición norte reciben más radiación solar.
+Agua para riego (DGA)
+Con manejo
+Agua subterránea
+Zona de Prohibición
+SHAC Laguna de Cahuil
+Acuífero Costeras VI
+Abierto
+SHAC Pichilemu
+Acuífero Costeras VI
+
+Zona de Prohibición: la DGA no otorga nuevos derechos de aprovechamiento de agua subterránea en este sector. Para regar se necesitan derechos de agua ya existentes (comprados o propios del predio).
+
+Agua superficial
+
+El terreno no está en una fuente superficial declarada agotada por la DGA.
+
+Cómo leerlo: la DGA divide cada acuífero en sectores llamados SHAC (Sector Hidrogeológico de Aprovechamiento Común) y define si se pueden pedir nuevos derechos de agua subterránea: Abierto = se pueden pedir; Área de Restricción = solo derechos provisionales; Zona de Prohibición = no se otorgan nuevos derechos. En agua superficial, una declaración de agotamiento significa que ese río o estero no admite nuevos derechos permanentes. Es la situación administrativa de la fuente; no reemplaza revisar los derechos de agua que ya tenga el predio (Catastro Público de Aguas de la DGA).
+
+Escasez hídrica (DGA)
+Buena opción
+
+Un decreto de escasez es una declaración del Ministerio de Obras Públicas para zonas con sequía extraordinaria; durante su vigencia la DGA puede tomar medidas especiales para redistribuir el agua (Código de Aguas, art. 314). Que una zona tenga decretos repetidos indica que la falta de agua es frecuente.
+
+Sin decreto de escasez vigente para este terreno: según el listado oficial de la DGA (revisado el 28-10-2026), hoy hay 5 decretos vigentes en el país y ninguno cubre esta zona.
+
+Historial: 5 decretos de escasez han cubierto este terreno, en 4 años distintos entre 2016 y 2023 (zona con escasez recurrente; la capa de la DGA llega hasta 2023).
+
+Decreto	Vigencia	Territorio
+N° 27/2022	01 mar 2022 – 01 sept 2022	Libertador General Bernardo O'Higgins
+N° 179/2021	31 ago 2021 – 01 mar 2022	Libertador General Bernardo O'Higgins
+N° 54/2020	06 abr 2020 – 06 oct 2020	Libertador General Bernardo O'Higgins
+N° 116/2019	04 oct 2019 – 04 abr 2020	Libertador General Bernardo O'Higgins
+N° 125/2008	29 ene 2008 – 29 jul 2008	Cuencas Secano Provincia Cardenal Caro
+
+Estado de hoy: listado oficial de decretos vigentes de la DGA (revisado el 28-10-2026). Historial: capa de mapas de la DGA, que llega hasta el 21 abr 2023.
+
+Tiempo actual y pronóstico
+
+Ahora: 16,0 °C · humedad 85% · viento 7 km/h
+
+Cómo leerlo: "Lluvia" muestra los milímetros esperados y, entre paréntesis, la probabilidad de que llueva algo ese día. ET0 = agua que el clima evapora ese día (ver Riego). Ojo: los modelos de pronóstico pueden subestimar el frío de la madrugada en fondos de valle; una mínima pronosticada de 2–3 °C puede ser helada en el predio.
+
+Día	Mín / máx	Lluvia	Ráfagas	ET0
+mié, 28 oct	13° / 19°	0,0 mm (0%)	31 km/h	4,4 mm
+jue, 29 oct	11° / 19°	0,0 mm (0%)	43 km/h	3,2 mm
+vie, 30 oct	12° / 18°	0,0 mm (0%)	32 km/h	3,6 mm
+sáb, 31 oct	14° / 18°	0,9 mm (16%)	28 km/h	2,4 mm
+dom, 1 nov	11° / 18°	0,0 mm (10%)	43 km/h	3,9 mm
+lun, 2 nov	12° / 19°	0,0 mm (1%)	37 km/h	4,2 mm
+mar, 3 nov	11° / 19°	18,2 mm (19%)	75 km/h	2,2 mm
+mié, 4 nov	12° / 17°	1,0 mm (20%)	62 km/h	4,3 mm
+jue, 5 nov	9° / 15°	12,6 mm (3%)	42 km/h	2,5 mm
+vie, 6 nov	9° / 16°	1,8 mm (2%)	35 km/h	3,8 mm
+sáb, 7 nov	11° / 18°	0,0 mm (1%)	45 km/h	4,1 mm
+dom, 8 nov	11° / 18°	0,0 mm (4%)	53 km/h	4,0 mm
+lun, 9 nov	11° / 19°	0,0 mm (2%)	45 km/h	4,4 mm
+mar, 10 nov	13° / 20°	0,0 mm (0%)	40 km/h	4,2 mm
+mié, 11 nov	12° / 20°	0,0 mm (2%)	48 km/h	4,4 mm
+jue, 12 nov	13° / 23°	0,0 mm (0%)	34 km/h	5,3 mm
+
+Pronóstico Open-Meteo (combina modelos de servicios meteorológicos nacionales, ECMWF, GFS y otros).
+
+Temperatura
+Lluvia
+Viento
+Ráfagas
+Nubes
+Humedad
+Abrir en Windy ↗
+
+Mapa interactivo de Windy.com (modelo ECMWF). Usa la línea de tiempo inferior para ver el pronóstico de los próximos días hora a hora.
+
+WineCheck es una herramienta de prefactibilidad. No reemplaza el estudio de suelo en terreno (calicatas), la verificación de derechos de agua del predio ni la revisión legal y ambiental del proyecto.
+Fuentes y cómo leerlas
+
+Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales. Cada fuente se puede verificar en su enlace. Consulta realizada el 28-10-2026 a las 22:40 h.
+
+Ubicación — División Político-Administrativa (MOP) y cuencas (MMA)
+consultada
+Denominaciones de origen — Decreto N° 464 de 1994 (Ministerio de Agricultura)
+consultada
+Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2
+consultada
+Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)
+consultada
+Cepas — rangos térmicos de G. V. Jones
+consultada
+Agroclima — CIREN, zonificación agroclimática regional
+consultada
+Riego — FAO, Estudio Riego y Drenaje N° 56
+consultada
+Suelo — CIREN, Estudios Agrológicos (capacidad de uso)
+consultada
+Propiedades del suelo — ISRIC SoilGrids 2.0
+consultada
+Erosión — CIREN, Determinación de la Erosión Actual y Potencial
+consultada
+Uso actual del suelo — Catastro de Uso de la Tierra de CONAF
+consultada
+Agua subterránea — DGA (Ministerio de Obras Públicas)
+consultada
+Agua superficial — DGA, declaraciones de agotamiento
+consultada
+Escasez hídrica — DGA, decretos de escasez
+consultada
+Humedales — MMA, Inventario Nacional de Humedales
+consultada
+Ríos, esteros y canales — MMA, red hidrográfica
+consultada
+Áreas protegidas — SMA, Áreas de protección oficial
+consultada
+Límites urbanos y áreas de riesgo — MINVU (planes reguladores)
+consultada
+Pendiente y elevación — Copernicus DEM GLO-90, vía Open-Meteo
+consultada
+Pronóstico y tiempo en vivo — Open-Meteo y Windy
+consultada
+
+Búsqueda de lugares: Nominatim (OpenStreetMap). Mapas base: OpenStreetMap y Esri.

@@ -1,0 +1,30 @@
+ancho 390 scrollWidth 390
+  desborde paine 390 [390, ['A. 392', 'A. 465', 'A. 551', 'A. 621', 'A. 732', 'A. 823']]
+ok paine 390
+ancho 1366 scrollWidth 1366
+  desborde paine 1366 [1366, []]
+ok paine 1366
+  desborde pencahue 1366 [1366, []]
+ok pencahue 1366
+  desborde vicuna 1366 [1366, []]
+ok vicuna 1366
+  desborde casablanca 1366 [1366, []]
+ok casablanca 1366
+  desborde aculeo_orilla 1366 [1366, []]
+ok aculeo_orilla 1366
+  desborde la_campana 1366 [1366, []]
+ok la_campana 1366
+  desborde apalta 1366 [1366, []]
+ok apalta 1366
+  desborde embalse_rapel 1366 [1366, []]
+ok embalse_rapel 1366
+  desborde osorno 1366 [1366, []]
+ok osorno 1366
+  desborde coyhaique 1366 [1366, []]
+ok coyhaique 1366
+  desborde pichilemu_mar 1366 [1366, []]
+ok pichilemu_mar 1366
+  desborde pichilemu_costa 1366 [1366, []]
+ok pichilemu_costa 1366
+  desborde mendoza_argentina 1366 [1366, []]
+ok mendoza_argentina 1366

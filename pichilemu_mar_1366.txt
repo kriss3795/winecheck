@@ -1,0 +1,88 @@
+[7 s]
+WineCheck
+
+¿Se puede plantar una viña aquí?
+Prefactibilidad con datos oficiales de Chile.
+
+Buscar
+Mapa
+Satélite
+Relieve
+Tiempo en vivo (Windy)
++
+−
+ Leaflet | © Esri World Imagery
+ disponible
+ con advertencia
+ restringido
+(42 puntos de muestreo)
+
+Toca el mapa para marcar las esquinas del terreno, en orden alrededor del borde (mínimo 3). 4 puntos · 36,6 ha
+
+Analizar terreno
+Deshacer punto
+Reiniciar
+No recomendado
+No se puede plantar en este terreno: mar (100%).
+Por eso no se muestran clima, suelo ni agua: no aplican en este lugar.
+Ubicación
+Sin dato
+
+El terreno no está dentro de Chile según la División Político-Administrativa oficial.
+
+Superficie y restricciones territoriales
+No recomendado
+Superficie marcada
+36,6 ha
+Disponible para plantar
+0,0 ha (0%)
+Mar
+100% del terreno
+Elevación ≤ 0 m según el modelo Copernicus.
+WineCheck es una herramienta de prefactibilidad. No reemplaza el estudio de suelo en terreno (calicatas), la verificación de derechos de agua del predio ni la revisión legal y ambiental del proyecto.
+Fuentes y cómo leerlas
+
+Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales. Cada fuente se puede verificar en su enlace. Consulta realizada el 28-10-2026 a las 22:39 h.
+
+Ubicación — División Político-Administrativa (MOP) y cuencas (MMA)
+consultada
+Denominaciones de origen — Decreto N° 464 de 1994 (Ministerio de Agricultura)
+consultada
+Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2
+no aplica
+Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)
+no aplica
+Cepas — rangos térmicos de G. V. Jones
+no aplica
+Agroclima — CIREN, zonificación agroclimática regional
+no aplica
+Riego — FAO, Estudio Riego y Drenaje N° 56
+no aplica
+Suelo — CIREN, Estudios Agrológicos (capacidad de uso)
+no aplica
+Propiedades del suelo — ISRIC SoilGrids 2.0
+no aplica
+Erosión — CIREN, Determinación de la Erosión Actual y Potencial
+no aplica
+Uso actual del suelo — Catastro de Uso de la Tierra de CONAF
+consultada
+Agua subterránea — DGA (Ministerio de Obras Públicas)
+consultada
+Agua superficial — DGA, declaraciones de agotamiento
+consultada
+Escasez hídrica — DGA, decretos de escasez
+consultada
+Humedales — MMA, Inventario Nacional de Humedales
+consultada
+Ríos, esteros y canales — MMA, red hidrográfica
+consultada
+Áreas protegidas — SMA, Áreas de protección oficial
+consultada
+Límites urbanos y áreas de riesgo — MINVU (planes reguladores)
+consultada
+Pendiente y elevación — Copernicus DEM GLO-90, vía Open-Meteo
+consultada
+Pronóstico y tiempo en vivo — Open-Meteo y Windy
+no aplica
+
+Búsqueda de lugares: Nominatim (OpenStreetMap). Mapas base: OpenStreetMap y Esri.

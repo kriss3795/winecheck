@@ -1,0 +1,332 @@
+[10 s]
+WineCheck
+
+¿Se puede plantar una viña aquí?
+Prefactibilidad con datos oficiales de Chile.
+
+Buscar
+Mapa
+Satélite
+Relieve
+Tiempo en vivo (Windy)
++
+−
+ Leaflet | © Esri World Imagery
+ disponible
+ con advertencia
+ restringido
+(42 puntos de muestreo)
+
+Toca el mapa para marcar las esquinas del terreno, en orden alrededor del borde (mínimo 3). 4 puntos · 38,4 ha
+
+Analizar terreno
+Deshacer punto
+Reiniciar
+Con manejo (provisorio)
+Ubicación: comuna de Vicuña (Coquimbo), cuenca hidrográfica: Rio Elqui. Pertenece a la denominación de origen Valle del Elqui, Región Vitícola de Coquimbo.
+Superficie marcada: 38,4 ha, sin superficie restringida por agua, humedales ni áreas protegidas.
+Límite urbano: el 100% del terreno está dentro de un límite urbano (Límite urbano de Vicuna — Plan regulador comunal de Vicuna; Límite urbano); ahí el uso del suelo lo define el plan regulador y la plantación agrícola puede no estar permitida.
+Áreas de riesgo del plan regulador: AR-1, Área de riesgo propensa a avalanchas, rodados, aluviones o erosiones acentuadas (remoción en masa).
+Clima (promedio de las temporadas 2016–2026, CR2MET): 2.083 grados-día, Región IV de Winkler; temperatura media de temporada 19,8 °C (categoría calurosa según Jones). Hacia 2035–2065 (escenario moderado SSP2-4.5, cambio proyectado por ARClim) llegaría a 21,3 °C.
+Lluvia: solo 87 mm al año en promedio (zona muy seca). Toda el agua de la viña tendría que venir del riego, así que contar con derechos de agua es indispensable.
+Suelo (CIREN): clase III en 21% de la superficie disponible; el 79% restante CIREN no lo clasificó (N.C.), así que el dato de suelo cubre solo una parte del terreno.
+Erosión: CIREN no la evaluó en el centro del terreno (lo marca como «otros usos»).
+Relieve: pendiente media 3% (manejable).
+Riego (método FAO-56): la viña consumiría unos 521 mm por temporada (evapotranspiración de ARClim, 1980–2010). Con la lluvia de las últimas 10 temporadas (13 mm entre octubre y abril, CR2MET), habría que aportar del orden de 508 mm (≈ 5.080 m³/ha). Es una referencia para una viña adulta; no incluye las pérdidas del sistema de riego.
+Agua superficial: Río Elqui y sus afluentes tiene declaración de agotamiento de la DGA (no se otorgan nuevos derechos permanentes).
+Agua subterránea (DGA): Zona de Prohibición (SHAC Elqui Alto).
+Escasez hídrica: Hay decreto de escasez hídrica VIGENTE para este terreno según el listado oficial de la DGA (revisado el 28-10-2026): Decreto MOP N° 179 de 2026 (prórroga del N° 75 de 2025), provincia Elqui, vigente hasta el 13-07-2027.
+Advertencias (no impiden plantar, pero hay que revisarlas): Zona de Interés Turístico (SERNATUR): Valle del Elqui.
+Cepas cuyo rango térmico publicado incluye esta zona: Cabernet Franc, Cabernet Sauvignon.
+Conclusión: es plantable, con manejo técnico en: agua subterránea, escasez hídrica, agua superficial (agotamiento), límite urbano, áreas de riesgo.
+Ubicación
+Restricciones
+Clima
+Riego
+Suelo
+Relieve
+Agua
+Pronóstico
+Fuentes
+Ubicación y denominación de origen
+Comuna
+Vicuña
+Provincia de Elqui · Región de Coquimbo
+Cuenca hidrográfica
+Rio Elqui
+Subcuenca: R. Elqui Medio
+Denominación de origen (vinos)
+Valle del Elqui
+Región Vitícola de Coquimbo. Según la zonificación vitícola del Decreto 464 (Ministerio de Agricultura).
+Superficie y restricciones territoriales
+Con manejo
+Superficie marcada
+38,4 ha
+Disponible para plantar
+38,4 ha (100%)
+Advertencias
+100% del terreno
+Zona de Interés Turístico (SERNATUR): Valle del Elqui. No impide plantar, pero conviene revisar sus normas.
+Límite urbano (MINVU)
+100% del terreno
+Límite urbano de Vicuna — Plan regulador comunal de Vicuna; Límite urbano. Dentro del límite urbano el uso del suelo lo define el plan regulador; la plantación agrícola puede no estar permitida.
+Áreas de riesgo (plan regulador)
+1 zona
+AR-1, Área de riesgo propensa a avalanchas, rodados, aluviones o erosiones acentuadas (remoción en masa).
+Uso actual del suelo (catastro CONAF)
+Áreas Urbanas e Industriales · Ciudades · Pueblos · Zonas Industriales
+76% del terreno
+Terrenos Agrícolas · Terreno de Uso Agrícola
+24% del terreno
+
+Catastro de Uso de la Tierra de CONAF, actualización regional al año 2019 (publicado por CIREN en la IDE del Ministerio de Agricultura). Porcentajes según los puntos de muestreo del terreno. El uso real puede haber cambiado desde esa fecha: revísalo con la imagen satelital.
+
+Clima del terreno
+Buena opción
+
+Clima actual: promedio de las últimas 10 temporadas (2016–2026) según CR2MET, la grilla climática chilena calibrada con estaciones. Debajo de cada número se explica qué significa.
+
+Región de Winkler
+Escala clásica que agrupa las zonas vitícolas del mundo según sus grados-día: de Ia (la más fresca) a V (la más cálida).
+Región IV (1.944–2.222 °C·día)
+Categoría según temperatura de temporada (Jones)
+Clasificación de G. V. Jones: fresca 13–15 °C, intermedia 15–17, cálida 17–19, calurosa 19–21, muy calurosa 21–24 °C.
+calurosa
+Índice de Huglin (Tonietto & Carbonneau)
+Clases del Sistema de Clasificación Climática Multicriterio (Tonietto & Carbonneau, 2004): muy fresco, fresco, templado, templado cálido, cálido y muy cálido.
+cálido
+Índice de frío nocturno (Tonietto & Carbonneau)
+Según la mínima media de marzo: noches muy frías (≤ 12 °C), frías (12–14), templadas (14–18) o cálidas (> 18 °C).
+noches muy frías
+Temperatura media de temporada dentro del rango que Jones asocia a vinos de calidad (13–21 °C).
+En promedio 1,2 días al año superan los 35 °C (dato informativo: temperaturas así reducen la fotosíntesis de la vid y pueden afectar la maduración; su efecto depende del manejo y la cepa).
+Variable	Actual (CR2MET)
+2016–2026	2035–2065 escenario moderado (SSP2-4.5)	2035–2065 escenario alto (SSP5-8.5)
+Grados-día de Winkler (base 10 °C, oct–abr)
+Calor útil acumulado para la vid: cada día de octubre a abril se suma cuántos grados la temperatura media superó los 10 °C (bajo 10 °C la vid prácticamente no crece). Más grados-día = más calor para madurar la uva.
+	2.083 °C·día	2.401 °C·día	2.508 °C·día
+Temperatura media de temporada (oct–abr)
+Promedio de la temperatura de octubre a abril, la temporada de crecimiento de la vid en Chile. Es el valor que se compara con el rango de cada cepa.
+	19,8 °C	21,3 °C	21,8 °C
+Índice heliotérmico de Huglin
+Parecido a los grados-día, pero da más peso al calor de la tarde (usa también la temperatura máxima) y ajusta por el largo del día según la latitud. Se calcula de octubre a marzo.
+	2.769	3.043	3.134
+Mínima media de marzo (frío nocturno)
+Promedio de las temperaturas mínimas (de la noche) en marzo, mes de maduración. Noches frescas favorecen el color y los aromas de la uva.
+	11,4 °C	12,7 °C	13,2 °C
+Máxima media de enero
+Promedio de las temperaturas máximas de cada día de enero, normalmente el mes más caluroso.
+	31,2 °C	32,7 °C	33,2 °C
+Temperatura media de enero
+Promedio de la temperatura de enero (día y noche).
+	21,6 °C	23,1 °C	23,6 °C
+Días con helada en primavera (mínima ≤ 0 °C, sep–nov)
+Días al año en que la mínima llegó a 0 °C o menos entre septiembre y noviembre, cuando la vid brota y florece. Una helada en ese momento puede quemar brotes y bajar la cosecha.
+	0,0 días	—	—
+Días con helada al año (mínima ≤ 0 °C)
+Días al año con mínima de 0 °C o menos. En invierno la vid está en reposo y tolera el frío; las peligrosas son las de primavera.
+	0,8 días	—	—
+Días con máxima sobre 30 °C al año
+Días al año con temperatura máxima sobre 30 °C.
+	123,3 días	—	—
+Días con máxima sobre 35 °C al año
+Días al año con máxima sobre 35 °C. Con ese calor la vid se estresa y reduce su actividad.
+	1,2 días	—	—
+Lluvia anual
+Lluvia total en el año (de mayo a abril).
+	87 mm	80 mm	82 mm
+Lluvia de temporada (oct–abr)
+Lluvia de octubre a abril, cuando la vid consume agua. En Chile central es poca: el resto debe venir del riego.
+	13 mm	11 mm	12 mm
+
+Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, Universidad de Chile. Es una grilla diaria de ~5 km que ajusta el reanálisis ERA5 con estaciones meteorológicas chilenas (DGA, DMC, INIA y otras); promedio de mayo 2016 a abril 2026. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de varios modelos climáticos globales ajustados estadísticamente a CR2MET) entre 1980–2010 y 2035–2065. Escenario moderado (SSP2-4.5) = el mundo reduce emisiones a un ritmo intermedio; escenario alto (SSP5-8.5) = las emisiones siguen creciendo. "—" = ARClim no permite proyectar ese dato con la misma definición. Índices calculados con promedios mensuales. Los datos son de una celda de ~5 km (elevación media 713 m): no captan el microclima de un cuartel. En fondos de valle las heladas pueden ser más frecuentes y en laderas la temperatura puede diferir.
+
+Cepas según su rango térmico publicado
+Cepa	Rango óptimo (temp. media de temporada)	¿Calza hoy?	¿Calza 2035–2065?
+Pinot Noir	14,0–16,0 °C	No	No
+Chardonnay	14,0–18,0 °C	No	No
+Cabernet Franc	15,4–19,8 °C	Sí	No
+Cabernet Sauvignon	16,8–20,2 °C	Sí	No
+
+Cómo leerla: cada cepa madura bien dentro de un rango de temperatura media de temporada. "Sí" = la temperatura del terreno (19,8 °C) cae dentro del rango; "En el límite" = queda a menos de 1 °C del rango (margen por la incertidumbre de los datos). Rangos publicados en texto por G. V. Jones (ver Fuentes). Otras cepas (Carmenère, Syrah, Merlot, Sauvignon Blanc…) no se listan porque no encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
+
+Necesidad de riego estimada (FAO-56)
+Temporada oct–abr	ARClim 1980–2010	ARClim 2035–2065 (SSP2-4.5)
+Evapotranspiración de referencia (ET0)
+Agua que el clima "saca" de un pasto bien regado (por sol, calor, viento y aire seco). Mide la demanda de agua del lugar.
+	961 mm	1.032 mm
+Consumo de la viña (ETc = Kc × ET0)
+La viña consume menos que el pasto de referencia: se multiplica ET0 por el coeficiente de cultivo Kc de la vid (FAO-56), que sube a medida que crecen las hojas.
+	521 mm	559 mm
+Lluvia
+Lluvia de octubre a abril.
+	17 mm	14 mm
+Riego necesario (aprox.)
+Consumo de la viña menos la lluvia. 1 mm de agua sobre 1 hectárea = 10 m³ (10.000 litros).
+	504 mm ≈ 5.040 m³/ha	545 mm ≈ 5.450 m³/ha
+
+Kc de vid vinífera FAO-56: 0,30 (brotación) → 0,70 (enero–febrero) → 0,45 (cosecha). Estimación de referencia para una viña adulta sin estrés hídrico: no descuenta la lluvia que no aprovecha el cultivo ni la eficiencia del sistema de riego. Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998). Ojo: entre octubre y abril de 2016–2026 llovieron en promedio 13 mm (CR2MET): si llueve menos de lo que considera la tabla, el riego necesario aumenta en esa diferencia.
+
+Próximos 7 días (pronóstico)
+ET0 32 mm · lluvia 4 mm
+Consumo esperado de una viña en plena temporada (Kc 0,70): 22 mm ≈ 222 m³/ha.
+Suelo — capacidad de uso (CIREN)
+Dato parcial
+Clase III — 21% de la superficie disponible
+Arable, con limitaciones moderadas: dificultan el laboreo con pendientes cercanas al 8% o hasta 15% de piedras en superficie, y requieren prácticas de conservación de suelos. También puede deberse a menor profundidad, drenaje imperfecto, erosión moderada, inundaciones frecuentes o algo de sales o sodio.
+No clasificado (N.C.) — 79%
+Sectores a los que CIREN no asignó clase en su estudio. En nuestras pruebas aparece en ciudades (Santiago, Rancagua, Paine) y en cerros no estudiados: ahí no hay dato de suelo.
+
+Cómo leerlo: la capacidad de uso (clases I a VIII, Pauta para Estudio de Suelos del SAG) ordena los suelos según cuántas limitaciones tienen para cultivar: I = casi sin limitaciones; VIII = sin valor agrícola. Las clases I–IV son "arables" (se pueden arar y cultivar) y las V–VIII no arables. Mide la aptitud para cultivos en general, no específicamente para vid. Los porcentajes indican qué parte de los puntos de muestreo del terreno cayó en cada clase. El color de cada clase es criterio de WineCheck. Confirmar siempre con calicatas. Estudio: REGIÓN DE COQUIMBO (CIREN 2022). Basado en 42 puntos.
+
+Propiedades del suelo y erosión
+
+El mapa mundial de suelos SoilGrids no tiene estimación para el centro del terreno (ocurre en zonas urbanas, roca o agua).
+
+Erosión en el centro del terreno (CIREN)
+Erosión actual
+Pérdida de suelo que ya ocurrió (por agua o viento), según CIREN.
+no evaluada por CIREN (categoría «otros usos»)
+Riesgo de erosión actual
+Probabilidad de que el suelo se erosione con su cobertura vegetal actual.
+no evaluada por CIREN (categoría «otros usos»)
+Riesgo de erosión potencial
+Riesgo si el suelo quedara sin vegetación (por ejemplo, al preparar el terreno para plantar).
+no evaluada por CIREN (categoría «otros usos»)
+Pendiente y relieve
+Buena opción
+Pendiente media
+Cuántos metros sube el terreno por cada 100 m horizontales. 10% = sube 10 m cada 100 m.
+3%
+Pendiente media 3% (suavemente inclinado, clases FAO).
+Superficie con pendiente > 15% / > 30%
+Parte del terreno con laderas fuertes: sobre 15% se complica la mecanización y sobre 30% suele requerir terrazas o trabajo manual.
+2% / 0%
+Altitud
+Altura mínima y máxima del terreno sobre el nivel del mar.
+613–642 m s.n.m.
+Exposición general
+Hacia dónde mira la ladera. En el hemisferio sur, las laderas que miran al norte reciben más sol y calor; las que miran al sur, menos.
+terreno prácticamente plano
+Agua para riego (DGA)
+Con manejo
+Agua subterránea
+Zona de Prohibición
+SHAC Elqui Alto
+Acuífero Rio Elqui
+
+Zona de Prohibición: la DGA no otorga nuevos derechos de aprovechamiento de agua subterránea en este sector. Para regar se necesitan derechos de agua ya existentes (comprados o propios del predio).
+
+Agua superficial
+Declaración de agotamiento
+Río Elqui y sus afluentes
+Resolución DGA N° 1515 del 25 may 2009
+
+Fuente superficial declarada agotada por la DGA: no se otorgan nuevos derechos consuntivos permanentes de agua superficial (Art. 282 del Código de Aguas). El riego debe venir de derechos existentes.
+
+Cómo leerlo: la DGA divide cada acuífero en sectores llamados SHAC (Sector Hidrogeológico de Aprovechamiento Común) y define si se pueden pedir nuevos derechos de agua subterránea: Abierto = se pueden pedir; Área de Restricción = solo derechos provisionales; Zona de Prohibición = no se otorgan nuevos derechos. En agua superficial, una declaración de agotamiento significa que ese río o estero no admite nuevos derechos permanentes. Es la situación administrativa de la fuente; no reemplaza revisar los derechos de agua que ya tenga el predio (Catastro Público de Aguas de la DGA).
+
+Escasez hídrica (DGA)
+Con manejo
+
+Un decreto de escasez es una declaración del Ministerio de Obras Públicas para zonas con sequía extraordinaria; durante su vigencia la DGA puede tomar medidas especiales para redistribuir el agua (Código de Aguas, art. 314). Que una zona tenga decretos repetidos indica que la falta de agua es frecuente.
+
+Hay decreto de escasez hídrica VIGENTE para este terreno según el listado oficial de la DGA (revisado el 28-10-2026): Decreto MOP N° 179 de 2026 (prórroga del N° 75 de 2025), provincia Elqui, vigente hasta el 13-07-2027.
+
+Historial: 18 decretos de escasez han cubierto este terreno, en 7 años distintos entre 2016 y 2023 (zona con escasez recurrente; la capa de la DGA llega hasta 2023).
+
+Decreto	Vigencia	Territorio
+N° 109/2022	06 jul 2022 – 06 jul 2023	Coquimbo
+N° 4/2022	05 ene 2022 – 06 jul 2022	Coquimbo
+N° 125/2021	05 jul 2021 – 05 ene 2022	Coquimbo
+N° 2/2021	04 ene 2021 – 04 jul 2021	Coquimbo
+N° 72/2020	01 jul 2020 – 01 ene 2021	Coquimbo
+N° 156/2019	31 dic 2019 – 30 jun 2020	Coquimbo
+N° 68/2019	28 jun 2019 – 28 dic 2019	Coquimbo
+N° 150/2018	27 nov 2018 – 27 may 2019	Coquimbo
+
+Estado de hoy: listado oficial de decretos vigentes de la DGA (revisado el 28-10-2026). Historial: capa de mapas de la DGA, que llega hasta el 21 abr 2023.
+
+Tiempo actual y pronóstico
+
+Ahora: 20,6 °C · humedad 61% · viento 8 km/h
+
+Cómo leerlo: "Lluvia" muestra los milímetros esperados y, entre paréntesis, la probabilidad de que llueva algo ese día. ET0 = agua que el clima evapora ese día (ver Riego). Ojo: los modelos de pronóstico pueden subestimar el frío de la madrugada en fondos de valle; una mínima pronosticada de 2–3 °C puede ser helada en el predio.
+
+Día	Mín / máx	Lluvia	Ráfagas	ET0
+mié, 28 oct	16° / 25°	0,0 mm (83%)	29 km/h	4,7 mm
+jue, 29 oct	15° / 26°	1,1 mm (100%)	36 km/h	4,9 mm
+vie, 30 oct	15° / 25°	2,1 mm (100%)	32 km/h	4,8 mm
+sáb, 31 oct	13° / 19°	0,3 mm (100%)	29 km/h	2,9 mm
+dom, 1 nov	12° / 23°	0,0 mm (43%)	29 km/h	4,8 mm
+lun, 2 nov	14° / 24°	0,0 mm (29%)	36 km/h	5,1 mm
+mar, 3 nov	13° / 22°	0,0 mm (21%)	43 km/h	4,4 mm
+mié, 4 nov	12° / 24°	0,0 mm (10%)	42 km/h	5,4 mm
+jue, 5 nov	11° / 22°	0,0 mm (1%)	45 km/h	5,0 mm
+vie, 6 nov	11° / 20°	0,0 mm (6%)	33 km/h	3,8 mm
+sáb, 7 nov	11° / 31°	0,0 mm (4%)	44 km/h	6,4 mm
+dom, 8 nov	18° / 29°	0,0 mm (5%)	40 km/h	6,3 mm
+lun, 9 nov	18° / 29°	0,0 mm (5%)	35 km/h	6,1 mm
+mar, 10 nov	20° / 31°	0,0 mm (0%)	39 km/h	6,3 mm
+mié, 11 nov	19° / 29°	0,0 mm (0%)	37 km/h	6,0 mm
+jue, 12 nov	19° / 29°	0,0 mm (0%)	25 km/h	6,7 mm
+
+Pronóstico Open-Meteo (combina modelos de servicios meteorológicos nacionales, ECMWF, GFS y otros).
+
+Temperatura
+Lluvia
+Viento
+Ráfagas
+Nubes
+Humedad
+Abrir en Windy ↗
+
+Mapa interactivo de Windy.com (modelo ECMWF). Usa la línea de tiempo inferior para ver el pronóstico de los próximos días hora a hora.
+
+WineCheck es una herramienta de prefactibilidad. No reemplaza el estudio de suelo en terreno (calicatas), la verificación de derechos de agua del predio ni la revisión legal y ambiental del proyecto.
+Fuentes y cómo leerlas
+
+Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales. Cada fuente se puede verificar en su enlace. Consulta realizada el 28-10-2026 a las 22:38 h.
+
+Ubicación — División Político-Administrativa (MOP) y cuencas (MMA)
+consultada
+Denominaciones de origen — Decreto N° 464 de 1994 (Ministerio de Agricultura)
+consultada
+Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2
+consultada
+Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)
+consultada
+Cepas — rangos térmicos de G. V. Jones
+consultada
+Agroclima — CIREN, zonificación agroclimática regional
+consultada
+Riego — FAO, Estudio Riego y Drenaje N° 56
+consultada
+Suelo — CIREN, Estudios Agrológicos (capacidad de uso)
+consultada
+Propiedades del suelo — ISRIC SoilGrids 2.0
+consultada
+Erosión — CIREN, Determinación de la Erosión Actual y Potencial
+consultada
+Uso actual del suelo — Catastro de Uso de la Tierra de CONAF
+consultada
+Agua subterránea — DGA (Ministerio de Obras Públicas)
+consultada
+Agua superficial — DGA, declaraciones de agotamiento
+consultada
+Escasez hídrica — DGA, decretos de escasez
+consultada
+Humedales — MMA, Inventario Nacional de Humedales
+consultada
+Ríos, esteros y canales — MMA, red hidrográfica
+consultada
+Áreas protegidas — SMA, Áreas de protección oficial
+consultada
+Límites urbanos y áreas de riesgo — MINVU (planes reguladores)
+consultada
+Pendiente y elevación — Copernicus DEM GLO-90, vía Open-Meteo
+consultada
+Pronóstico y tiempo en vivo — Open-Meteo y Windy
+consultada
+
+Búsqueda de lugares: Nominatim (OpenStreetMap). Mapas base: OpenStreetMap y Esri.
