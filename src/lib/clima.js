@@ -155,7 +155,7 @@ async function climaActual(clave) {
 
 // Proyección: clima actual observado + CAMBIO que proyecta ARClim entre
 // 1980–2010 y 2035–2065 (método delta). Se usa el cambio y no el valor
-// absoluto de ARClim porque su "presente" es el promedio de 20–30 modelos
+// absoluto de ARClim porque su "presente" es el promedio de varios modelos
 // corregidos, que en algunas celdas difiere en más de 1 °C de lo observado.
 function proyectar(mAct, base, fut, lat) {
   if (!fut) return null;

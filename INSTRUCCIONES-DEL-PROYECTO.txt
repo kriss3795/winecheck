@@ -62,7 +62,7 @@ CLIMA (verificado 26-10-2026)
 - FUTURO 2035–2065 (SSP2-4.5 y SSP5-8.5) = clima actual + CAMBIO que
   proyecta ARClim (MMA) entre 1980–2010 y 2035–2065 (método delta).
   NO se muestra el valor absoluto 1980–2010 de ARClim junto al observado:
-  es el promedio de 20–30 modelos corregidos y en algunas celdas difiere
+  es el promedio de varios modelos climáticos ajustados y en algunas celdas difiere
   > 1 °C de lo observado (Vicuña −2 °C, Casablanca −1,3 °C), lo que
   parecería un cambio climático falso. Heladas y días calurosos de ARClim
   no se proyectan: su metodología no publica la definición.

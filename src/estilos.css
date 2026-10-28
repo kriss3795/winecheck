@@ -305,3 +305,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .tabla td .ayuda-k { max-width: 34ch; }
 .contraste { margin-top: 14px; border-top: 1px solid #f1ebe8; padding-top: 10px; }
 .contraste summary { cursor: pointer; font-weight: 600; color: var(--vino); }
+.punto.parcial { background: #b9bdc4; }
+.veredicto.parcial { border-color: var(--gris-claro); }
+.chip.parcial, .chip.nd { background: var(--gris); }

@@ -62,12 +62,21 @@ const CFG = {
   riesgo: { color: "#e6a100", texto: "Con manejo" },
   veto: { color: "#c62828", texto: "No recomendado" },
   nd: { color: "#6b7280", texto: "Sin dato" },
+  parcial: { color: "#8a8f98", texto: "Dato parcial" },
 };
 function cfg(estado) {
   return CFG[estado] || CFG.nd;
 }
 
 const dec = (n) => (n < 10 ? 2 : 1);
+// "Coquimbo" → "Región de Coquimbo"; "Metropolitana de Santiago" → "Región Metropolitana de Santiago"
+function nombreRegion(r) {
+  const t = String(r || "").trim();
+  if (/^regi[oó]n/i.test(t)) return t;
+  if (/^metropolitana/i.test(t)) return `Región ${t}`;
+  if (/^(libertador|biob|maule|ñuble)/i.test(t)) return `Región del ${t.replace(/^Biob[ií]o$/i, "Biobío")}`;
+  return `Región de ${t}`;
+}
 
 // Une el historial (capa de mapas DGA, hasta 2023) con el listado oficial
 // de decretos VIGENTES de la DGA (actualizado semanalmente).
@@ -576,7 +585,7 @@ function TarjetaUbicacion({ u }) {
     return <SinDato id="s-ubicacion" titulo="Ubicación" texto="El terreno no está dentro de Chile según la División Político-Administrativa oficial." />;
   return (
     <Tarjeta id="s-ubicacion" titulo="Ubicación y denominación de origen">
-      <Fila k="Comuna" v={u.comuna} sub={`Provincia de ${u.provincia} · Región ${u.region}`} />
+      <Fila k="Comuna" v={u.comuna} sub={`Provincia de ${u.provincia} · ${nombreRegion(u.region)}`} />
       {u.cuenca && <Fila k="Cuenca hidrográfica" v={u.cuenca} sub={u.subcuenca ? `Subcuenca: ${u.subcuenca}` : null} />}
       <Fila
         k="Denominación de origen (vinos)"
@@ -634,7 +643,9 @@ function TarjetaTerritorio({ r }) {
           v={R.pctHumedal > 0 ? `${fmt(R.pctHumedal)}% del terreno` : "toca el borde del terreno"}
           sub={
             R.humedalesNat.map((h) => `${h.nombre} (${h.tipo})`).join("; ") +
-            ". Intervenir un humedal (drenar, rellenar, plantar) puede requerir evaluación ambiental; esa superficie se excluye."
+            (R.pctHumedal > 0
+              ? ". Intervenir un humedal (drenar, rellenar, plantar) puede requerir evaluación ambiental; esa superficie se excluye de lo plantable."
+              : ". El humedal queda en el borde del terreno: ninguno de los puntos de muestreo cae dentro, pero conviene verificar el límite en terreno antes de plantar ese sector.")
           }
         />
       )}
@@ -765,7 +776,7 @@ function TarjetaClima({ clima, agroclima, pendiente }) {
     <Tarjeta id="s-clima" titulo="Clima del terreno" estado={clima.estado}>
       <p className="tenue">
         {a
-          ? `Datos observados: promedio de las últimas 10 temporadas (${per.desde}–${per.hasta}). Debajo de cada número se explica qué significa.`
+          ? `Clima actual: promedio de las últimas 10 temporadas (${per.desde}–${per.hasta}) según CR2MET, la grilla climática chilena calibrada con estaciones. Debajo de cada número se explica qué significa.`
           : "No se pudo cargar el clima reciente; la clasificación usa el promedio 1980–2010."}
       </p>
       <Fila
@@ -807,7 +818,7 @@ function TarjetaClima({ clima, agroclima, pendiente }) {
               <th>Variable</th>
               {a ? (
                 <th>
-                  Actual (observado)
+                  Actual (CR2MET)
                   <br />
                   {per.desde}–{per.hasta}
                 </th>
@@ -835,7 +846,7 @@ function TarjetaClima({ clima, agroclima, pendiente }) {
       </div>
       <p className="tenue">
         {a
-          ? `Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, datos diarios observados (construidos con estaciones de la DMC y la DGA), promedio de mayo ${per.desde} a abril ${per.hasta}. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de 20–30 modelos climáticos corregidos) entre 1980–2010 y 2035–2065. Escenario moderado (SSP2-4.5) = el mundo reduce emisiones a un ritmo intermedio; escenario alto (SSP5-8.5) = las emisiones siguen creciendo. "—" = ARClim no permite proyectar ese dato con la misma definición. `
+          ? `Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, Universidad de Chile. Es una grilla diaria de ~5 km que ajusta el reanálisis ERA5 con estaciones meteorológicas chilenas (DGA, DMC, INIA y otras); promedio de mayo ${per.desde} a abril ${per.hasta}. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de varios modelos climáticos globales ajustados estadísticamente a CR2MET) entre 1980–2010 y 2035–2065. Escenario moderado (SSP2-4.5) = el mundo reduce emisiones a un ritmo intermedio; escenario alto (SSP5-8.5) = las emisiones siguen creciendo. "—" = ARClim no permite proyectar ese dato con la misma definición. `
           : "Fuente: ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente (grilla de ~5 km referenciada a CR2MET; futuro según el promedio de modelos climáticos corregidos). "}
         Índices calculados con promedios mensuales. Los datos son de una celda de ~5 km (elevación media{" "}
         {fmt(clima.elevCelda)} m{clima.vecina ? "; se usó la celda vecina más cercana" : ""}): no captan el microclima de un
@@ -1026,7 +1037,7 @@ function TarjetaRiego({ clima, agroclima, pron }) {
         de riego. Método: FAO, Estudio Riego y Drenaje N° 56 (Allen et al., 1998).
         {riego.ciren && " Las dos fuentes oficiales difieren porque usan datos y métodos distintos; tómalas como un rango."}
         {clima && clima.actual
-          ? ` Ojo: entre octubre y abril de ${clima.periodo.desde}–${clima.periodo.hasta} llovieron en promedio ${fmt(clima.actual.lluviaTemp)} mm (CR2MET, observado): si llueve menos de lo que considera la tabla, el riego necesario aumenta en esa diferencia.`
+          ? ` Ojo: entre octubre y abril de ${clima.periodo.desde}–${clima.periodo.hasta} llovieron en promedio ${fmt(clima.actual.lluviaTemp)} mm (CR2MET): si llueve menos de lo que considera la tabla, el riego necesario aumenta en esa diferencia.`
           : ""}
       </p>
       {proxEt0 != null && (
@@ -1314,8 +1325,9 @@ function TarjetaPronostico({ p, centro }) {
             </p>
           )}
           <p className="tenue">
-            Ojo: los modelos de pronóstico tienden a subestimar el frío de la madrugada en los valles; una mínima pronosticada
-            de 2–3 °C puede ser helada en el predio.
+            Cómo leerlo: "Lluvia" muestra los milímetros esperados y, entre paréntesis, la probabilidad de que llueva algo
+            ese día. ET0 = agua que el clima evapora ese día (ver Riego). Ojo: los modelos de pronóstico pueden subestimar el
+            frío de la madrugada en fondos de valle; una mínima pronosticada de 2–3 °C puede ser helada en el predio.
           </p>
           {(p.heladas > 0 || p.riesgoHeladas > 0) && (
             <div className="aviso">
@@ -1431,8 +1443,8 @@ const FUENTES = [
   {
     clave: "clima",
     n: "Clima actual — CR2MET v2.5, Centro de Ciencia del Clima y la Resiliencia (CR)2",
-    por: "Producto científico chileno (Universidad de Chile y otras, financiado por ANID) que reconstruye temperatura máxima, mínima, lluvia y evapotranspiración diarias en una grilla de ~5 km a partir de las estaciones de la Dirección Meteorológica de Chile y la DGA. Es la misma base a la que está referenciado ARClim, y se actualiza todos los meses.",
-    leer: "La columna \"Actual\" es el promedio de las últimas 10 temporadas completas (octubre a abril) observadas, y es la que se usa para clasificar el clima y sugerir cepas. Heladas = días con mínima de 0 °C o menos (misma definición que CIREN). La evapotranspiración de CR2MET (fórmula de Hargreaves-Samani modificada) no se usa: en Paine y Pudahuel daba bastante más que la del estudio agroclimático de CIREN, así que el riego se calcula con ARClim y CIREN.",
+    por: "Producto científico del (CR)2, centro FONDAP con sede en la Universidad de Chile (Boisier, 2023). Reconstruye lluvia y temperaturas máxima y mínima diarias en una grilla de ~5 km para Chile continental, ajustando el reanálisis ERA5 con estaciones de la DGA, la Dirección Meteorológica de Chile, INIA y otras. Es la base a la que está referenciado ARClim. La versión operativa (v2.5_best) se publica con unos 9 días de retraso: hasta 2021 corresponde a la versión final ajustada con observaciones y desde 2022 a la versión preliminar (R1 o casi en tiempo real), que puede corregirse más adelante.",
+    leer: "La columna \"Actual\" es el promedio de las últimas 10 temporadas completas (octubre a abril) y es la que se usa para clasificar el clima y sugerir cepas. Heladas = días con mínima de 0 °C o menos. La evapotranspiración de CR2MET (fórmula de Hargreaves-Samani modificada) no se usa: en Paine y Pudahuel daba bastante más que la del estudio agroclimático de CIREN, así que el riego se calcula con ARClim y CIREN.",
     links: [
       ["Servidor de datos CR2MET", "https://ftp.cr2.cl/browse/cr2met/"],
       ["Documentación de versiones (PDF)", "https://ftp.cr2.cl/download/cr2met/readme.pdf"],
@@ -1442,8 +1454,8 @@ const FUENTES = [
   {
     clave: "clima",
     n: "Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)",
-    por: "Plataforma oficial del MMA. Su clima histórico (1980–2010) está referenciado a CR2MET, la grilla de temperatura y lluvia de ~5 km del Centro de Ciencia del Clima y la Resiliencia (CR)2 construida con estaciones chilenas; el futuro (2035–2065) es el promedio de modelos CMIP6 corregidos, en escenarios SSP2-4.5 y SSP5-8.5.",
-    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Regiones de Winkler: Amerine & Winkler (1944), con el piso de 850 y techo de 2.700 °C·día de Jones et al. (2010) y la división Ia/Ib de Jones et al. (2012); clases de temperatura de temporada: Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). En la app se usa el CAMBIO que proyecta entre 1980–2010 y 2035–2065 (sumado al clima actual observado), y su evapotranspiración para el riego. No se muestra su valor de 1980–2010 junto al observado porque es el promedio de 20–30 modelos corregidos y en algunas celdas (p. ej. Vicuña, Casablanca) difiere en más de 1 °C de lo observado por CR2MET. Se prefirió esta familia de datos (CR2MET/ARClim) porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C.",
+    por: "Plataforma oficial del MMA. Su clima histórico (1980–2010) está referenciado a CR2MET, la grilla de temperatura y lluvia de ~5 km del Centro de Ciencia del Clima y la Resiliencia (CR)2 calibrada con estaciones chilenas; el futuro (2035–2065) es el promedio de modelos climáticos globales CMIP6 ajustados estadísticamente, en escenarios SSP2-4.5 y SSP5-8.5.",
+    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Regiones de Winkler: Amerine & Winkler (1944), con el piso de 850 y techo de 2.700 °C·día de Jones et al. (2010) y la división Ia/Ib de Jones et al. (2012); clases de temperatura de temporada: Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). En la app se usa el CAMBIO que proyecta entre 1980–2010 y 2035–2065 (sumado al clima actual observado), y su evapotranspiración para el riego. No se muestra su valor de 1980–2010 junto al observado porque es el promedio de varios modelos climáticos ajustados y en algunas celdas (p. ej. Vicuña, Casablanca) difiere en más de 1 °C de lo observado por CR2MET. Se prefirió esta familia de datos (CR2MET/ARClim) porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C.",
     links: [
       ["ARClim (MMA)", "https://arclim.mma.gob.cl/"],
       ["Metodología ARClim", "https://arclim.mma.gob.cl/media/learning/Metodologia_ARCLIM.pdf"],
@@ -1464,7 +1476,7 @@ const FUENTES = [
     clave: "agroclima",
     n: "Agroclima — CIREN, zonificación agroclimática regional",
     por: "Estudios oficiales de CIREN (Ministerio de Agricultura) con variables agroclimáticas por zona: suma térmica, horas frío, heladas, evapotranspiración y déficit hídrico, en clima actual y futuro. Disponibles para Atacama, Valparaíso, Metropolitana, O'Higgins y Magallanes.",
-    leer: "Sirve para contrastar ARClim con el estudio local oficial. No se muestran las horas frío: los dos estudios oficiales de CIREN (1988 y 2024) dan valores muy distintos para el mismo lugar.",
+    leer: "Se muestra dentro de la tarjeta de clima como segunda fuente independiente para contrastar CR2MET. Si la máxima de verano difiere 2,5 °C o más entre ambas, la app lo advierte. No se muestran las horas frío: los dos estudios oficiales de CIREN (1988 y 2024) dan valores muy distintos para el mismo lugar.",
     links: [["Servicio de CIREN", URLS.cirenAgroclima]],
   },
   {

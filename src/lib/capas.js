@@ -336,6 +336,9 @@ export async function pedirSuelo(lls) {
   let estado = "apto";
   if (pctVIIVIII >= 50) estado = "veto";
   else if (pctIVmas >= 25 || pctVIIVIII >= 10) estado = "riesgo";
+  // Si CIREN no clasificó la mayor parte del terreno, el dato es parcial:
+  // no se entrega "Buena opción" basado en una minoría del terreno.
+  if (pctNC >= 50 && estado !== "veto") estado = "parcial";
 
   return {
     estado,
@@ -389,7 +392,7 @@ export async function pedirAgua(pts) {
   let nota;
   if (peor.rango === 3) {
     estado = "riesgo";
-    nota = "Zona de Prohibición: la DGA no otorga nuevos derechos de aprovechamiento de agua subterránea en este sector. Para regar se deben adquirir derechos existentes o usar agua superficial.";
+    nota = "Zona de Prohibición: la DGA no otorga nuevos derechos de aprovechamiento de agua subterránea en este sector. Para regar se necesitan derechos de agua ya existentes (comprados o propios del predio).";
   } else if (peor.rango === 2) {
     estado = "riesgo";
     nota = "Área de Restricción: la DGA solo puede otorgar derechos provisionales de agua subterránea, sujetos a la disponibilidad del acuífero.";

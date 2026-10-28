@@ -5,7 +5,7 @@
 import { fmt, calcularRiego } from "./capas.js";
 import { avisosClima } from "./clima.js";
 
-export const ORDEN = { veto: 3, riesgo: 2, apto: 1, nd: 0 };
+export const ORDEN = { veto: 3, riesgo: 2, apto: 1, nd: 0, parcial: 0 };
 export function peorEstado(lista) {
   let peor = "nd";
   for (const e of lista) if (e && ORDEN[e] > ORDEN[peor]) peor = e;
@@ -135,7 +135,7 @@ export function calcularVeredicto(r) {
   if (!clima) incompleto = true;
   if (sinVerificar.length) incompleto = true;
   if (incompleto) estado = "nd";
-  const provisorio = !incompleto && (!suelo || suelo.estado === "nd");
+  const provisorio = !incompleto && (!suelo || suelo.estado === "nd" || suelo.estado === "parcial");
   // Sin dato de suelo nunca se entrega "Buena opción": falta un parámetro clave.
   const sinSueloYApto = provisorio && estado === "apto";
   if (sinSueloYApto) estado = "riesgo";
@@ -191,7 +191,7 @@ export function calcularVeredicto(r) {
 
   if (clima) {
     f.push(
-      `Clima (${clima.actual ? `promedio observado de las temporadas ${clima.periodo.desde}–${clima.periodo.hasta}, CR2MET` : "ARClim, promedio 1980–2010"}): ${fmt(
+      `Clima (${clima.actual ? `promedio de las temporadas ${clima.periodo.desde}–${clima.periodo.hasta}, CR2MET` : "ARClim, promedio 1980–2010"}): ${fmt(
         clima.gdd
       )} grados-día, ${clima.region.etiqueta || `Región ${clima.region.n}`} de Winkler; temperatura media de temporada ${fmt(clima.gst, 1)} °C (categoría ${
         clima.gstClase
@@ -235,10 +235,15 @@ export function calcularVeredicto(r) {
   const riego = calcularRiego(clima, r.agroclima);
   if (riego) {
     const q = riego.principal;
-    f.push(
-      `Riego (${q === riego.ciren ? "estudio agroclimático de CIREN" : "ARClim, 1980–2010"}): la viña consumiría unos ${fmt(q.etc)} mm por temporada (método FAO-56) y llueven ${fmt(q.lluvia)} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(
-        q.deficit
-      )} mm (≈ ${fmt(q.deficit * 10)} m³/ha)${riego.ciren && riego.principal !== riego.ciren ? `; el estudio local de CIREN estima ${fmt(riego.ciren.deficit)} mm` : ""}.${clima && clima.actual ? ` En las últimas 10 temporadas llovieron en promedio ${fmt(clima.actual.lluviaTemp)} mm entre octubre y abril (CR2MET).` : ""}`
+    const llAct = clima && clima.actual ? clima.actual.lluviaTemp : null;
+    if (q !== riego.ciren && llAct != null) {
+      const def = Math.max(0, q.etc - llAct);
+      f.push(
+        `Riego (método FAO-56): la viña consumiría unos ${fmt(q.etc)} mm por temporada (evapotranspiración de ARClim, 1980–2010). Con la lluvia de las últimas 10 temporadas (${fmt(llAct)} mm entre octubre y abril, CR2MET), habría que aportar del orden de ${fmt(def)} mm (≈ ${fmt(def * 10)} m³/ha)${riego.ciren ? `; con los datos del estudio local de CIREN serían ${fmt(riego.ciren.deficit)} mm` : ""}. Es una referencia para una viña adulta; no incluye las pérdidas del sistema de riego.`
+      );
+    } else
+      f.push(
+        `Riego (${q === riego.ciren ? "estudio agroclimático de CIREN" : "ARClim, 1980–2010"}): la viña consumiría unos ${fmt(q.etc)} mm por temporada (método FAO-56) y llueven ${fmt(q.lluvia)} mm entre octubre y abril, así que habría que aportar del orden de ${fmt(q.deficit)} mm (≈ ${fmt(q.deficit * 10)} m³/ha).`
     );
   }
   if (agot && agot.fuentes.length) f.push(`Agua superficial: ${agot.fuentes.map((x) => x.nombre).join("; ")} tiene declaración de agotamiento de la DGA (no se otorgan nuevos derechos permanentes).`);
@@ -275,7 +280,7 @@ export function calcularVeredicto(r) {
     );
   } else if (sinSueloYApto)
     f.push(
-      "Conclusión: clima, relieve y agua no muestran impedimentos, pero CIREN no tiene clasificación de suelo para este lugar. Sin conocer el suelo no se puede recomendar: hace falta un estudio de suelo en terreno (calicatas)."
+      `Conclusión: clima, relieve y agua no muestran impedimentos, pero ${suelo && suelo.estado === "parcial" ? "CIREN clasificó solo una parte minoritaria del terreno" : "CIREN no tiene clasificación de suelo para este lugar"}. Sin conocer el suelo no se puede recomendar: hace falta un estudio de suelo en terreno (calicatas).`
     );
   else if (estado === "apto") f.push("Conclusión: los parámetros evaluados están en rangos adecuados para establecer una viña.");
   else if (estado === "riesgo") f.push(`Conclusión: es plantable, con manejo técnico en: ${problemas(r).join(", ") || "los puntos señalados"}.`);
