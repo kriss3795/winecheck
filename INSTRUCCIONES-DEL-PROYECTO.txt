@@ -71,8 +71,16 @@ CLIMA (verificado 26-10-2026)
   Pudahuel (enero: máx 29,4 / mín 12,2 °C) ERA5-Land dio mín 16,1 °C (+4 °C).
 - NO usar la ET0 de CR2MET (Hargreaves-Samani modificada): en Paine daba
   ~1.436 mm oct–abr, mientras CIREN da 1.044 mm en TODO el año.
-- Índices con promedios mensuales: Winkler (clases Jones et al. 2010),
-  GST (Jones 2006), Huglin y frío nocturno (Tonietto & Carbonneau 2004).
+- Índices con promedios mensuales. Winkler (°C·día): Ia 850–1111,
+  Ib 1111–1389, II 1389–1667, III 1667–1944, IV 1944–2222, V 2222–2700
+  (Amerine & Winkler 1944; piso/techo Jones et al. 2010; Ia/Ib Jones et
+  al. 2012). NO existe "Región VI" (error corregido el 28-10-2026).
+  GST (Jones 2006a, tabla en Lakatos & Nagy 2025): <13, 13–15 fresca,
+  15–17 intermedia, 17–19 cálida, 19–21 calurosa, 21–24 muy calurosa,
+  >24. Huglin y frío nocturno: Tonietto & Carbonneau (2004).
+- Suelo: "N.C." solo cuando CIREN lo marca; campo vacío = sin dato.
+  El veredicto dice qué % del terreno no está clasificado.
+- Erosión: "otros usos" de CIREN = no evaluada (no es una clase).
 - Cepas: SOLO rangos publicados en texto por Jones: Pinot Noir 14–16,
   Chardonnay 14–18, Cabernet Franc 15,4–19,8, Cabernet Sauvignon
   16,8–20,2 °C. "En el límite" = ±1 °C (incertidumbre de los datos).
