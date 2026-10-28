@@ -159,12 +159,15 @@ CÓDIGO
   dedos mueven el mapa; en PC, Ctrl + rueda para zoom).
 
 ESCALABILIDAD (lo que preguntan los inversionistas):
-- Las capas del Estado (DGA/CIREN/MMA/SMA) no tienen límite práctico.
-- El cuello de botella es Open-Meteo gratis (~600 llamadas/hora por IP):
-  con muchos usuarios simultáneos daría error 429. Solución: plan de
-  pago de Open-Meteo (~10–30 EUR/mes) + caché de resultados por zona
-  (el proxy ya cachea 6 h en la red de Vercel).
-  Es un costo marginal bajo y predecible.
+- Las capas del Estado (DGA/CIREN/MMA/SMA/MINVU) son servicios públicos
+  sin límite publicado; el proxy cachea 6 h cada respuesta.
+- Open-Meteo (solo elevación y pronóstico; 2–3 llamadas por análisis):
+  el plan gratis es SOLO no comercial (600/min, 5.000/h, 10.000/día).
+  Para vender: plan pagado "API Standard" (1 millón de llamadas/mes, sin
+  límite por minuto). Precio: se ve solo en su checkout, no publicado
+  (verificado 28-10-2026).
+- Revisar términos comerciales de Esri (mapas base) y de Nominatim
+  (1 consulta/segundo).
 
 CÓMO QUIERO QUE TRABAJES:
 - Didáctico, en español, paso a paso.
