@@ -17,7 +17,7 @@ jobs:
           node-version: 22
       - run: npm ci && npm run build
       - run: pip install -q playwright && python -m playwright install --with-deps chromium >/dev/null
-      - run: (npx vite preview --port 4173 &) && sleep 4 && cd pruebas && python e2e.py 2>&1 | tee e2e-log.txt
+      - run: (node pruebas/servidor.mjs &) && sleep 3 && cd pruebas && python e2e.py 2>&1 | tee e2e-log.txt
       - name: Guardar resultados en la rama pruebas-e2e
         if: always()
         run: |

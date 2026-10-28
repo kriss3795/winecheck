@@ -229,7 +229,7 @@ export default function App() {
         ["clima", "suelo", "soilgrids", "erosion", "agroclima", "pronostico"].forEach((k) => (fuentes[k] = "no aplica"));
       }
 
-      setResultado({
+      const res = {
         poly,
         grid,
         centro: c0,
@@ -252,7 +252,12 @@ export default function App() {
         agot,
         fuentes,
         consultado: new Date(),
-      });
+      };
+      // Para pruebas automáticas (simulación de puntos): resultado completo, solo lectura
+      try {
+        window.__wc = res;
+      } catch (e) {}
+      setResultado(res);
     } catch (e) {
       setError("No se pudo completar el análisis: " + (e?.message || e));
     } finally {
