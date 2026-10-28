@@ -3,10 +3,55 @@
   "url": "https://dga.mop.gob.cl/derechos-de-agua/proteccion-de-las-fuentes/decretos-de-escasez-2/",
   "revisado": "2026-10-28",
   "decretos": [
-    { "num": 179, "anio": 2026, "fecha": "2026-07-10", "prorroga": "N° 75 de 2025", "tipo": "provincia", "territorio": "Elqui", "region": "Coquimbo", "caducidad": "2027-07-13" },
-    { "num": 184, "anio": 2026, "fecha": "2026-07-24", "prorroga": "N° 17 de 2025", "tipo": "shac", "territorio": "Lluta Bajo", "region": "Arica y Parinacota", "caducidad": "2027-07-24" },
-    { "num": 185, "anio": 2026, "fecha": "2026-07-28", "prorroga": "N° 94 de 2024", "tipo": "provincia", "territorio": "Choapa", "region": "Coquimbo", "caducidad": "2027-07-24" },
-    { "num": 177, "anio": 2026, "fecha": "2026-07-09", "prorroga": "N° 74 de 2025", "tipo": "provincia", "territorio": "Limarí", "region": "Coquimbo", "caducidad": "2027-07-10" },
-    { "num": 93, "anio": 2026, "fecha": "2026-03-16", "prorroga": "N° 47 de 2025", "tipo": "provincia", "territorio": "Chiloé", "region": "Los Lagos", "caducidad": "2027-03-16" }
+    {
+      "num": 179,
+      "anio": 2026,
+      "fecha": "2026-07-10",
+      "prorroga": "N° 75 de 2025",
+      "tipo": "provincia",
+      "territorio": "Elqui",
+      "region": "Coquimbo",
+      "caducidad": "2027-07-13"
+    },
+    {
+      "num": 184,
+      "anio": 2026,
+      "fecha": "2026-07-24",
+      "prorroga": "N° 17 de 2025",
+      "tipo": "shac",
+      "territorio": "Lluta Bajo",
+      "region": "Arica y Parinacota",
+      "caducidad": "2027-07-24"
+    },
+    {
+      "num": 185,
+      "anio": 2026,
+      "fecha": "2026-07-28",
+      "prorroga": "N° 94 de 2024",
+      "tipo": "provincia",
+      "territorio": "Choapa",
+      "region": "Coquimbo",
+      "caducidad": "2027-07-24"
+    },
+    {
+      "num": 177,
+      "anio": 2026,
+      "fecha": "2026-07-09",
+      "prorroga": "N° 74 de 2025",
+      "tipo": "provincia",
+      "territorio": "Limarí",
+      "region": "Coquimbo",
+      "caducidad": "2027-07-10"
+    },
+    {
+      "num": 93,
+      "anio": 2026,
+      "fecha": "2026-03-16",
+      "prorroga": "N° 47 de 2025",
+      "tipo": "provincia",
+      "territorio": "Chiloé",
+      "region": "los Lagos",
+      "caducidad": "2027-03-16"
+    }
   ]
 }
