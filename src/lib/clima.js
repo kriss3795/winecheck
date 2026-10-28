@@ -338,3 +338,32 @@ export async function pedirClima(lat, lon) {
     cepas: CEPAS_JONES.map((x) => ({ ...x, encaja: calzaCepa(ref.gst, x) })),
   };
 }
+
+// Avisos de confiabilidad del clima para ESTE terreno:
+//  1) diferencia de altura entre el terreno y la celda de 5 km;
+//  2) desacuerdo entre CR2MET y el estudio agroclimático de CIREN.
+// La tasa de 0,65 °C cada 100 m es el gradiente de la atmósfera estándar
+// (OACI); el gradiente real cerca del suelo varía (p. ej. inversiones en valles).
+export function avisosClima(clima, pendiente, agroclima) {
+  const out = [];
+  if (!clima) return out;
+  const f1 = (x) => Number(x).toLocaleString("es-CL", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const f0 = (x) => Math.round(x).toLocaleString("es-CL");
+  if (pendiente && pendiente.elevMin != null && clima.elevCelda != null) {
+    const dif = (pendiente.elevMin + pendiente.elevMax) / 2 - clima.elevCelda;
+    if (Math.abs(dif) >= 200) {
+      const dT = (Math.abs(dif) * 0.65) / 100;
+      out.push(
+        `El terreno está unos ${f0(Math.abs(dif))} m ${dif > 0 ? "más arriba" : "más abajo"} que la altura media de la celda climática (${f0(clima.elevCelda)} m). Como el aire se enfría en promedio unos 0,65 °C cada 100 m de altura (atmósfera estándar), en el terreno podría hacer cerca de ${f1(dT)} °C ${dif > 0 ? "menos" : "más"} de lo que indica la tabla.`
+      );
+    }
+  }
+  const ref = clima.actual || clima.base;
+  const tc = agroclima?.disponible ? agroclima.actual?.tmaxEnero : null;
+  if (ref && ref.tmaxEnero != null && tc != null && Math.abs(ref.tmaxEnero - tc) >= 2.5) {
+    out.push(
+      `Las dos fuentes oficiales no coinciden: la máxima media de verano es ${f1(ref.tmaxEnero)} °C según CR2MET y ${f1(tc)} °C según el estudio de CIREN (diferencia de ${f1(Math.abs(ref.tmaxEnero - tc))} °C). Cuando eso pasa, el clima real del lugar es incierto: conviene revisar datos de estaciones cercanas o medir en el predio antes de decidir.`
+    );
+  }
+  return out;
+}

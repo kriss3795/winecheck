@@ -3,6 +3,7 @@
 //  un veredicto (semáforo) y un resumen explicado de TODOS los parámetros.
 // =====================================================================
 import { fmt, calcularRiego } from "./capas.js";
+import { avisosClima } from "./clima.js";
 
 export const ORDEN = { veto: 3, riesgo: 2, apto: 1, nd: 0 };
 export function peorEstado(lista) {
@@ -135,6 +136,9 @@ export function calcularVeredicto(r) {
   if (sinVerificar.length) incompleto = true;
   if (incompleto) estado = "nd";
   const provisorio = !incompleto && (!suelo || suelo.estado === "nd");
+  // Sin dato de suelo nunca se entrega "Buena opción": falta un parámetro clave.
+  const sinSueloYApto = provisorio && estado === "apto";
+  if (sinSueloYApto) estado = "riesgo";
 
   // 3) Resumen explicado, parámetro por parámetro
   const f = [];
@@ -195,6 +199,12 @@ export function calcularVeredicto(r) {
         clima.f245 ? ` Hacia 2035–2065 (escenario moderado SSP2-4.5, cambio proyectado por ARClim) llegaría a ${fmt(clima.f245.gst, 1)} °C.` : ""
       }${(clima.actual?.heladasPrimavera ?? clima.base.heladasPrimavera) >= 1 ? " Hay riesgo de heladas primaverales." : ""}`
     );
+    for (const t of avisosClima(clima, pendiente, r.agroclima)) f.push(`Ojo con el clima: ${t}`);
+    const llAnual = clima.actual?.lluviaAnual;
+    if (llAnual != null && llAnual < 100)
+      f.push(
+        `Lluvia: solo ${fmt(llAnual)} mm al año en promedio (zona muy seca). Toda el agua de la viña tendría que venir del riego, así que contar con derechos de agua es indispensable.`
+      );
   } else f.push("Clima: no se pudo obtener; sin clima no es posible un veredicto.");
 
   if (suelo && suelo.clases && suelo.clases.length) {
@@ -263,7 +273,11 @@ export function calcularVeredicto(r) {
         !clima ? (sinVerificar.length ? " ni del clima" : " del clima") : ""
       }. Reintenta en unos minutos antes de sacar conclusiones.`
     );
-  } else if (estado === "apto") f.push("Conclusión: los parámetros evaluados están en rangos adecuados para establecer una viña.");
+  } else if (sinSueloYApto)
+    f.push(
+      "Conclusión: clima, relieve y agua no muestran impedimentos, pero CIREN no tiene clasificación de suelo para este lugar. Sin conocer el suelo no se puede recomendar: hace falta un estudio de suelo en terreno (calicatas)."
+    );
+  else if (estado === "apto") f.push("Conclusión: los parámetros evaluados están en rangos adecuados para establecer una viña.");
   else if (estado === "riesgo") f.push(`Conclusión: es plantable, con manejo técnico en: ${problemas(r).join(", ") || "los puntos señalados"}.`);
   else if (estado === "veto") f.push(`Conclusión: no recomendable por ${problemas(r, true).join(", ")}.`);
 

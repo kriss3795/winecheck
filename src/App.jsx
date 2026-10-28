@@ -49,7 +49,7 @@ import {
   puntosEnTierra,
 } from "./lib/territorio.js";
 import { pedirErosion, pedirSoilGrids } from "./lib/suelo.js";
-import { pedirClima, MARGEN_CEPAS } from "./lib/clima.js";
+import { pedirClima, MARGEN_CEPAS, avisosClima } from "./lib/clima.js";
 import { pedirAgroclimaCIREN, pedirPronostico, urlWindy, urlWindyCompleto } from "./lib/tiempo.js";
 import { calcularRestricciones, calcularVeredicto } from "./lib/veredicto.js";
 import { pedirEscasezVigente, cruzarEscasez } from "./lib/escasez.js";
@@ -507,7 +507,7 @@ export default function App() {
             {!ver.vetoTotal && (
               <>
                 <TarjetaUso uso={resultado.uso} />
-                <TarjetaClima clima={resultado.clima} agroclima={resultado.agroclima} />
+                <TarjetaClima clima={resultado.clima} agroclima={resultado.agroclima} pendiente={resultado.pendiente} />
                 <TarjetaRiego clima={resultado.clima} agroclima={resultado.agroclima} pron={resultado.pronostico} />
                 <TarjetaSuelo suelo={resultado.suelo} />
                 <TarjetaPropSuelo soil={resultado.soil} erosion={resultado.erosion} />
@@ -735,7 +735,7 @@ const AYUDA_CLIMA = {
   lluviaTemp: "Lluvia de octubre a abril, cuando la vid consume agua. En Chile central es poca: el resto debe venir del riego.",
 };
 
-function TarjetaClima({ clima, agroclima }) {
+function TarjetaClima({ clima, agroclima, pendiente }) {
   if (!clima) return <SinDato id="s-clima" titulo="Clima del terreno" />;
   const p = clima.base;
   const a = clima.actual;
@@ -795,6 +795,11 @@ function TarjetaClima({ clima, agroclima }) {
           <li key={i}>{n}</li>
         ))}
       </ul>
+      {avisosClima(clima, pendiente, agroclima).map((t, i) => (
+        <p className="aviso" key={i}>
+          ⚠ {t}
+        </p>
+      ))}
       <div className="tabla-scroll">
         <table className="tabla">
           <thead>
