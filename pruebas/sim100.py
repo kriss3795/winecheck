@@ -1,5 +1,5 @@
 # =====================================================================
-#  Simulación de 100 terrenos en todo Chile (misma semilla: mismos puntos).
+#  Simulación de 100 terrenos en todo Chile (misma semilla: mismos puntos; revisión final).
 #  1) Elige 100 puntos al azar en tierra chilena (70 en la zona vitícola
 #     -27° a -42°, 30 en el resto), verificados con la capa de comunas.
 #  2) Analiza cada terreno (~36 ha) en la app compilada y guarda el
