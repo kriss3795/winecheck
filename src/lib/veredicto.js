@@ -140,7 +140,7 @@ export function calcularVeredicto(r) {
   const f = [];
   if (ubic && ubic.comuna) {
     f.push(
-      `Ubicación: comuna de ${ubic.comuna} (${ubic.region})${ubic.cuenca ? `, cuenca del ${ubic.cuenca}` : ""}. ${
+      `Ubicación: comuna de ${ubic.comuna} (${ubic.region})${ubic.cuenca ? `, cuenca hidrográfica: ${ubic.cuenca}` : ""}. ${
         ubic.do
           ? `Pertenece a la denominación de origen ${ubic.do.valle}${ubic.do.zona ? ` (${ubic.do.zona})` : ""}, ${ubic.do.region}.`
           : "La comuna no figura en la zonificación vitícola del Decreto 464 (no tiene denominación de origen de vinos)."
@@ -199,7 +199,7 @@ export function calcularVeredicto(r) {
 
   if (suelo && suelo.clases && suelo.clases.length) {
     f.push(
-      `Suelo (CIREN): ${suelo.clases.map((c) => `clase ${c.clase} en ${fmt(c.pct)}%`).join(", ")} de la superficie disponible.`
+      `Suelo (CIREN): ${suelo.clases.map((c) => `clase ${c.clase} en ${fmt(c.pct)}%`).join(", ")} de la superficie disponible${suelo.pctNC > 0 ? `; el ${fmt(suelo.pctNC)}% restante CIREN no lo clasificó (N.C.)${suelo.pctNC >= 50 ? ", así que el dato de suelo cubre solo una parte del terreno" : ""}` : ""}.`
     );
   } else f.push("Suelo: sin clase de capacidad de uso de CIREN en este lugar; el veredicto es provisorio hasta tener un estudio de suelo.");
   if (r.soil && r.soil.superficial) {
@@ -210,7 +210,10 @@ export function calcularVeredicto(r) {
       )}% de fragmentos gruesos (estimación de un mapa mundial; confirmar con análisis).`
     );
   }
-  if (erosion && erosion.actual) f.push(`Erosión actual (CIREN): ${erosion.actual}${erosion.riesgoPotencial ? `; riesgo potencial ${erosion.riesgoPotencial}` : ""}.`);
+  if (erosion && erosion.actual) {
+    if (/^no evaluada/.test(erosion.actual)) f.push("Erosión: CIREN no la evaluó en el centro del terreno (lo marca como «otros usos»).");
+    else f.push(`Erosión actual en el centro del terreno (CIREN): ${erosion.actual}${erosion.riesgoPotencial && !/^no evaluada/.test(erosion.riesgoPotencial) ? `; riesgo potencial ${erosion.riesgoPotencial}` : ""}.`);
+  }
 
   if (pendiente && pendiente.estado !== "nd") {
     f.push(

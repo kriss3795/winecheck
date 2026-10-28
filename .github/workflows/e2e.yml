@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [mejoras-v2]
-    paths: [pruebas/**, .github/workflows/e2e.yml]
+    paths: [pruebas/**, src/**, api/**, .github/workflows/e2e.yml]
 permissions:
   contents: write
 jobs:

@@ -13,7 +13,7 @@ import { URLS, urlIdentifyPunto } from "./capas.js";
 function descClase(attrs) {
   const k = Object.keys(attrs || {}).find((x) => /^Descripci[oó]n clase/i.test(x));
   const v = k ? String(attrs[k] || "").trim() : "";
-  return v && !/^null$/i.test(v) ? v.toLowerCase() : null;
+  return v && !/^null$/i.test(v) ? v.toLowerCase().replace(/\berosion\b/g, "erosión") : null;
 }
 
 export async function pedirErosion(centro) {
@@ -26,12 +26,16 @@ export async function pedirErosion(centro) {
     else if (r.layerId >= 18 && r.layerId <= 33 && !out.riesgoActual) out.riesgoActual = d;
     else if (r.layerId >= 35 && !out.riesgoPotencial) out.riesgoPotencial = d;
   }
+  // "Otros usos": CIREN no evaluó la erosión en ese punto (no es una clase de erosión)
+  for (const k of ["actual", "riesgoActual", "riesgoPotencial"])
+    if (out[k] && /otros usos/i.test(out[k])) out[k] = "no evaluada por CIREN (categoría «otros usos»)";
   const severa = /sever|muy sever|grave/i;
   const moderada = /moderad/i;
   let estado = "apto";
   if (severa.test(out.actual || "") || severa.test(out.riesgoActual || "")) estado = "riesgo";
   else if (moderada.test(out.actual || "")) estado = "riesgo";
-  out.estado = out.actual || out.riesgoActual ? estado : "nd";
+  const evaluada = (x) => x && !/^no evaluada/.test(x);
+  out.estado = evaluada(out.actual) || evaluada(out.riesgoActual) ? estado : "nd";
   return out;
 }
 

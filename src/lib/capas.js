@@ -357,6 +357,14 @@ export async function pedirSuelo(lls) {
 const RANGO_AGUA = { "zona de prohibicion": 3, "area de restriccion": 2, abierto: 1 };
 const normal = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
+// Los nombres de la DGA vienen sin tildes ("Area de Restriccion", "Zona de Prohibicion")
+function tildes(t) {
+  return String(t || "")
+    .replace(/\bArea\b/g, "Área")
+    .replace(/Restriccion/g, "Restricción")
+    .replace(/Prohibicion/g, "Prohibición");
+}
+
 export async function pedirAgua(pts) {
   const j = await fetchJSON(urlQueryPoligono(URLS.dgaAgua, pts, "TIPO_LIMIT,SHAC,NOM_ACUIF"), 15000);
   const feats = (j.features || []).map((f) => f.attributes);
@@ -373,7 +381,7 @@ export async function pedirAgua(pts) {
     const key = a.SHAC + "|" + a.TIPO_LIMIT;
     if (vistos.has(key)) continue;
     vistos.add(key);
-    zonas.push({ tipo: a.TIPO_LIMIT, shac: a.SHAC, acuifero: a.NOM_ACUIF, rango: RANGO_AGUA[normal(a.TIPO_LIMIT)] || 0 });
+    zonas.push({ tipo: tildes(a.TIPO_LIMIT), shac: a.SHAC, acuifero: a.NOM_ACUIF, rango: RANGO_AGUA[normal(a.TIPO_LIMIT)] || 0 });
   }
   zonas.sort((x, y) => y.rango - x.rango);
   const peor = zonas[0];
@@ -543,7 +551,7 @@ function aProteccion(r) {
     veto,
     categoria,
     nombre: nombre || r.layerName,
-    etiqueta: nombre ? `${categoria}: ${nombre}` : categoria,
+    etiqueta: nombre && nombre.trim().toLowerCase() !== String(categoria).trim().toLowerCase() ? `${categoria}: ${nombre}` : categoria,
   };
 }
 

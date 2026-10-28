@@ -1041,7 +1041,7 @@ function TarjetaPropSuelo({ soil, erosion }) {
       {!soil && <p className="falla">No se pudo consultar SoilGrids (el servicio permite pocas consultas por minuto).</p>}
       {erosion && (erosion.actual || erosion.riesgoActual) && (
         <>
-          <h4>Erosión (CIREN)</h4>
+          <h4>Erosión en el centro del terreno (CIREN)</h4>
           {erosion.actual && <Fila k="Erosión actual" v={erosion.actual} />}
           {erosion.riesgoActual && <Fila k="Riesgo de erosión actual" v={erosion.riesgoActual} />}
           {erosion.riesgoPotencial && <Fila k="Riesgo de erosión potencial" v={erosion.riesgoPotencial} />}
