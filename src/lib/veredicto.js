@@ -236,7 +236,9 @@ export function calcularVeredicto(r) {
   else f.push("Agua subterránea: no se pudo consultar la DGA.");
 
   if (escasez) {
-    if (escasez.vigentes.length) f.push("Escasez hídrica: hay decreto vigente.");
+    if (escasez.oficial && escasez.oficial.vigentes.length) f.push(`Escasez hídrica: ${escasez.nota}`);
+    else if (escasez.estado === "apto") f.push(`Escasez hídrica: ${escasez.nota}${escasez.recurrente ? ` Aun así, hubo decretos en ${escasez.aniosRecientes} años distintos entre ${escasez.desdeRecientes} y ${escasez.hastaRecientes} (zona con escasez recurrente).` : ""}`);
+    else if (escasez.vigentes.length) f.push("Escasez hídrica: hay decreto vigente.");
     else if (escasez.recurrente)
       f.push(`Escasez hídrica: sin decreto vigente registrado, pero hubo decretos en ${escasez.aniosRecientes} años distintos entre ${escasez.desdeRecientes} y ${escasez.hastaRecientes || "hoy"} (zona con escasez recurrente${escasez.hastaRecientes ? `; la capa de la DGA llega hasta ${escasez.hastaRecientes}` : ""}).`);
     else if (escasez.estado === "nd") f.push("Escasez hídrica: la capa de la DGA no está actualizada; verificar decretos recientes.");

@@ -52,6 +52,7 @@ import { pedirErosion, pedirSoilGrids } from "./lib/suelo.js";
 import { pedirClima, MARGEN_CEPAS } from "./lib/clima.js";
 import { pedirAgroclimaCIREN, pedirPronostico, urlWindy, urlWindyCompleto } from "./lib/tiempo.js";
 import { calcularRestricciones, calcularVeredicto } from "./lib/veredicto.js";
+import { pedirEscasezVigente, cruzarEscasez } from "./lib/escasez.js";
 
 // ---------------------------------------------------------------------
 //  Semáforo — acceso siempre seguro
@@ -67,6 +68,34 @@ function cfg(estado) {
 }
 
 const dec = (n) => (n < 10 ? 2 : 1);
+
+// Une el historial (capa de mapas DGA, hasta 2023) con el listado oficial
+// de decretos VIGENTES de la DGA (actualizado semanalmente).
+function combinarEscasez(hist, hoy) {
+  if (!hist && !hoy) return null;
+  const base = hist || { decretos: [], vigentes: [], recurrente: false };
+  if (!hoy) return base;
+  const fechaRev = new Date(hoy.revisado + "T12:00:00").toLocaleDateString("es-CL");
+  if (hoy.vigentes.length) {
+    return {
+      ...base,
+      estado: "riesgo",
+      oficial: hoy,
+      nota: `Hay decreto de escasez hídrica VIGENTE para este terreno según el listado oficial de la DGA (revisado el ${fechaRev}): ${hoy.vigentes
+        .map((d) => `Decreto MOP N° ${d.num} de ${d.anio}${d.prorroga ? ` (prórroga del ${d.prorroga})` : ""}, ${d.tipo === "shac" ? "SHAC" : d.tipo} ${d.territorio}, vigente hasta el ${new Date(d.caducidad + "T12:00:00").toLocaleDateString("es-CL")}`)
+        .join("; ")}.`,
+    };
+  }
+  if (hoy.dias != null && hoy.dias <= 45) {
+    return {
+      ...base,
+      estado: "apto",
+      oficial: hoy,
+      nota: `Sin decreto de escasez vigente para este terreno: según el listado oficial de la DGA (revisado el ${fechaRev}), hoy hay ${hoy.total} decretos vigentes en el país y ninguno cubre esta zona.`,
+    };
+  }
+  return { ...base, oficial: hoy };
+}
 
 // ---------------------------------------------------------------------
 //  Componentes de mapa
@@ -210,7 +239,11 @@ export default function App() {
       // La ubicación se consulta en el centro de la superficie disponible
       // (si el centro del polígono cae en el mar, no habría comuna).
       const cUbic = R.libres.length ? centroide(R.libres.map((k) => lls[k])) : c0;
-      const ubic = await marca("ubicacion", pedirUbicacion(cUbic));
+      const [ubic, listaEscasez] = await Promise.all([
+        marca("ubicacion", pedirUbicacion(cUbic)),
+        pedirEscasezVigente().catch((e) => (console.warn("[WineCheck] escasez vigente", e), null)),
+      ]);
+      const escasezHoy = cruzarEscasez(listaEscasez, ubic, agua);
       const fueraDeChile = ubic && ubic.enChile === false;
       if (R.libres.length && !fueraDeChile) {
         setPaso("Calculando clima, suelo, riego y pronóstico…");
@@ -243,7 +276,7 @@ export default function App() {
         pronostico,
         pendiente,
         agua,
-        escasez,
+        escasez: combinarEscasez(escasez, escasezHoy),
         ubic,
         uso,
         hidro,
@@ -1252,13 +1285,12 @@ function TarjetaEscasez({ e }) {
       ) : (
         <p>No hay decretos de escasez registrados para este terreno en la capa de la DGA.</p>
       )}
-      {e.ultimoCapa && !e.capaActualizada && (
-        <p className="tenue">
-          La capa de mapas de la DGA llega solo hasta el {fecha(e.ultimoCapa)}, pero el MOP ha seguido dictando decretos (por
-          ejemplo, el Decreto MOP N° 185 de 2026, que prorroga la escasez en la provincia de Choapa). Para saber si hoy hay
-          un decreto vigente en la comuna, revisa el Diario Oficial o la DGA.
-        </p>
-      )}
+      <p className="tenue">
+        Estado de hoy: listado oficial de decretos vigentes de la DGA
+        {e.oficial ? ` (revisado el ${new Date(e.oficial.revisado + "T12:00:00").toLocaleDateString("es-CL")})` : " (no se pudo cargar)"}.
+        Historial: capa de mapas de la DGA, que llega hasta el {fecha(e.ultimoCapa)}.
+        {e.oficial && e.oficial.dias > 45 && " El listado tiene más de 45 días: verifica en el sitio de la DGA antes de concluir."}
+      </p>
     </Tarjeta>
   );
 }
@@ -1496,8 +1528,11 @@ const FUENTES = [
     clave: "escasez",
     n: "Escasez hídrica — DGA, decretos de escasez",
     por: "Los decretos de escasez los dicta el MOP a propuesta de la DGA y permiten redistribuir y restringir el uso del agua mientras están vigentes.",
-    leer: "Se considera vigente un decreto cuya fecha de caducidad es posterior a hoy. El historial muestra si la zona sufre sequías recurrentes.",
-    links: [["Capa oficial de la DGA", URLS.dgaEscasez]],
+    leer: "Estado de hoy: listado oficial de decretos vigentes publicado por la DGA (se revisa cada semana y se cruza con la provincia, comuna o SHAC del terreno). Historial: capa de mapas de la DGA (llega hasta 2023); muestra si la zona sufre sequías recurrentes.",
+    links: [
+      ["Decretos vigentes (DGA)", "https://dga.mop.gob.cl/derechos-de-agua/proteccion-de-las-fuentes/decretos-de-escasez-2/"],
+      ["Capa oficial de la DGA (historial)", URLS.dgaEscasez],
+    ],
   },
   {
     clave: "humedales",
