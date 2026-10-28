@@ -175,21 +175,27 @@ function proyectar(mAct, base, fut, lat) {
 }
 
 // ---- Clasificaciones con fuente -------------------------------------
-// Winkler en °C·día (base 10 °C, oct–abr), límites de Jones et al. (2010)
+// Regiones de Winkler en °C·día (base 10 °C, oct–abr). Límites originales
+// de Amerine & Winkler (1944) en °F convertidos a °C; el piso de 850 y el
+// techo de 2.700 °C·día son de Jones et al. (2010) y Hall & Jones (2010);
+// la división Ia/Ib, de Anderson et al. (2012) y Jones et al. (2012).
 export function regionWinkler(gdd) {
-  if (gdd < 1111) return { n: "<I", desc: "más fría que la Región I" };
-  if (gdd < 1389) return { n: "I", desc: "la más fresca" };
-  if (gdd < 1667) return { n: "II", desc: "fresca-templada" };
-  if (gdd < 1944) return { n: "III", desc: "templada" };
-  if (gdd < 2222) return { n: "IV", desc: "templada-cálida" };
-  if (gdd < 2500) return { n: "V", desc: "cálida" };
-  if (gdd <= 2778) return { n: "VI", desc: "muy cálida" };
-  return { n: ">VI", desc: "más cálida que la Región VI" };
+  if (gdd < 850) return { n: "bajo Ia", etiqueta: "bajo la Región Ia", desc: "menos de 850 °C·día: bajo el mínimo de la escala" };
+  if (gdd < 1111) return { n: "Ia", desc: "850–1.111 °C·día" };
+  if (gdd < 1389) return { n: "Ib", desc: "1.111–1.389 °C·día" };
+  if (gdd < 1667) return { n: "II", desc: "1.389–1.667 °C·día" };
+  if (gdd < 1944) return { n: "III", desc: "1.667–1.944 °C·día" };
+  if (gdd < 2222) return { n: "IV", desc: "1.944–2.222 °C·día" };
+  if (gdd <= 2700) return { n: "V", desc: "2.222–2.700 °C·día" };
+  return { n: "sobre V", etiqueta: "sobre la Región V", desc: "más de 2.700 °C·día: sobre el máximo de la escala" };
 }
-// Temperatura media de temporada (GST), Jones (2006)
+// Temperatura media de temporada (GST), clases de Jones (2006a), según
+// la Tabla 1 de Lakatos & Nagy (2025, Frontiers in Plant Science):
+// <13 demasiado fría, 13–15 fresca, 15–17 intermedia, 17–19 cálida,
+// 19–21 calurosa, 21–24 muy calurosa, >24 demasiado calurosa.
 export function claseGST(t) {
   if (t < 13) return "demasiado fría";
-  if (t < 15) return "fría";
+  if (t < 15) return "fresca";
   if (t < 17) return "intermedia";
   if (t < 19) return "cálida";
   if (t < 21) return "calurosa";

@@ -189,7 +189,7 @@ export function calcularVeredicto(r) {
     f.push(
       `Clima (${clima.actual ? `promedio observado de las temporadas ${clima.periodo.desde}–${clima.periodo.hasta}, CR2MET` : "ARClim, promedio 1980–2010"}): ${fmt(
         clima.gdd
-      )} grados-día, Región ${clima.region.n} de Winkler; temperatura media de temporada ${fmt(clima.gst, 1)} °C (categoría ${
+      )} grados-día, ${clima.region.etiqueta || `Región ${clima.region.n}`} de Winkler; temperatura media de temporada ${fmt(clima.gst, 1)} °C (categoría ${
         clima.gstClase
       } según Jones).${
         clima.f245 ? ` Hacia 2035–2065 (escenario moderado SSP2-4.5, cambio proyectado por ARClim) llegaría a ${fmt(clima.f245.gst, 1)} °C.` : ""

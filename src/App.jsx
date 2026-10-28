@@ -697,8 +697,8 @@ function TarjetaClima({ clima }) {
       ? [
           ["Días con helada en primavera (mínima ≤ 0 °C, sep–nov)", "heladasPrimavera", " días", 1],
           ["Días con helada al año (mínima ≤ 0 °C)", "heladasAnio", " días", 1],
-          ["Días con máxima sobre 30 °C al año", "dias30", " días", 0],
-          ["Días con máxima sobre 35 °C al año", "dias35", " días", 0],
+          ["Días con máxima sobre 30 °C al año", "dias30", " días", 1],
+          ["Días con máxima sobre 35 °C al año", "dias35", " días", 1],
         ]
       : []),
     ["Lluvia anual", "lluviaAnual", " mm", 0],
@@ -712,7 +712,7 @@ function TarjetaClima({ clima }) {
           ? `Clasificación con el clima actual: promedio observado de las temporadas ${per.desde}–${per.hasta} (oct–abr).`
           : "No se pudo cargar el clima reciente; la clasificación usa el promedio 1980–2010."}
       </p>
-      <Fila k="Región de Winkler" v={`Región ${clima.region.n} (${clima.region.desc})`} />
+      <Fila k="Región de Winkler" v={`${clima.region.etiqueta || `Región ${clima.region.n}`} (${clima.region.desc})`} />
       <Fila k="Categoría según temperatura de temporada (Jones)" v={clima.gstClase} />
       <Fila k="Índice de Huglin (Tonietto & Carbonneau)" v={clima.huglinClase} />
       {clima.nochesClase && <Fila k="Índice de frío nocturno (Tonietto & Carbonneau)" v={clima.nochesClase} />}
@@ -1310,7 +1310,7 @@ const FUENTES = [
     clave: "clima",
     n: "Clima — ARClim, Atlas de Riesgos Climáticos (Ministerio del Medio Ambiente)",
     por: "Plataforma oficial del MMA. Su clima histórico (1980–2010) está referenciado a CR2MET, la grilla de temperatura y lluvia de ~5 km del Centro de Ciencia del Clima y la Resiliencia (CR)2 construida con estaciones chilenas; el futuro (2035–2065) es el promedio de modelos CMIP6 corregidos, en escenarios SSP2-4.5 y SSP5-8.5.",
-    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Clases: Jones et al. (2010) y Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). En la app se usa el CAMBIO que proyecta entre 1980–2010 y 2035–2065 (sumado al clima actual observado), y su evapotranspiración para el riego. No se muestra su valor de 1980–2010 junto al observado porque es el promedio de 20–30 modelos corregidos y en algunas celdas (p. ej. Vicuña, Casablanca) difiere en más de 1 °C de lo observado por CR2MET. Se prefirió esta familia de datos (CR2MET/ARClim) porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C.",
+    leer: "Grados-día de Winkler y temperatura media de temporada (oct–abr): más alto = más calor para madurar. Regiones de Winkler: Amerine & Winkler (1944), con el piso de 850 y techo de 2.700 °C·día de Jones et al. (2010) y la división Ia/Ib de Jones et al. (2012); clases de temperatura de temporada: Jones (2006); Huglin y frío nocturno: Tonietto & Carbonneau (2004). En la app se usa el CAMBIO que proyecta entre 1980–2010 y 2035–2065 (sumado al clima actual observado), y su evapotranspiración para el riego. No se muestra su valor de 1980–2010 junto al observado porque es el promedio de 20–30 modelos corregidos y en algunas celdas (p. ej. Vicuña, Casablanca) difiere en más de 1 °C de lo observado por CR2MET. Se prefirió esta familia de datos (CR2MET/ARClim) porque, comparado con la estación de Pudahuel, el reanálisis global ERA5 sobreestimaba las mínimas de verano en ~4 °C.",
     links: [
       ["ARClim (MMA)", "https://arclim.mma.gob.cl/"],
       ["Metodología ARClim", "https://arclim.mma.gob.cl/media/learning/Metodologia_ARCLIM.pdf"],
@@ -1468,7 +1468,7 @@ function PanelFuentes({ r }) {
       <p>
         Los datos provienen de organismos oficiales chilenos y de referencias científicas internacionales. Cada fuente se
         puede verificar en su enlace.
-        {r && ` Consulta realizada el ${r.consultado.toLocaleString("es-CL")}.`}
+        {r && ` Consulta realizada el ${r.consultado.toLocaleDateString("es-CL")} a las ${r.consultado.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })} h.`}
       </p>
       {FUENTES.map((f, i) => {
         const est = r ? r.fuentes[f.clave] : null;

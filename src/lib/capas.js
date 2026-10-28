@@ -197,7 +197,7 @@ export function calcularRiego(clima, agroclima) {
     const p = clima.base;
     out.arclim = fila(p);
     const f = clima.arclim ? clima.arclim.f245 : clima.f245;
-    if (f && f.etcTemp != null) out.futuro = { etc: f.etcTemp, lluvia: f.lluviaTemp, deficit: Math.max(0, f.etcTemp - f.lluviaTemp) };
+    if (f && f.etcTemp != null) out.futuro = { et0: f.et0Temp, etc: f.etcTemp, lluvia: f.lluviaTemp, deficit: Math.max(0, f.etcTemp - f.lluviaTemp) };
   }
   const m = agroclima?.disponible ? agroclima.actual?.mensual : null;
   if (m) {
@@ -301,7 +301,10 @@ export async function pedirSuelo(lls) {
     const raw = leerCampoClase(f[0].attributes);
     const c = parseClase(raw);
     if (!c) {
-      noClasif++;
+      // Solo se cuenta como "no clasificado" si CIREN lo dice (N.C.);
+      // un campo vacío o desconocido NO se interpreta como dato.
+      if (raw && /^N\.?\s*C\.?$/i.test(raw)) noClasif++;
+      else sinCobertura++;
       continue;
     }
     conteo[c.clase] = (conteo[c.clase] || 0) + 1;
