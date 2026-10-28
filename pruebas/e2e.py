@@ -16,6 +16,7 @@ SITIOS = {
     "aculeo_orilla": (-33.836, -70.905),
     "la_campana": (-32.955, -71.09),
     "apalta": (-34.605, -71.29),
+    "embalse_rapel": (-34.05, -71.58),
     "osorno": (-40.57, -73.13),
     "coyhaique": (-45.60, -72.10),
     "pichilemu_mar": (-34.39, -72.03),

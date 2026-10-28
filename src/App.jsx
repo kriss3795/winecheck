@@ -618,7 +618,7 @@ function TarjetaTerritorio({ r }) {
         <Fila
           k="Superficie de agua"
           v={`${fmt(R.pctAguaNatural + R.pctAguaArtificial)}% del terreno`}
-          sub={`${R.nombresAgua.join(", ")}. No es plantable.${R.pctAguaArtificial > 0 ? " Los tranques y embalses artificiales no son áreas protegidas." : ""}`}
+          sub={`${R.nombresAgua.join(", ")}. No es plantable.${R.pctAguaArtificial > 0 ? " Los tranques artificiales no son áreas protegidas." : ""}`}
         />
       )}
       {R.protegidasVeto.length > 0 && (
@@ -1543,7 +1543,7 @@ const FUENTES = [
     clave: "humedales",
     n: "Humedales — MMA, Inventario Nacional de Humedales",
     por: "El Ministerio del Medio Ambiente mantiene el inventario oficial de humedales del país, clasificados en naturales (continentales, costeros) y artificiales.",
-    leer: "La superficie de humedales naturales se excluye de lo plantable. Los artificiales (tranques, embalses) se muestran como advertencia.",
+    leer: "La superficie de humedales naturales y de embalses se excluye de lo plantable. Los demás humedales artificiales (tranques, pozas) se muestran como advertencia.",
     links: [
       ["Capa oficial del MMA", URLS.mmaHumedales],
       ["Portal de humedales del MMA", "https://humedaleschile.mma.gob.cl/"],

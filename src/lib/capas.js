@@ -472,10 +472,15 @@ export async function pedirEscasez(pts) {
 const ORDEN1 = { 10: "artificial", 20: "continental", 30: "marino o costero", 999: "sin clasificar" };
 
 function aHumedal(a) {
+  const nombre = a.NOM_HUMDET && String(a.NOM_HUMDET).trim() ? String(a.NOM_HUMDET).trim() : "sin nombre";
+  // Los embalses (inventariados como humedal artificial, p. ej. "Embalse Rapel")
+  // son cuerpos de agua: su superficie se excluye igual que un humedal natural
+  // (regla del proyecto). Tranques y otros humedales artificiales = advertencia.
+  const embalse = a.ORDEN_1 === 10 && /^embalse\b/i.test(nombre);
   return {
-    nombre: a.NOM_HUMDET && String(a.NOM_HUMDET).trim() ? String(a.NOM_HUMDET).trim() : "sin nombre",
-    tipo: ORDEN1[a.ORDEN_1] || "sin clasificar",
-    artificial: a.ORDEN_1 === 10,
+    nombre,
+    tipo: embalse ? "embalse" : ORDEN1[a.ORDEN_1] || "sin clasificar",
+    artificial: a.ORDEN_1 === 10 && !embalse,
   };
 }
 
