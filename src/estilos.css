@@ -299,3 +299,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .cabecera .logo { height: 72px; }
 }
 .tabla td.destacar { font-weight: 700; background: rgba(114, 47, 55, 0.06); }
+
+/* Explicación simple bajo cada parámetro */
+.ayuda-k { font-weight: 400; font-size: 0.78rem; color: var(--gris); margin-top: 3px; line-height: 1.35; }
+.tabla td .ayuda-k { max-width: 34ch; }
+.contraste { margin-top: 14px; border-top: 1px solid #f1ebe8; padding-top: 10px; }
+.contraste summary { cursor: pointer; font-weight: 600; color: var(--vino); }

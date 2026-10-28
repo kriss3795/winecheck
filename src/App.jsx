@@ -474,8 +474,7 @@ export default function App() {
             {!ver.vetoTotal && (
               <>
                 <TarjetaUso uso={resultado.uso} />
-                <TarjetaClima clima={resultado.clima} />
-                <TarjetaAgroclima a={resultado.agroclima} />
+                <TarjetaClima clima={resultado.clima} agroclima={resultado.agroclima} />
                 <TarjetaRiego clima={resultado.clima} agroclima={resultado.agroclima} pron={resultado.pronostico} />
                 <TarjetaSuelo suelo={resultado.suelo} />
                 <TarjetaPropSuelo soil={resultado.soil} erosion={resultado.erosion} />
@@ -522,10 +521,13 @@ function SinDato({ id, titulo, texto }) {
   );
 }
 
-function Fila({ k, v, sub }) {
+function Fila({ k, v, sub, ayuda }) {
   return (
     <div className="fila">
-      <div className="k">{k}</div>
+      <div className="k">
+        {k}
+        {ayuda && <div className="ayuda-k">{ayuda}</div>}
+      </div>
       <div className="v">
         {v}
         {sub && <div className="sub">{sub}</div>}
@@ -684,7 +686,23 @@ function TarjetaUso({ uso }) {
 }
 
 // ---- Clima (ARClim)
-function TarjetaClima({ clima }) {
+// Explicación simple de cada variable del clima (para quien no es agrónomo)
+const AYUDA_CLIMA = {
+  gdd: "Calor útil acumulado para la vid: cada día de octubre a abril se suma cuántos grados la temperatura media superó los 10 °C (bajo 10 °C la vid prácticamente no crece). Más grados-día = más calor para madurar la uva.",
+  gst: "Promedio de la temperatura de octubre a abril, la temporada de crecimiento de la vid en Chile. Es el valor que se compara con el rango de cada cepa.",
+  huglin: "Parecido a los grados-día, pero da más peso al calor de la tarde (usa también la temperatura máxima) y ajusta por el largo del día según la latitud. Se calcula de octubre a marzo.",
+  tminMar: "Promedio de las temperaturas mínimas (de la noche) en marzo, mes de maduración. Noches frescas favorecen el color y los aromas de la uva.",
+  tmaxEnero: "Promedio de las temperaturas máximas de cada día de enero, normalmente el mes más caluroso.",
+  tmedEnero: "Promedio de la temperatura de enero (día y noche).",
+  heladasPrimavera: "Días al año en que la mínima llegó a 0 °C o menos entre septiembre y noviembre, cuando la vid brota y florece. Una helada en ese momento puede quemar brotes y bajar la cosecha.",
+  heladasAnio: "Días al año con mínima de 0 °C o menos. En invierno la vid está en reposo y tolera el frío; las peligrosas son las de primavera.",
+  dias30: "Días al año con temperatura máxima sobre 30 °C.",
+  dias35: "Días al año con máxima sobre 35 °C. Con ese calor la vid se estresa y reduce su actividad.",
+  lluviaAnual: "Lluvia total en el año (de mayo a abril).",
+  lluviaTemp: "Lluvia de octubre a abril, cuando la vid consume agua. En Chile central es poca: el resto debe venir del riego.",
+};
+
+function TarjetaClima({ clima, agroclima }) {
   if (!clima) return <SinDato id="s-clima" titulo="Clima del terreno" />;
   const p = clima.base;
   const a = clima.actual;
@@ -714,13 +732,31 @@ function TarjetaClima({ clima }) {
     <Tarjeta id="s-clima" titulo="Clima del terreno" estado={clima.estado}>
       <p className="tenue">
         {a
-          ? `Clasificación con el clima actual: promedio observado de las temporadas ${per.desde}–${per.hasta} (oct–abr).`
+          ? `Datos observados: promedio de las últimas 10 temporadas (${per.desde}–${per.hasta}). Debajo de cada número se explica qué significa.`
           : "No se pudo cargar el clima reciente; la clasificación usa el promedio 1980–2010."}
       </p>
-      <Fila k="Región de Winkler" v={`${clima.region.etiqueta || `Región ${clima.region.n}`} (${clima.region.desc})`} />
-      <Fila k="Categoría según temperatura de temporada (Jones)" v={clima.gstClase} />
-      <Fila k="Índice de Huglin (Tonietto & Carbonneau)" v={clima.huglinClase} />
-      {clima.nochesClase && <Fila k="Índice de frío nocturno (Tonietto & Carbonneau)" v={clima.nochesClase} />}
+      <Fila
+        k="Región de Winkler"
+        v={`${clima.region.etiqueta || `Región ${clima.region.n}`} (${clima.region.desc})`}
+        ayuda="Escala clásica que agrupa las zonas vitícolas del mundo según sus grados-día: de Ia (la más fresca) a V (la más cálida)."
+      />
+      <Fila
+        k="Categoría según temperatura de temporada (Jones)"
+        v={clima.gstClase}
+        ayuda="Clasificación de G. V. Jones: fresca 13–15 °C, intermedia 15–17, cálida 17–19, calurosa 19–21, muy calurosa 21–24 °C."
+      />
+      <Fila
+        k="Índice de Huglin (Tonietto & Carbonneau)"
+        v={clima.huglinClase}
+        ayuda="Clases del Sistema de Clasificación Climática Multicriterio (Tonietto & Carbonneau, 2004): muy fresco, fresco, templado, templado cálido, cálido y muy cálido."
+      />
+      {clima.nochesClase && (
+        <Fila
+          k="Índice de frío nocturno (Tonietto & Carbonneau)"
+          v={clima.nochesClase}
+          ayuda="Según la mínima media de marzo: noches muy frías (≤ 12 °C), frías (12–14), templadas (14–18) o cálidas (> 18 °C)."
+        />
+      )}
       <ul className="notas">
         {clima.notas.map((n, i) => (
           <li key={i}>{n}</li>
@@ -747,7 +783,10 @@ function TarjetaClima({ clima }) {
           <tbody>
             {filas.map(([t, k, u, d]) => (
               <tr key={k}>
-                <td>{t}</td>
+                <td>
+                  {t}
+                  <div className="ayuda-k">{AYUDA_CLIMA[k]}</div>
+                </td>
                 <td className="destacar">{val(a || p, k, u, d)}</td>
                 {f2 && <td>{val(f2, k, u, d)}</td>}
                 {f5 && <td>{val(f5, k, u, d)}</td>}
@@ -756,6 +795,14 @@ function TarjetaClima({ clima }) {
           </tbody>
         </table>
       </div>
+      <p className="tenue">
+        {a
+          ? `Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, datos diarios observados (construidos con estaciones de la DMC y la DGA), promedio de mayo ${per.desde} a abril ${per.hasta}. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de 20–30 modelos climáticos corregidos) entre 1980–2010 y 2035–2065. Escenario moderado (SSP2-4.5) = el mundo reduce emisiones a un ritmo intermedio; escenario alto (SSP5-8.5) = las emisiones siguen creciendo. "—" = ARClim no permite proyectar ese dato con la misma definición. `
+          : "Fuente: ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente (grilla de ~5 km referenciada a CR2MET; futuro según el promedio de modelos climáticos corregidos). "}
+        Índices calculados con promedios mensuales. Los datos son de una celda de ~5 km (elevación media{" "}
+        {fmt(clima.elevCelda)} m{clima.vecina ? "; se usó la celda vecina más cercana" : ""}): no captan el microclima de un
+        cuartel. En fondos de valle las heladas pueden ser más frecuentes y en laderas la temperatura puede diferir.
+      </p>
 
       <h4>Cepas según su rango térmico publicado</h4>
       <div className="tabla-scroll">
@@ -787,74 +834,84 @@ function TarjetaClima({ clima }) {
         </table>
       </div>
       <p className="tenue">
-        Rangos publicados en texto por G. V. Jones (ver Fuentes). "En el límite" = a menos de 1 °C del rango, por la
-        incertidumbre de los datos. Otras cepas (Carmenère, Syrah, Merlot, Sauvignon Blanc…) no se listan porque no
-        encontramos sus rangos numéricos publicados en texto, y no se inventan cifras.
+        Cómo leerla: cada cepa madura bien dentro de un rango de temperatura media de temporada. "Sí" = la temperatura del
+        terreno ({fmt(clima.gst, 1)} °C) cae dentro del rango; "En el límite" = queda a menos de 1 °C del rango (margen por
+        la incertidumbre de los datos). Rangos publicados en texto por G. V. Jones (ver Fuentes). Otras cepas (Carmenère,
+        Syrah, Merlot, Sauvignon Blanc…) no se listan porque no encontramos sus rangos numéricos publicados en texto, y no se
+        inventan cifras.
       </p>
-      <p className="tenue">
-        {a
-          ? `Columna "Actual": CR2MET v2.5 del Centro de Ciencia del Clima y la Resiliencia (CR)2, datos diarios observados (construidos con estaciones de la DMC y la DGA), promedio de mayo ${per.desde} a abril ${per.hasta}. Columnas 2035–2065: clima actual más el cambio que proyecta ARClim (Ministerio del Medio Ambiente, promedio de 20–30 modelos climáticos corregidos) entre 1980–2010 y 2035–2065; "—" = ARClim no permite proyectar ese dato con la misma definición. `
-          : "Fuente: ARClim, Atlas de Riesgos Climáticos del Ministerio del Medio Ambiente (grilla de ~5 km referenciada a CR2MET; futuro según el promedio de modelos climáticos corregidos). "}
-        Índices calculados con promedios mensuales. Elevación media de la celda: {fmt(clima.elevCelda)} m
-        {clima.vecina ? " (se usó la celda vecina más cercana)" : ""}. Una celda de 5 km no capta el microclima de un cuartel:
-        en fondos de valle las heladas pueden ser más frecuentes y en laderas o quebradas la temperatura puede diferir.
-      </p>
+
+      {agroclima && agroclima.disponible && <ContrasteCIREN a={agroclima} clima={clima} />}
     </Tarjeta>
   );
 }
 
-// ---- Agroclima oficial de CIREN (donde existe)
-function TarjetaAgroclima({ a }) {
-  if (!a || !a.disponible) return null;
+// ---- Contraste con el estudio agroclimático oficial de CIREN (otra fuente)
+function ContrasteCIREN({ a, clima }) {
   const filas = [
-    ["Suma térmica anual", "sumaTermica", " °C·día", 0],
-    ["Período libre de heladas", "libreHeladas", " días", 0],
-    ["Heladas al año", "nHeladas", "", 0],
-    ["Temperatura máxima media de enero", "tmaxEnero", " °C", 1],
-    ["Temperatura mínima media de julio", "tminJulio", " °C", 1],
-    ["Precipitación anual", "precip", " mm", 0],
-    ["Evapotranspiración de referencia anual", "etp", " mm", 0],
-    ["Déficit hídrico anual", "deficit", " mm", 0],
+    ["Suma térmica anual", "sumaTermica", " °C·día", 0, "Calor acumulado en todo el año según CIREN. No es igual a los grados-día de Winkler de arriba (que cuentan solo octubre a abril), pero ambos miden calor disponible."],
+    ["Temperatura máxima media del mes más cálido", "tmaxEnero", " °C", 1, "Comparable con la «máxima media de enero» de la tabla de arriba."],
+    ["Temperatura mínima del mes más frío", "tminJulio", " °C", 1, "Mínima media del mes más frío del invierno."],
+    ["Heladas al año", "nHeladas", "", 0, "Comparable con los «días con helada al año» de arriba."],
+    ["Período libre de heladas", "libreHeladas", " días", 0, "Días seguidos entre la última helada de primavera y la primera de otoño. Más días = menos riesgo para brotes y fruta."],
+    ["Precipitación anual", "precip", " mm", 0, "Lluvia total del año."],
+    ["Evapotranspiración potencial anual", "etp", " mm", 0, "Agua que el clima puede evaporar y transpirar en un año (ver la sección de riego)."],
+    ["Déficit hídrico anual", "deficit", " mm", 0, "Cuánto le falta a la lluvia para cubrir esa evapotranspiración: es una medida de cuánta agua de riego hace falta."],
   ];
   const val = (o, k, u, d) => (o && o[k] != null ? fmt(o[k], d) + u : "—");
   return (
-    <Tarjeta titulo={`Agroclima oficial (CIREN) — zona ${a.zona || ""}`}>
-      <div className="tabla-scroll"><table className="tabla">
-        <thead>
-          <tr>
-            <th>Variable</th>
-            <th>Clima actual</th>
-            {a.cercano && <th>Futuro cercano</th>}
-            {a.medio && <th>Futuro medio</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map(([t, k, u, d]) => (
-            <tr key={k}>
-              <td>{t}</td>
-              <td>{val(a.actual, k, u, d)}</td>
-              {a.cercano && <td>{val(a.cercano, k, u, d)}</td>}
-              {a.medio && <td>{val(a.medio, k, u, d)}</td>}
-            </tr>
-          ))}
-          {a.actual.primeraHelada && (
-            <tr>
-              <td>Primera / última helada</td>
-              <td>
-                {String(a.actual.primeraHelada).toLowerCase()} / {String(a.actual.ultimaHelada || "—").toLowerCase()}
-              </td>
-              {a.cercano && <td>{String(a.cercano.primeraHelada || "—").toLowerCase()} / {String(a.cercano.ultimaHelada || "—").toLowerCase()}</td>}
-              {a.medio && <td>{String(a.medio.primeraHelada || "—").toLowerCase()} / {String(a.medio.ultimaHelada || "—").toLowerCase()}</td>}
-            </tr>
-          )}
-        </tbody>
-      </table></div>
+    <details className="contraste">
+      <summary>Comparar con el estudio oficial de CIREN (zona {a.zona || "—"})</summary>
       <p className="tenue">
-        Fuente: {a.estudio}. Es el estudio oficial de CIREN para la zona y sirve para contrastar los datos de CR2MET y ARClim. Los horizontes
-        "futuro cercano" y "futuro medio" son los del estudio de CIREN (el servicio de mapas no indica sus años exactos).
-        CIREN tiene esta zonificación solo para algunas regiones.
+        Esta tabla NO repite los datos de arriba: es una <strong>segunda fuente independiente</strong>, el estudio de
+        zonificación agroclimática de CIREN ({a.estudio}). Sirve para contrastar. Los números no coinciden exactamente
+        porque CIREN usa otro período, otros métodos y zonas más grandes que la celda de 5 km de CR2MET; si ambas fuentes
+        cuentan una historia parecida, el dato es más confiable.
       </p>
-    </Tarjeta>
+      <div className="tabla-scroll">
+        <table className="tabla">
+          <thead>
+            <tr>
+              <th>Variable (CIREN)</th>
+              <th>Clima actual</th>
+              {a.cercano && <th>Futuro cercano</th>}
+              {a.medio && <th>Futuro medio</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map(([t, k, u, d, ay]) => (
+              <tr key={k}>
+                <td>
+                  {t}
+                  <div className="ayuda-k">{ay}</div>
+                </td>
+                <td>{val(a.actual, k, u, d)}</td>
+                {a.cercano && <td>{val(a.cercano, k, u, d)}</td>}
+                {a.medio && <td>{val(a.medio, k, u, d)}</td>}
+              </tr>
+            ))}
+            {a.actual.primeraHelada && (
+              <tr>
+                <td>
+                  Primera / última helada
+                  <div className="ayuda-k">Fechas típicas de la primera helada de otoño y la última de primavera.</div>
+                </td>
+                <td>
+                  {String(a.actual.primeraHelada).toLowerCase()} / {String(a.actual.ultimaHelada || "—").toLowerCase()}
+                </td>
+                {a.cercano && <td>{String(a.cercano.primeraHelada || "—").toLowerCase()} / {String(a.cercano.ultimaHelada || "—").toLowerCase()}</td>}
+                {a.medio && <td>{String(a.medio.primeraHelada || "—").toLowerCase()} / {String(a.medio.ultimaHelada || "—").toLowerCase()}</td>}
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p className="tenue">
+        Los horizontes "futuro cercano" y "futuro medio" son los del estudio de CIREN; su servicio de mapas no indica los
+        años exactos ni el período del clima actual. CIREN tiene este estudio solo para Atacama, Valparaíso, Metropolitana,
+        O'Higgins y Magallanes.
+      </p>
+    </details>
   );
 }
 
@@ -883,19 +940,28 @@ function TarjetaRiego({ clima, agroclima, pron }) {
           </thead>
           <tbody>
             <tr>
-              <td>Evapotranspiración de referencia (ET0)</td>
+              <td>
+                Evapotranspiración de referencia (ET0)
+                <div className="ayuda-k">Agua que el clima "saca" de un pasto bien regado (por sol, calor, viento y aire seco). Mide la demanda de agua del lugar.</div>
+              </td>
               {col.map(([t, v]) => (
                 <td key={t}>{v.et0 != null ? `${fmt(v.et0)} mm` : "—"}</td>
               ))}
             </tr>
             <tr>
-              <td>Consumo de la viña (ETc = Kc × ET0)</td>
+              <td>
+                Consumo de la viña (ETc = Kc × ET0)
+                <div className="ayuda-k">La viña consume menos que el pasto de referencia: se multiplica ET0 por el coeficiente de cultivo Kc de la vid (FAO-56), que sube a medida que crecen las hojas.</div>
+              </td>
               {col.map(([t, v]) => (
                 <td key={t}>{fmt(v.etc)} mm</td>
               ))}
             </tr>
             <tr>
-              <td>Lluvia</td>
+              <td>
+                Lluvia
+                <div className="ayuda-k">Lluvia de octubre a abril.</div>
+              </td>
               {col.map(([t, v]) => (
                 <td key={t}>{fmt(v.lluvia)} mm</td>
               ))}
@@ -903,6 +969,7 @@ function TarjetaRiego({ clima, agroclima, pron }) {
             <tr>
               <td>
                 <strong>Riego necesario (aprox.)</strong>
+                <div className="ayuda-k">Consumo de la viña menos la lluvia. 1 mm de agua sobre 1 hectárea = 10 m³ (10.000 litros).</div>
               </td>
               {col.map(([t, v]) => (
                 <td key={t}>
@@ -970,13 +1037,15 @@ function TarjetaSuelo({ suelo }) {
           <span className="punto nd" />
           <div>
             <strong>No clasificado (N.C.) — {fmt(suelo.pctNC)}%</strong>
-            <div>Sectores que el estudio de CIREN no clasificó (por ejemplo, zonas urbanas, cauces o caminos).</div>
+            <div>Sectores a los que CIREN no asignó clase en su estudio. En nuestras pruebas aparece en ciudades (Santiago, Rancagua, Paine) y en cerros no estudiados: ahí no hay dato de suelo.</div>
           </div>
         </div>
       )}
       <p className="tenue">
-        La capacidad de uso (clases I a VIII, Pauta del SAG) mide la aptitud del suelo para cultivos en general, no
-        específicamente para vid: las clases I–IV son arables y las V–VIII no arables. El color de cada clase es criterio de
+        Cómo leerlo: la capacidad de uso (clases I a VIII, Pauta para Estudio de Suelos del SAG) ordena los suelos según
+        cuántas limitaciones tienen para cultivar: I = casi sin limitaciones; VIII = sin valor agrícola. Las clases I–IV son
+        "arables" (se pueden arar y cultivar) y las V–VIII no arables. Mide la aptitud para cultivos en general, no
+        específicamente para vid. Los porcentajes indican qué parte de los puntos de muestreo del terreno cayó en cada clase. El color de cada clase es criterio de
         WineCheck. Confirmar siempre con calicatas. Estudio: {suelo.estudios.join(", ") || "CIREN"}. Basado en {suelo.muestras}{" "}
         {suelo.muestras === 1 ? "punto" : "puntos"}{suelo.fallos ? ` (${suelo.fallos} sin respuesta de CIREN)` : ""}
         {suelo.sinCobertura ? `; ${suelo.sinCobertura} fuera de la cobertura del estudio` : ""}.
@@ -1003,26 +1072,38 @@ function TarjetaPropSuelo({ soil, erosion }) {
           </thead>
           <tbody>
             <tr>
-              <td>Textura (USDA)</td>
+              <td>
+                Textura (USDA)
+                <div className="ayuda-k">Tipo de suelo según su mezcla de partículas: arenosa (suelta, drena rápido, retiene poca agua), franca (equilibrada) o arcillosa (retiene más agua, drena lento).</div>
+              </td>
               <td>{s.textura}</td>
               <td>{b?.textura || "—"}</td>
             </tr>
             <tr>
-              <td>Arena / limo / arcilla</td>
+              <td>
+                Arena / limo / arcilla
+                <div className="ayuda-k">Porcentaje de cada tamaño de partícula: arena (gruesa), limo (media) y arcilla (muy fina).</div>
+              </td>
               <td>
                 {fmt(s.arena)} / {fmt(s.limo)} / {fmt(s.arcilla)} %
               </td>
               <td>{b ? `${fmt(b.arena)} / ${fmt(b.limo)} / ${fmt(b.arcilla)} %` : "—"}</td>
             </tr>
             <tr>
-              <td>pH en agua</td>
+              <td>
+                pH en agua
+                <div className="ayuda-k">Acidez del suelo: 7 es neutro, menos de 7 ácido y más de 7 alcalino. Influye en qué nutrientes puede absorber la planta.</div>
+              </td>
               <td>
                 {fmt(s.ph, 1)} ({s.phClase})
               </td>
               <td>{b?.ph != null ? `${fmt(b.ph, 1)} (${b.phClase})` : "—"}</td>
             </tr>
             <tr>
-              <td>Fragmentos gruesos (piedras)</td>
+              <td>
+                Fragmentos gruesos (piedras)
+                <div className="ayuda-k">Porcentaje del volumen del suelo ocupado por piedras y gravas de más de 2 mm.</div>
+              </td>
               <td>{fmt(s.pedregosidad)} % del volumen</td>
               <td>{b?.pedregosidad != null ? `${fmt(b.pedregosidad)} %` : "—"}</td>
             </tr>
@@ -1047,9 +1128,9 @@ function TarjetaPropSuelo({ soil, erosion }) {
       {erosion && (erosion.actual || erosion.riesgoActual) && (
         <>
           <h4>Erosión en el centro del terreno (CIREN)</h4>
-          {erosion.actual && <Fila k="Erosión actual" v={erosion.actual} />}
-          {erosion.riesgoActual && <Fila k="Riesgo de erosión actual" v={erosion.riesgoActual} />}
-          {erosion.riesgoPotencial && <Fila k="Riesgo de erosión potencial" v={erosion.riesgoPotencial} />}
+          {erosion.actual && <Fila k="Erosión actual" v={erosion.actual} ayuda="Pérdida de suelo que ya ocurrió (por agua o viento), según CIREN." />}
+          {erosion.riesgoActual && <Fila k="Riesgo de erosión actual" v={erosion.riesgoActual} ayuda="Probabilidad de que el suelo se erosione con su cobertura vegetal actual." />}
+          {erosion.riesgoPotencial && <Fila k="Riesgo de erosión potencial" v={erosion.riesgoPotencial} ayuda="Riesgo si el suelo quedara sin vegetación (por ejemplo, al preparar el terreno para plantar)." />}
         </>
       )}
     </Tarjeta>
@@ -1062,11 +1143,12 @@ function TarjetaRelieve({ p }) {
   if (p.estado === "nd") return <SinDato id="s-relieve" titulo="Pendiente y relieve" texto={p.nota} />;
   return (
     <Tarjeta id="s-relieve" titulo="Pendiente y relieve" estado={p.estado}>
-      <Fila k="Pendiente media" v={`${fmt(p.media)}%`} sub={p.nota} />
-      <Fila k="Superficie con pendiente > 15% / > 30%" v={`${fmt(p.pct15)}% / ${fmt(p.pct30)}%`} />
-      <Fila k="Altitud" v={`${fmt(p.elevMin)}–${fmt(p.elevMax)} m s.n.m.`} />
+      <Fila k="Pendiente media" v={`${fmt(p.media)}%`} sub={p.nota} ayuda="Cuántos metros sube el terreno por cada 100 m horizontales. 10% = sube 10 m cada 100 m." />
+      <Fila k="Superficie con pendiente > 15% / > 30%" v={`${fmt(p.pct15)}% / ${fmt(p.pct30)}%`} ayuda="Parte del terreno con laderas fuertes: sobre 15% se complica la mecanización y sobre 30% suele requerir terrazas o trabajo manual." />
+      <Fila k="Altitud" v={`${fmt(p.elevMin)}–${fmt(p.elevMax)} m s.n.m.`} ayuda="Altura mínima y máxima del terreno sobre el nivel del mar." />
       <Fila
         k="Exposición general"
+        ayuda="Hacia dónde mira la ladera. En el hemisferio sur, las laderas que miran al norte reciben más sol y calor; las que miran al sur, menos."
         v={p.exposicion || (p.media >= 5 ? "sin una orientación dominante" : "terreno prácticamente plano")}
         sub={p.exposicion ? p.notaExposicion : p.media >= 5 ? "El terreno tiene laderas con distintas orientaciones (por ejemplo, ambos lados de una quebrada)." : null}
       />
@@ -1114,8 +1196,12 @@ function TarjetaAgua({ agua, agot }) {
         <p className="falla">No se pudo consultar la DGA (agotamiento).</p>
       )}
       <p className="tenue">
-        Indica la situación administrativa de las fuentes de agua. No reemplaza revisar los derechos de agua que tenga el
-        predio (Catastro Público de Aguas de la DGA).
+        Cómo leerlo: la DGA divide cada acuífero en sectores llamados <strong>SHAC</strong> (Sector Hidrogeológico de
+        Aprovechamiento Común) y define si se pueden pedir nuevos derechos de agua subterránea: <strong>Abierto</strong> = se
+        pueden pedir; <strong>Área de Restricción</strong> = solo derechos provisionales; <strong>Zona de Prohibición</strong>{" "}
+        = no se otorgan nuevos derechos. En agua superficial, una <strong>declaración de agotamiento</strong> significa que
+        ese río o estero no admite nuevos derechos permanentes. Es la situación administrativa de la fuente; no reemplaza
+        revisar los derechos de agua que ya tenga el predio (Catastro Público de Aguas de la DGA).
       </p>
     </Tarjeta>
   );
@@ -1126,6 +1212,11 @@ function TarjetaEscasez({ e }) {
   if (!e) return <SinDato titulo="Escasez hídrica (DGA)" />;
   return (
     <Tarjeta titulo="Escasez hídrica (DGA)" estado={e.estado}>
+      <p className="tenue">
+        Un decreto de escasez es una declaración del Ministerio de Obras Públicas para zonas con sequía extraordinaria; durante
+        su vigencia la DGA puede tomar medidas especiales para redistribuir el agua (Código de Aguas, art. 314). Que una zona
+        tenga decretos repetidos indica que la falta de agua es frecuente.
+      </p>
       <p>{e.nota}</p>
       {e.decretos.length > 0 ? (
         <>

@@ -223,17 +223,17 @@ export function calcularRiego(clima, agroclima) {
 // (versión modificada 2016). El semáforo de cada clase es criterio de
 // WineCheck para viña, no una norma oficial.
 export const CLASES_SUELO = {
-  I: { estado: "apto", titulo: "Clase I", desc: "Arable, con pocas limitaciones. Suelos planos o casi planos, profundos, bien drenados, sin pedregosidad ni erosión; aptos para uso agrícola intensivo." },
-  II: { estado: "apto", titulo: "Clase II", desc: "Arable, con ligeras limitaciones (por ejemplo, pendiente de hasta 5%, profundidad no menor a 70 cm o drenaje moderado); pueden requerir prácticas de conservación." },
-  III: { estado: "apto", titulo: "Clase III", desc: "Arable, con limitaciones al laboreo (pendientes cercanas al 8% o hasta 15% de pedregosidad superficial); pueden limitar especies de raíces profundas y exigen prácticas de conservación." },
-  IV: { estado: "riesgo", titulo: "Clase IV", desc: "Última clase arable: riesgo de erosión por pendiente (hasta 15%) o profundidad no mayor a 40 cm, pedregosidad o drenaje imperfecto; requiere prácticas de conservación." },
-  V: { estado: "veto", titulo: "Clase V", desc: "No arable: suelos depresionales inundados, con drenaje muy pobre e inundación permanente y vegetación de suelos saturados." },
-  VI: { estado: "riesgo", titulo: "Clase VI", desc: "No arable para laboreo (principalmente por pendiente, pedregosidad o erosión severa); su uso normal es ganadero y forestal." },
-  VII: { estado: "veto", titulo: "Clase VII", desc: "No arable, con limitaciones muy severas que lo hacen inadecuado para cultivos (escarpado, muy delgado o muy pedregoso); uso de pastoreo y forestal." },
-  VIII: { estado: "veto", titulo: "Clase VIII", desc: "Sin valor agrícola, ganadero ni forestal; uso limitado a vida silvestre, recreación o protección de cuencas." },
+  I: { estado: "apto", titulo: "Clase I", desc: "Arable, con pocas limitaciones: suelos planos o casi planos, profundos, bien drenados, de textura media, sin piedras y sin erosión visible." },
+  II: { estado: "apto", titulo: "Clase II", desc: "Arable, con ligeras limitaciones que pueden afectar a los cultivos, por ejemplo pendientes de hasta 5%, profundidad no menor a 70 cm o drenaje moderado." },
+  III: { estado: "apto", titulo: "Clase III", desc: "Arable, con limitaciones moderadas: dificultan el laboreo con pendientes cercanas al 8% o hasta 15% de piedras en superficie, y requieren prácticas de conservación de suelos. También puede deberse a menor profundidad, drenaje imperfecto, erosión moderada, inundaciones frecuentes o algo de sales o sodio." },
+  IV: { estado: "riesgo", titulo: "Clase IV", desc: "Última clase arable: riesgo de erosión por pendientes de hasta 15% o profundidad no superior a 40 cm; también puede tener abundantes piedras en superficie o sales o sodio moderados." },
+  V: { estado: "veto", titulo: "Clase V", desc: "No arable: suelos inundados, con drenaje pobre a muy pobre, generalmente en depresiones, con vegetación propia de suelos saturados de agua." },
+  VI: { estado: "riesgo", titulo: "Clase VI", desc: "No apto para laboreo, principalmente por pendiente; su uso normal es ganadero y forestal. Otras causas posibles: erosión severa, drenaje excesivo o mucha sal o sodio." },
+  VII: { estado: "veto", titulo: "Clase VII", desc: "No arable, con limitaciones muy severas que lo hacen inadecuado para cultivos (pendientes fuertes, suelos muy delgados, erosión muy severa o inundaciones muy frecuentes); uso principal de pastoreo y forestal." },
+  VIII: { estado: "veto", titulo: "Clase VIII", desc: "Sin valor agrícola, ganadero ni forestal; su uso se limita a vida silvestre, recreación o protección de cuencas." },
 };
 export const SUBCLASES = {
-  e: "riesgo o efectos de erosión",
+  e: "riesgo o efectos de antiguas erosiones",
   w: "humedad (drenaje)",
   s: "limitaciones del suelo",
   c: "clima",
