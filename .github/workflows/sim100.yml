@@ -23,5 +23,5 @@ jobs:
           cd pruebas && mkdir -p salida && cp sim-log.txt salida/ || true
           cd salida && git init -q && git checkout -q -b pruebas-sim100
           git config user.name "github-actions"; git config user.email "github-actions@users.noreply.github.com"
-          git add -A && git commit -qm "Simulación 100 terrenos $GITHUB_SHA"
+          echo '{"git":{"deploymentEnabled":false}}' > vercel.json && git add -A && git commit -qm "Simulación 100 terrenos $GITHUB_SHA"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" pruebas-sim100
