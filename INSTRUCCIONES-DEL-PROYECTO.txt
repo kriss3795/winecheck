@@ -170,3 +170,26 @@ CÓMO QUIERO QUE TRABAJES:
 - Didáctico, en español, paso a paso.
 - Antes de reescribir código grande, dime qué vas a tocar.
 - No inventes datos ni fuentes. Si algo no se puede confirmar, dímelo.
+
+
+CAMBIOS 28-10-2026 (revisión de exactitud + simulación de 100 terrenos)
+- Escasez hídrica HOY: listado oficial "Decretos declaración zona de escasez
+  vigentes" de la DGA (dga.mop.gob.cl/derechos-de-agua/proteccion-de-las-
+  fuentes/decretos-de-escasez-2/) → public/escasez.json, actualizado cada
+  semana por GitHub Actions (scripts/escasez.mjs). Se cruza por provincia,
+  comuna o SHAC. La capa de mapas DGA (hasta 2023) queda solo para historial.
+- Embalses del inventario de humedales MMA (ORDEN_1=10 y nombre "Embalse…")
+  se EXCLUYEN de lo plantable. Tranques y otros artificiales = advertencia.
+- Sin clase de suelo CIREN nunca se entrega "Buena opción" (se pide calicata).
+- Lluvia anual < 100 mm: aviso de que toda el agua debe venir del riego.
+- Avisos de clima: terreno a ≥200 m de la altura media de la celda (0,65 °C
+  por 100 m, atmósfera estándar) y desacuerdo ≥2,5 °C entre CR2MET y CIREN
+  en la máxima de verano (pasa en ~1 de cada 3 zonas con estudio CIREN).
+- El agroclima de CIREN se muestra DENTRO de la tarjeta de clima como
+  "contraste" plegable (no es dato repetido: es una segunda fuente).
+- Cada parámetro tiene una explicación simple debajo.
+- Clases de suelo redactadas según el texto de la Pauta SAG 2016; "N.C."
+  verificado en ciudades (Santiago, Rancagua, Paine) y cerros.
+- Simulación de 100 terrenos (pruebas/sim100.py) con control independiente:
+  comuna 100/100, clase de suelo del centro 100%, parques 9/9 vetados,
+  elevación 100%, sin textos rotos.
